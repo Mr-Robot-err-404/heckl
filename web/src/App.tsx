@@ -2,7 +2,7 @@ import { createSignal, Show } from "solid-js"
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
 import { PRDetail } from "./components/PRDetail"
 import { PRList } from "./components/PRList"
-import { RepoSidebar } from "./components/RepoSidebar"
+import { TopBar } from "./components/TopBar"
 import type { PR, Repo } from "./types"
 
 const client = new QueryClient()
@@ -11,7 +11,7 @@ export default function App() {
   const [selectedRepo, setSelectedRepo] = createSignal<Repo | null>(null)
   const [selectedPR, setSelectedPR] = createSignal<PR | null>(null)
 
-  function handleSelectRepo(repo: Repo) {
+  function handleSelectRepo(repo: Repo | null) {
     setSelectedRepo(repo)
     setSelectedPR(null)
   }
@@ -19,24 +19,31 @@ export default function App() {
   return (
     <QueryClientProvider client={client}>
       <div class="layout">
-        <RepoSidebar selected={selectedRepo()} onSelect={handleSelectRepo} />
-        <Show when={selectedRepo()} keyed>
-          {(repo) => (
-            <PRList repo={repo} selected={selectedPR()} onSelect={setSelectedPR} />
-          )}
-        </Show>
-        <main class="main">
-          <Show
-            when={selectedRepo() && selectedPR()}
-            fallback={
-              <div class="status">
-                {selectedRepo() ? "select a PR" : "add or select a repo"}
-              </div>
-            }
-          >
-            <PRDetail repo={selectedRepo()!} pr={selectedPR()!} />
+        <TopBar selected={selectedRepo()} onSelect={handleSelectRepo} />
+        <div class="content">
+          <Show when={selectedRepo()} keyed>
+            {(repo) => (
+              <Show
+                when={selectedPR()}
+                keyed
+                fallback={
+                  <PRList repo={repo} onSelect={setSelectedPR} />
+                }
+              >
+                {(pr) => (
+                  <PRDetail
+                    repo={repo}
+                    pr={pr}
+                    onBack={() => setSelectedPR(null)}
+                  />
+                )}
+              </Show>
+            )}
           </Show>
-        </main>
+          <Show when={!selectedRepo()}>
+            <div class="empty">select a repo to begin</div>
+          </Show>
+        </div>
       </div>
     </QueryClientProvider>
   )
