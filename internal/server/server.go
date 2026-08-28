@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -36,6 +38,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /api/repos/{owner}/{name}", s.handleDeleteRepo)
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}", s.handleListPRs)
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}/{number}", s.handleGetPR)
+	s.mux.HandleFunc("GET /api/diff/{owner}/{repo}/{number}", s.handleDiff)
 }
 
 func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
@@ -148,6 +151,45 @@ func (s *Server) handleDeleteRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		http.Error(w, "invalid pr number", http.StatusBadRequest)
+		return
+	}
+
+	url := fmt.Sprintf(
+		"https://api.github.com/repos/%s/%s/pulls/%d",
+		owner, repo, number,
+	)
+	req, err := http.NewRequestWithContext(r.Context(), "GET", url, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.gh.Token())
+	req.Header.Set("Accept", "application/vnd.github.diff")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		http.Error(w, fmt.Sprintf("github: %d", resp.StatusCode), resp.StatusCode)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	io.Copy(w, resp.Body)
 }
 
 func jsonOK(w http.ResponseWriter, v any) {

@@ -1,5 +1,6 @@
-import { For, Show } from "solid-js"
+import { Show } from "solid-js"
 import { usePRDetail } from "../queries"
+
 import { DiffView } from "./DiffView"
 import { Markdown } from "./Markdown"
 
@@ -43,6 +44,7 @@ export function PRDetail(props: Props) {
                     <Markdown content={d.pr.Body} />
                   </div>
                 </Show>
+                <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
               </>
             )
           }}
@@ -51,19 +53,6 @@ export function PRDetail(props: Props) {
           <div class="muted">loading...</div>
         </Show>
       </div>
-      <Show when={detail.data} keyed>
-        {(d) => (
-          <div class="diff-list">
-            <For each={d.files}>
-              {(file) => (
-                <Show when={file.Patch}>
-                  <DiffView file={file} />
-                </Show>
-              )}
-            </For>
-          </div>
-        )}
-      </Show>
     </div>
   )
 }

@@ -264,7 +264,12 @@ html, body, #root { height: 100%; }
   border-radius: 0 4px 4px 0;
 }
 
-.diff-list { display: flex; flex-direction: column; gap: 20px; }
+.diffview-wrap { margin-top: 20px; }
+
+.diffview-host {
+  height: calc(100vh - var(--topbar-h) - 200px);
+  overflow: auto;
+}
 
 /* ── Markdown ── */
 .markdown { line-height: 1.7; color: var(--subtext1); font-size: 13px; }

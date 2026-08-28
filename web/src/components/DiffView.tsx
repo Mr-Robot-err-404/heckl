@@ -1,31 +1,76 @@
-import { onCleanup, onMount } from "solid-js"
-import { FileDiff, getSingularPatch } from "@pierre/diffs"
-import type { PRFile } from "../types"
+import { createEffect, createSignal, onCleanup } from "solid-js"
+import { CodeView, parsePatchFiles, type CodeViewItem } from "@pierre/diffs"
 
 type Props = {
-  file: PRFile
-}
-
-function buildPatch(file: PRFile): string {
-  const a = `a/${file.Filename}`
-  const b = `b/${file.Filename}`
-  return `diff --git ${a} ${b}\n--- ${a}\n+++ ${b}\n${file.Patch}`
+  owner: string
+  repo: string
+  prNumber: number
 }
 
 export function DiffView(props: Props) {
-  let container!: HTMLDivElement
-  let instance: InstanceType<typeof FileDiff> | null = null
+  let host!: HTMLDivElement
+  let view: InstanceType<typeof CodeView> | null = null
+  const [error, setError] = createSignal<string | null>(null)
 
-  onMount(() => {
-    const fileDiff = getSingularPatch(buildPatch(props.file))
-    instance = new FileDiff()
-    instance.hydrate({ fileDiff, fileContainer: container })
+  createEffect(() => {
+    const owner = props.owner
+    const repo = props.repo
+    const number = props.prNumber
+
+    const controller = new AbortController()
+
+    async function load() {
+      try {
+        const res = await fetch(`/api/diff/${owner}/${repo}/${number}`, {
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error(`${res.status}`)
+        const patch = await res.text()
+        const patches = parsePatchFiles(patch, `${owner}/${repo}/${number}`)
+        const items: CodeViewItem[] = patches.flatMap((p) =>
+          p.files.map((fileDiff) => ({
+            id: `${fileDiff.name}`,
+            type: "diff" as const,
+            fileDiff,
+          }))
+        )
+
+        view?.cleanUp()
+        view = new CodeView({
+          theme: { dark: "pierre-dark", light: "pierre-light" },
+          hunkSeparators: "line-info",
+          diffStyle: "unified",
+          diffIndicators: "bars",
+          lineDiffType: "word-alt",
+          stickyHeaders: true,
+          layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
+        })
+        view.setup(host)
+        view.setItems(items)
+        view.render()
+      } catch (e: any) {
+        if (e?.name !== "AbortError") setError(String(e))
+      }
+    }
+
+    load()
+
+    return () => {
+      controller.abort()
+      view?.cleanUp()
+      view = null
+    }
   })
 
   onCleanup(() => {
-    instance?.cleanUp()
-    instance = null
+    view?.cleanUp()
+    view = null
   })
 
-  return <div ref={container} />
+  return (
+    <div class="diffview-wrap">
+      {error() && <div class="muted">{error()}</div>}
+      <div ref={host} class="diffview-host" />
+    </div>
+  )
 }

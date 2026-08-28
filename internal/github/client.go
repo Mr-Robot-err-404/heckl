@@ -21,6 +21,8 @@ func New(token string) *Client {
 	}
 }
 
+func (c *Client) Token() string { return c.token }
+
 func (c *Client) do(method, path string) (*http.Response, error) {
 	req, err := http.NewRequest(method, baseURL+path, nil)
 	if err != nil {
