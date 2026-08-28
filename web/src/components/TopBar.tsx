@@ -1,18 +1,30 @@
 import { createSignal, For, Show } from "solid-js"
+import { useNavigate, useParams } from "@tanstack/solid-router"
 import { useAddRepo, useRepos } from "../queries"
-import type { Repo } from "../types"
 
-type Props = {
-  selected: Repo | null
-  onSelect: (repo: Repo | null) => void
-}
-
-export function TopBar(props: Props) {
+export function TopBar() {
   const repos = useRepos()
   const addRepo = useAddRepo()
+  const navigate = useNavigate()
   const [input, setInput] = createSignal("")
   const [error, setError] = createSignal<string | null>(null)
   const [adding, setAdding] = createSignal(false)
+
+  const params = useParams({ strict: false })
+  const selectedKey = () => {
+    const p = params()
+    return p.owner && p.repo ? `${p.owner}/${p.repo}` : ""
+  }
+
+  function handleChange(e: Event) {
+    const val = (e.target as HTMLSelectElement).value
+    if (val === "__add__") {
+      setAdding(true)
+      return
+    }
+    const [owner, repo] = val.split("/")
+    navigate({ to: "/$owner/$repo", params: { owner, repo } })
+  }
 
   function handleAdd() {
     const parts = input().trim().split("/")
@@ -25,20 +37,10 @@ export function TopBar(props: Props) {
         setInput("")
         setError(null)
         setAdding(false)
-        props.onSelect(repo)
+        navigate({ to: "/$owner/$repo", params: { owner: repo.Owner, repo: repo.Name } })
       },
       onError: (e) => setError(String(e)),
     })
-  }
-
-  function handleChange(e: Event) {
-    const val = (e.target as HTMLSelectElement).value
-    if (val === "__add__") {
-      setAdding(true)
-      return
-    }
-    const repo = repos.data?.find((r) => String(r.ID) === val) ?? null
-    props.onSelect(repo)
   }
 
   return (
@@ -61,23 +63,24 @@ export function TopBar(props: Props) {
                 }}
               />
               <button class="topbar-btn" onClick={handleAdd}>add</button>
-              <button class="topbar-btn muted" onClick={() => { setAdding(false); setInput(""); setError(null) }}>cancel</button>
+              <button class="topbar-btn" onClick={() => { setAdding(false); setInput(""); setError(null) }}>cancel</button>
               <Show when={error()}>
                 <span class="input-error">{error()}</span>
               </Show>
             </div>
           }
         >
-          <select class="repo-select" onChange={handleChange} value={props.selected ? String(props.selected.ID) : ""}>
+          <select class="repo-select" value={selectedKey()} onChange={handleChange}>
             <option value="" disabled>select repo</option>
             <For each={repos.data}>
               {(repo) => (
-                <option value={String(repo.ID)}>{repo.Owner}/{repo.Name}</option>
+                <option value={`${repo.Owner}/${repo.Name}`}>
+                  {repo.Owner}/{repo.Name}
+                </option>
               )}
             </For>
             <option value="__add__">+ add repo</option>
           </select>
-
         </Show>
       </div>
     </header>

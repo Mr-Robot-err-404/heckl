@@ -1,10 +1,10 @@
 import { For, Show } from "solid-js"
+import { useNavigate } from "@tanstack/solid-router"
 import { usePRs } from "../queries"
-import type { PR, Repo } from "../types"
 
 type Props = {
-  repo: Repo
-  onSelect: (pr: PR) => void
+  owner: string
+  repo: string
 }
 
 function timeAgo(iso: string): string {
@@ -17,10 +17,8 @@ function timeAgo(iso: string): string {
 }
 
 export function PRList(props: Props) {
-  const prs = usePRs(
-    () => props.repo.Owner,
-    () => props.repo.Name,
-  )
+  const navigate = useNavigate()
+  const prs = usePRs(() => props.owner, () => props.repo)
 
   return (
     <div class="pr-list-page">
@@ -35,7 +33,13 @@ export function PRList(props: Props) {
       <ul class="pr-list">
         <For each={prs.data}>
           {(pr) => (
-            <li class="pr-row" onClick={() => props.onSelect(pr)}>
+            <li
+              class="pr-row"
+              onClick={() => navigate({
+                to: "/$owner/$repo/$pr",
+                params: { owner: props.owner, repo: props.repo, pr: String(pr.Number) },
+              })}
+            >
               <div class="pr-row-main">
                 <span class="pr-row-title">
                   <Show when={pr.Draft}>

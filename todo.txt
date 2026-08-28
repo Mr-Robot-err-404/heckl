@@ -1,0 +1,7 @@
+[x] Render GitHub markdown in PR description
+[ ] Sync button — force re-fetch a PR from GitHub
+[ ] PR file tree sidebar in detail view
+[ ] @pierre/diffs theme matching Evergarden summer
+[ ] Pagination — GitHub only returns 100 PRs, handle larger repos
+[ ] Keyboard navigation — j/k through PR list, Enter to open, Escape to back
+[ ] AI review sessions — walkthrough, correctness, logic, bullshit detector

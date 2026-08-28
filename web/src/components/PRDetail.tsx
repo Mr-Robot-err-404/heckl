@@ -1,19 +1,20 @@
 import { For, Show } from "solid-js"
 import { usePRDetail } from "../queries"
-import type { PR, Repo } from "../types"
 import { DiffView } from "./DiffView"
+import { Markdown } from "./Markdown"
 
 type Props = {
-  repo: Repo
-  pr: PR
+  owner: string
+  repo: string
+  prNumber: number
   onBack: () => void
 }
 
 export function PRDetail(props: Props) {
   const detail = usePRDetail(
-    () => props.repo.Owner,
-    () => props.repo.Name,
-    () => props.pr.Number,
+    () => props.owner,
+    () => props.repo,
+    () => props.prNumber,
   )
 
   return (
@@ -38,7 +39,9 @@ export function PRDetail(props: Props) {
                   <span class="muted">{d.files.length} files changed</span>
                 </div>
                 <Show when={d.pr.Body}>
-                  <p class="pr-body">{d.pr.Body}</p>
+                  <div class="pr-body">
+                    <Markdown content={d.pr.Body} />
+                  </div>
                 </Show>
               </>
             )
