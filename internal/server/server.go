@@ -22,6 +22,10 @@ func New(gh *github.Client, store *store.Store) *Server {
 	return s
 }
 
+func (s *Server) Static(fs http.FileSystem) {
+	s.mux.Handle("/", http.FileServer(fs))
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
@@ -44,6 +48,9 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if prs == nil {
+		prs = []*store.Pr{}
+	}
 	if len(prs) == 0 {
 		remote, err := s.gh.ListRepoPRs(owner, repo)
 		if err != nil {
@@ -105,6 +112,9 @@ func (s *Server) handleListRepos(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if repos == nil {
+		repos = []*store.Repo{}
 	}
 	jsonOK(w, repos)
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"os/exec"
@@ -10,6 +12,9 @@ import (
 	"github.com/harrylawton/pr-review/internal/server"
 	"github.com/harrylawton/pr-review/internal/store"
 )
+
+//go:embed all:dist
+var static embed.FS
 
 func main() {
 	out, err := exec.Command("gh", "auth", "token").Output()
@@ -26,6 +31,12 @@ func main() {
 
 	gh := github.New(token)
 	srv := server.New(gh, db)
+
+	dist, err := fs.Sub(static, "dist")
+	if err != nil {
+		log.Fatal(err)
+	}
+	srv.Static(http.FS(dist))
 
 	addr := ":7331"
 	log.Printf("listening on %s", addr)
