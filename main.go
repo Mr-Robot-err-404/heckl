@@ -2,16 +2,21 @@ package main
 
 import (
 	"log"
-	"os"
+	"net/http"
+	"os/exec"
+	"strings"
 
+	"github.com/harrylawton/pr-review/internal/github"
+	"github.com/harrylawton/pr-review/internal/server"
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
 func main() {
-	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		log.Fatal("GITHUB_TOKEN not set")
+	out, err := exec.Command("gh", "auth", "token").Output()
+	if err != nil {
+		log.Fatal("gh auth token failed — run `gh auth login` first")
 	}
+	token := strings.TrimSpace(string(out))
 
 	db, err := store.Open("pr-review.db")
 	if err != nil {
@@ -19,5 +24,12 @@ func main() {
 	}
 	defer db.Close()
 
-	log.Println("store ready")
+	gh := github.New(token)
+	srv := server.New(gh, db)
+
+	addr := ":7331"
+	log.Printf("listening on %s", addr)
+	if err := http.ListenAndServe(addr, srv); err != nil {
+		log.Fatal(err)
+	}
 }
