@@ -1,8 +1,9 @@
-import { Show } from "solid-js"
+import { createSignal, Show } from "solid-js"
 import { usePRDetail } from "../queries"
-
 import { DiffView } from "./DiffView"
 import { Markdown } from "./Markdown"
+
+type Tab = "description" | "review"
 
 type Props = {
   owner: string
@@ -17,40 +18,41 @@ export function PRDetail(props: Props) {
     () => props.repo,
     () => props.prNumber,
   )
+  const [tab, setTab] = createSignal<Tab>("description")
 
   return (
     <div class="pr-detail">
-      <div class="pr-detail-header">
-        <button class="back-btn" onClick={props.onBack}>← back</button>
-        <Show when={detail.data} keyed>
-          {(d) => {
-            const additions = d.files.reduce((n, f) => n + f.Additions, 0)
-            const deletions = d.files.reduce((n, f) => n + f.Deletions, 0)
-            return (
-              <>
-                <h1 class="pr-detail-title">{d.pr.Title}</h1>
-                <div class="pr-detail-meta">
-                  <span class="pr-number">#{d.pr.Number}</span>
-                  <span>{d.pr.Author}</span>
-                  <Show when={d.pr.Draft}>
-                    <span class="badge draft">draft</span>
-                  </Show>
-                  <span class="additions">+{additions}</span>
-                  <span class="deletions">-{deletions}</span>
-                  <span class="muted">{d.files.length} files changed</span>
-                </div>
-                <Show when={d.pr.Body}>
-                  <div class="pr-body">
-                    <Markdown content={d.pr.Body} />
-                  </div>
+      <div class="pr-tabs">
+        <button
+          class={`pr-tab ${tab() === "description" ? "active" : ""}`}
+          onClick={() => setTab("description")}
+        >
+          description
+        </button>
+        <button
+          class={`pr-tab ${tab() === "review" ? "active" : ""}`}
+          onClick={() => setTab("review")}
+        >
+          review
+        </button>
+      </div>
+      <div class="pr-tab-content">
+        <Show when={tab() === "description"}>
+          <div class="pr-description">
+            <Show when={detail.data} keyed>
+              {(d) => (
+                <Show when={d.pr.Body} fallback={<span class="muted">no description</span>}>
+                  <Markdown content={d.pr.Body} />
                 </Show>
-                <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
-              </>
-            )
-          }}
+              )}
+            </Show>
+            <Show when={detail.isLoading}>
+              <span class="muted">loading...</span>
+            </Show>
+          </div>
         </Show>
-        <Show when={detail.isLoading}>
-          <div class="muted">loading...</div>
+        <Show when={tab() === "review"}>
+          <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
         </Show>
       </div>
     </div>

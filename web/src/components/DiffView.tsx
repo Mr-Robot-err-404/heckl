@@ -68,9 +68,9 @@ export function DiffView(props: Props) {
   })
 
   return (
-    <div class="diffview-wrap">
-      {error() && <div class="muted">{error()}</div>}
+    <>
+      {error() && <div class="muted" style="padding:16px">{error()}</div>}
       <div ref={host} class="diffview-host" />
-    </div>
+    </>
   )
 }
