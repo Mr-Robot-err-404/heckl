@@ -33,7 +33,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /api/orgs", s.handleListOrgs)
 	s.mux.HandleFunc("GET /api/repos", s.handleListRepos)
+	s.mux.HandleFunc("GET /api/repos/{owner}", s.handleListReposByOwner)
 	s.mux.HandleFunc("POST /api/repos", s.handleAddRepo)
 	s.mux.HandleFunc("DELETE /api/repos/{owner}/{name}", s.handleDeleteRepo)
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}", s.handleListPRs)
@@ -109,6 +111,31 @@ func (s *Server) handleGetPR(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{"pr": pr, "files": files})
 }
 
+
+func (s *Server) handleListOrgs(w http.ResponseWriter, r *http.Request) {
+	orgs, err := s.store.ListOrgs(r.Context())
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if orgs == nil {
+		orgs = []string{}
+	}
+	jsonOK(w, orgs)
+}
+
+func (s *Server) handleListReposByOwner(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repos, err := s.store.ListReposByOwner(r.Context(), owner)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if repos == nil {
+		repos = []*store.Repo{}
+	}
+	jsonOK(w, repos)
+}
 
 func (s *Server) handleListRepos(w http.ResponseWriter, r *http.Request) {
 	repos, err := s.store.ListRepos(r.Context())

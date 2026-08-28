@@ -100,6 +100,14 @@ func (s *Store) ListRepos(ctx context.Context) ([]*Repo, error) {
 	return s.queries.ListRepos(ctx)
 }
 
+func (s *Store) ListReposByOwner(ctx context.Context, owner string) ([]*Repo, error) {
+	return s.queries.ListReposByOwner(ctx, owner)
+}
+
+func (s *Store) ListOrgs(ctx context.Context) ([]string, error) {
+	return s.queries.ListOrgs(ctx)
+}
+
 func (s *Store) DeleteRepo(ctx context.Context, owner, name string) error {
 	return s.queries.DeleteRepo(ctx, DeleteRepoParams{Owner: owner, Name: name})
 }

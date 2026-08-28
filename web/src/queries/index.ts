@@ -1,10 +1,25 @@
 import { createQuery, createMutation, useQueryClient } from "@tanstack/solid-query"
 import { api } from "../api"
 
+export function useOrgs() {
+  return createQuery(() => ({
+    queryKey: ["orgs"],
+    queryFn: api.orgs.list,
+  }))
+}
+
 export function useRepos() {
   return createQuery(() => ({
     queryKey: ["repos"],
     queryFn: api.repos.list,
+  }))
+}
+
+export function useReposByOwner(owner: () => string) {
+  return createQuery(() => ({
+    queryKey: ["repos", owner()],
+    queryFn: () => api.repos.listByOwner(owner()),
+    enabled: !!owner(),
   }))
 }
 

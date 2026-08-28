@@ -48,12 +48,71 @@ func (q *Queries) DeleteRepo(ctx context.Context, arg DeleteRepoParams) error {
 	return err
 }
 
+const listOrgs = `-- name: ListOrgs :many
+SELECT DISTINCT owner FROM repos ORDER BY owner ASC
+`
+
+func (q *Queries) ListOrgs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listOrgs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var owner string
+		if err := rows.Scan(&owner); err != nil {
+			return nil, err
+		}
+		items = append(items, owner)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRepos = `-- name: ListRepos :many
 SELECT id, owner, name, added_at FROM repos ORDER BY added_at DESC
 `
 
 func (q *Queries) ListRepos(ctx context.Context) ([]*Repo, error) {
 	rows, err := q.db.QueryContext(ctx, listRepos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Name,
+			&i.AddedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReposByOwner = `-- name: ListReposByOwner :many
+SELECT id, owner, name, added_at FROM repos WHERE owner = ? ORDER BY name ASC
+`
+
+func (q *Queries) ListReposByOwner(ctx context.Context, owner string) ([]*Repo, error) {
+	rows, err := q.db.QueryContext(ctx, listReposByOwner, owner)
 	if err != nil {
 		return nil, err
 	}

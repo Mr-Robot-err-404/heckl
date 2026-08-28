@@ -24,8 +24,12 @@ async function del(path: string): Promise<void> {
 }
 
 export const api = {
+  orgs: {
+    list: () => get<string[]>("/orgs"),
+  },
   repos: {
     list: () => get<Repo[]>("/repos"),
+    listByOwner: (owner: string) => get<Repo[]>(`/repos/${owner}`),
     add: (owner: string, name: string) => post<Repo>("/repos", { owner, name }),
     remove: (owner: string, name: string) => del(`/repos/${owner}/${name}`),
   },

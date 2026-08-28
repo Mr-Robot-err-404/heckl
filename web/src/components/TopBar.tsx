@@ -1,8 +1,9 @@
 import { createSignal, For, Show } from "solid-js"
 import { useNavigate, useParams } from "@tanstack/solid-router"
-import { useAddRepo, useRepos, usePRDetail } from "../queries"
+import { useAddRepo, useOrgs, useRepos, usePRDetail } from "../queries"
 
 export function TopBar() {
+  const orgs = useOrgs()
   const repos = useRepos()
   const addRepo = useAddRepo()
   const navigate = useNavigate()
@@ -26,7 +27,16 @@ export function TopBar() {
     () => prNumber(),
   )
 
-  function handleChange(e: Event) {
+  const reposByOrg = () => {
+    const orgList = orgs.data ?? []
+    const repoList = repos.data ?? []
+    return orgList.map((org) => ({
+      org,
+      repos: repoList.filter((r) => r.Owner === org),
+    }))
+  }
+
+  function handleRepoChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value
     if (val === "__add__") { setAdding(true); return }
     const [owner, repo] = val.split("/")
@@ -73,11 +83,17 @@ export function TopBar() {
             </div>
           }
         >
-          <select class="repo-select" value={selectedKey()} onChange={handleChange}>
+          <select class="repo-select" value={selectedKey()} onChange={handleRepoChange}>
             <option value="" disabled>select repo</option>
-            <For each={repos.data}>
-              {(repo) => (
-                <option value={`${repo.Owner}/${repo.Name}`}>{repo.Owner}/{repo.Name}</option>
+            <For each={reposByOrg()}>
+              {(group) => (
+                <optgroup label={group.org}>
+                  <For each={group.repos}>
+                    {(repo) => (
+                      <option value={`${repo.Owner}/${repo.Name}`}>{repo.Name}</option>
+                    )}
+                  </For>
+                </optgroup>
               )}
             </For>
             <option value="__add__">+ add repo</option>
@@ -85,9 +101,7 @@ export function TopBar() {
         </Show>
       </div>
       <Show when={prDetail.data} keyed>
-        {(d) => (
-          <span class="topbar-pr-title">{d.pr.Title}</span>
-        )}
+        {(d) => <span class="topbar-pr-title">{d.pr.Title}</span>}
       </Show>
       <Show when={prDetail.data} keyed>
         {(d) => {
