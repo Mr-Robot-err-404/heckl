@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
-	_ "embed"
+	"embed"
 	"fmt"
 	"time"
 
@@ -11,8 +11,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-//go:embed schema/001_init.sql
-var schema string
+//go:embed schema/*.sql
+var Migrations embed.FS
 
 type Store struct {
 	db      *sql.DB
@@ -23,9 +23,6 @@ func Open(path string) (*Store, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("store: open: %w", err)
-	}
-	if _, err := db.Exec(schema); err != nil {
-		return nil, fmt.Errorf("store: migrate: %w", err)
 	}
 	return &Store{db: db, queries: New(db)}, nil
 }
@@ -92,4 +89,17 @@ func (s *Store) GetPR(ctx context.Context, owner, repo string, number int) (*Pr,
 
 func (s *Store) GetPRFiles(ctx context.Context, prID int64) ([]*PrFile, error) {
 	return s.queries.ListPRFiles(ctx, prID)
+}
+
+func (s *Store) AddRepo(ctx context.Context, owner, name string) (*Repo, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	return s.queries.AddRepo(ctx, AddRepoParams{Owner: owner, Name: name, AddedAt: now})
+}
+
+func (s *Store) ListRepos(ctx context.Context) ([]*Repo, error) {
+	return s.queries.ListRepos(ctx)
+}
+
+func (s *Store) DeleteRepo(ctx context.Context, owner, name string) error {
+	return s.queries.DeleteRepo(ctx, DeleteRepoParams{Owner: owner, Name: name})
 }

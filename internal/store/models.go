@@ -31,3 +31,10 @@ type PrFile struct {
 	Changes   int64
 	Patch     string
 }
+
+type Repo struct {
+	ID      int64
+	Owner   string
+	Name    string
+	AddedAt string
+}

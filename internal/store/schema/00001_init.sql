@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS prs (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     owner       TEXT NOT NULL,
@@ -26,3 +27,7 @@ CREATE TABLE IF NOT EXISTS pr_files (
     changes     INTEGER NOT NULL DEFAULT 0,
     patch       TEXT NOT NULL DEFAULT ''
 );
+
+-- +goose Down
+DROP TABLE pr_files;
+DROP TABLE prs;
