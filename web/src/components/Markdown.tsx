@@ -19,14 +19,8 @@ function needsAssetProxy(src: string): boolean {
   }
 }
 
-const BARE_GITHUB_ASSET_URL = /^(https:\/\/(?:github\.com\/user-attachments\/assets|user-images\.githubusercontent\.com)\/\S+)$/gm
-
-function embedBareVideoUrls(markdown: string): string {
-  return markdown.replace(BARE_GITHUB_ASSET_URL, (url) => `<video controls preload="metadata" src="${url}"></video>`)
-}
-
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (node.tagName === "IMG" || node.tagName === "VIDEO") {
+  if (node.tagName === "IMG") {
     const src = node.getAttribute("src")
     if (src && needsAssetProxy(src)) {
       node.setAttribute("src", `/api/asset?url=${encodeURIComponent(src)}`)
@@ -36,11 +30,11 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 
 export function Markdown(props: Props) {
   const html = () => {
-    const raw = marked.parse(embedBareVideoUrls(props.content), { async: false }) as string
+    const raw = marked.parse(props.content, { async: false }) as string
     return DOMPurify.sanitize(raw, {
       USE_PROFILES: { html: true },
-      ADD_TAGS: ["img", "video"],
-      ADD_ATTR: ["src", "alt", "width", "height", "controls", "preload"],
+      ADD_TAGS: ["img"],
+      ADD_ATTR: ["src", "alt", "width", "height"],
     })
   }
 

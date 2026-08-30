@@ -24,12 +24,10 @@ type Server struct {
 	gh    *github.Client
 	store *store.Store
 	mux   *http.ServeMux
-
-	githubSessionCookie string
 }
 
-func New(gh *github.Client, store *store.Store, githubSessionCookie string) *Server {
-	s := &Server{gh: gh, store: store, mux: http.NewServeMux(), githubSessionCookie: githubSessionCookie}
+func New(gh *github.Client, store *store.Store) *Server {
+	s := &Server{gh: gh, store: store, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -301,11 +299,7 @@ func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.githubSessionCookie != "" {
-		req.Header.Set("Cookie", "user_session="+s.githubSessionCookie)
-	} else {
-		req.Header.Set("Authorization", "Bearer "+s.gh.Token())
-	}
+	req.Header.Set("Authorization", "Bearer "+s.gh.Token())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

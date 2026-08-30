@@ -5,9 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/harrylawton/pr-review/internal/github"
@@ -18,27 +16,12 @@ import (
 //go:embed all:dist
 var static embed.FS
 
-func readGithubSessionCookie() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	path := filepath.Join(home, ".config", "pr-review", "session_cookie")
-	b, err := os.ReadFile(path)
-	if err != nil {
-		log.Printf("no session cookie at %s — video embeds will not resolve", path)
-		return ""
-	}
-	return strings.TrimSpace(string(b))
-}
-
 func main() {
 	out, err := exec.Command("gh", "auth", "token").Output()
 	if err != nil {
 		log.Fatal("gh auth token failed — run `gh auth login` first")
 	}
 	token := strings.TrimSpace(string(out))
-	sessionCookie := readGithubSessionCookie()
 
 	db, err := store.Open("pr-review.db")
 	if err != nil {
@@ -47,7 +30,7 @@ func main() {
 	defer db.Close()
 
 	gh := github.New(token)
-	srv := server.New(gh, db, sessionCookie)
+	srv := server.New(gh, db)
 
 	dist, err := fs.Sub(static, "dist")
 	if err != nil {

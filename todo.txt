@@ -2,8 +2,7 @@
 [ ] Description page — reviewers assigned
 [ ] Description page — checks status
 [ ] Description page — ready to merge state
-[ ] Video seeking — /api/asset doesn't forward Range headers, scrubbing forces full re-download instead of partial fetch
-[ ] Video embeds use a manually-copied github.com user_session cookie (~/.config/pr-review/session_cookie) since GitHub's video short-link redirect isn't reachable via PAT/OAuth Bearer auth at all — only a real web session works. Cookie expires periodically and needs manual refresh. Proper long-term fix TBD (no clean API-based path exists; would need actual automated login, which is its own can of worms).
+[x] Video embeds — investigated, not feasible. GitHub resolves video short-links (github.com/user-attachments/assets/<uuid>) to a signed JWT URL server-side while rendering its own PR page; neither a PAT/OAuth Bearer token nor a manually-copied user_session cookie can trigger that resolution via direct HTTP request. Reverted to plain clickable links (opens on github.com, where the real logged-in session handles it). Would require scraping GitHub's rendered PR page HTML to go further — not worth the fragility for a personal tool.
 [ ] PR file tree sidebar in detail view
 [ ] @pierre/diffs theme matching Evergarden summer
 [ ] Pagination — GitHub only returns 100 PRs, handle larger repos
