@@ -284,7 +284,8 @@ html, body, #root { height: 100%; }
 }
 
 .pr-description {
-  max-width: 800px;
+  max-width: 1100px;
+  margin: 0 auto;
   padding: 28px 24px;
   overflow-y: auto;
   height: 100%;
@@ -355,7 +356,7 @@ html, body, #root { height: 100%; }
 }
 .markdown th { background: var(--surface0); color: var(--text); font-weight: 600; }
 .markdown tr:nth-child(even) td { background: var(--mantle); }
-.markdown img { max-width: 100%; border-radius: 4px; margin: 8px 0; }
+.markdown img { max-width: 100%; height: auto; border-radius: 4px; margin: 8px 0; }
 .markdown a { color: var(--blue); text-decoration: none; }
 .markdown a:hover { text-decoration: underline; }
 .markdown hr { border: none; border-top: 1px solid var(--crust); margin: 16px 0; }

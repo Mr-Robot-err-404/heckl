@@ -6,12 +6,22 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/store"
 )
+
+// assetHosts allowlists which upstream hosts /api/asset may proxy to.
+// PR body images/videos live on these GitHub-owned domains; anything else
+// is rejected so this endpoint can't be used as an open proxy.
+var assetHosts = map[string]bool{
+	"github.com":                        true,
+	"user-images.githubusercontent.com": true,
+	"private-user-images.githubusercontent.com": true,
+}
 
 type Server struct {
 	gh    *github.Client
@@ -60,6 +70,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}", s.handleListPRs)
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}/{number}", s.handleGetPR)
 	s.mux.HandleFunc("GET /api/diff/{owner}/{repo}/{number}", s.handleDiff)
+	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 }
 
 // prResponse mirrors the old cached shape (minus id/synced_at, which are
@@ -273,6 +284,51 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
+	io.Copy(w, resp.Body)
+}
+
+// handleAsset proxies GitHub-hosted PR-body images/videos (user-attachments,
+// user-images) which 404 without an authenticated session. Same pattern as
+// handleDiff: authenticate server-side with gh's token, stream bytes back.
+func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
+	raw := r.URL.Query().Get("url")
+	if raw == "" {
+		http.Error(w, "missing url", http.StatusBadRequest)
+		return
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil || (parsed.Scheme != "https") || !assetHosts[parsed.Host] {
+		slog.Warn("asset proxy: rejected url", "url", raw)
+		http.Error(w, "url not allowed", http.StatusForbidden)
+		return
+	}
+
+	req, err := http.NewRequestWithContext(r.Context(), "GET", raw, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.gh.Token())
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error("asset proxy: fetch failed", "url", raw, "err", err)
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		slog.Error("asset proxy: upstream error", "url", raw, "status", resp.StatusCode)
+		http.Error(w, fmt.Sprintf("github: %d", resp.StatusCode), resp.StatusCode)
+		return
+	}
+
+	if ct := resp.Header.Get("Content-Type"); ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+	w.Header().Set("Cache-Control", "private, max-age=3600")
 	io.Copy(w, resp.Body)
 }
 
