@@ -1,4 +1,4 @@
-.PHONY: server build-server up down status reset build worktree
+.PHONY: server build-server up down status reset build worktree opencode
 
 server:
 	go run ./cmd/server
@@ -20,6 +20,9 @@ reset:
 
 worktree:
 	go run ./cmd/worktree $(ARGS)
+
+opencode:
+	go run ./cmd/opencode $(ARGS)
 
 dev:
 	cd web && npm run dev

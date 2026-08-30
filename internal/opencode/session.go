@@ -1,17 +1,47 @@
 package opencode
 
+const (
+	PermissionAllow = "allow"
+	PermissionDeny  = "deny"
+	PermissionAsk   = "ask"
+)
+
+const (
+	PermissionExternalDirectory = "external_directory"
+	PermissionBash              = "bash"
+	PermissionEdit              = "edit"
+	PermissionRead              = "read"
+	PermissionGlob              = "glob"
+	PermissionGrep              = "grep"
+)
+
+type PermissionRule struct {
+	Permission string `json:"permission"`
+	Pattern    string `json:"pattern"`
+	Action     string `json:"action"`
+}
+
 type Session struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
 }
 
-func (c *Client) CreateSession(title string) (*Session, error) {
-	body := map[string]string{}
-	if title != "" {
-		body["title"] = title
+func WorktreePermission(path string) []PermissionRule {
+	return []PermissionRule{
+		{Permission: PermissionExternalDirectory, Pattern: "*", Action: PermissionDeny},
+		{Permission: PermissionExternalDirectory, Pattern: path + "/*", Action: PermissionAllow},
 	}
+}
+
+type CreateSessionRequest struct {
+	Title      string           `json:"title,omitempty"`
+	Agent      string           `json:"agent,omitempty"`
+	Permission []PermissionRule `json:"permission,omitempty"`
+}
+
+func (c *Client) CreateSession(req CreateSessionRequest) (*Session, error) {
 	var s Session
-	err := c.decode("POST", "/session", body, &s)
+	err := c.decode("POST", "/session", req, &s)
 	return &s, err
 }
 
