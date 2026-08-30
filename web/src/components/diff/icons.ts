@@ -1,34 +1,46 @@
 const SVG_NS = "http://www.w3.org/2000/svg"
 
-function svg(paths: string[], viewBox = "0 0 16 16") {
+type ShapeSpec = { tag: "path"; d: string } | { tag: "rect"; x: number; y: number; width: number; height: number; rx: number }
+
+function icon(shapes: ShapeSpec[]) {
   const el = document.createElementNS(SVG_NS, "svg")
-  el.setAttribute("viewBox", viewBox)
+  el.setAttribute("viewBox", "0 0 24 24")
   el.setAttribute("width", "14")
   el.setAttribute("height", "14")
   el.setAttribute("fill", "none")
-  for (const d of paths) {
-    const path = document.createElementNS(SVG_NS, "path")
-    path.setAttribute("d", d)
-    path.setAttribute("stroke", "currentColor")
-    path.setAttribute("stroke-width", "1.5")
-    path.setAttribute("stroke-linecap", "round")
-    path.setAttribute("stroke-linejoin", "round")
-    el.appendChild(path)
+  el.setAttribute("stroke", "currentColor")
+  el.setAttribute("stroke-width", "2")
+  el.setAttribute("stroke-linecap", "round")
+  el.setAttribute("stroke-linejoin", "round")
+  for (const shape of shapes) {
+    if (shape.tag === "path") {
+      const path = document.createElementNS(SVG_NS, "path")
+      path.setAttribute("d", shape.d)
+      el.appendChild(path)
+    } else {
+      const rect = document.createElementNS(SVG_NS, "rect")
+      rect.setAttribute("x", String(shape.x))
+      rect.setAttribute("y", String(shape.y))
+      rect.setAttribute("width", String(shape.width))
+      rect.setAttribute("height", String(shape.height))
+      rect.setAttribute("rx", String(shape.rx))
+      el.appendChild(rect)
+    }
   }
   return el
 }
 
 export function chevronIcon() {
-  return svg(["M4 6l4 4 4-4"])
+  return icon([{ tag: "path", d: "m6 9 6 6 6-6" }])
 }
 
 export function clipboardIcon() {
-  return svg([
-    "M5.5 3.5h5a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z",
-    "M6.5 3.5V3a1.5 1.5 0 0 1 1.5-1.5h0A1.5 1.5 0 0 1 9.5 3v.5",
+  return icon([
+    { tag: "rect", x: 8, y: 8, width: 14, height: 14, rx: 2 },
+    { tag: "path", d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" },
   ])
 }
 
 export function checkIcon() {
-  return svg(["M3.5 8.5l3 3 6-7"])
+  return icon([{ tag: "path", d: "M20 6 9 17l-5-5" }])
 }

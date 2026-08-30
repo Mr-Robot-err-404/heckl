@@ -1,7 +1,7 @@
 import { createEffect, onCleanup } from "solid-js"
 import { CodeView, parsePatchFiles, type CodeViewItem } from "@pierre/diffs"
 import { useDiff } from "../../queries"
-import { buildCollapseToggle, buildCopyPathButton } from "./diffHeader"
+import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
 
 type Props = {
   owner: string
@@ -53,8 +53,9 @@ export function DiffView(props: Props) {
       lineDiffType: "word-alt",
       stickyHeaders: true,
       layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
-      renderHeaderPrefix: (fileDiff, context) =>
-        buildCollapseToggle(fileDiff, context, toggleCollapsed),
+      unsafeCSS: "[data-change-icon] { display: none; }",
+      renderHeaderPrefix: (fileDiff, context: unknown) =>
+        buildCollapseToggle(fileDiff, context as DiffItemContext, toggleCollapsed),
       renderHeaderFilenameSuffix: (fileDiff) => buildCopyPathButton(fileDiff),
     })
     view.setup(host)

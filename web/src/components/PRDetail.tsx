@@ -64,7 +64,7 @@ export function PRDetail(props: Props) {
           </div>
         </Show>
         <Show when={reviewMounted()}>
-          <div style={{ display: tab() === "review" ? "block" : "none" }}>
+          <div class={`diff-tab-panel ${tab() === "review" ? "" : "hidden"}`}>
             <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
           </div>
         </Show>

@@ -1,12 +1,13 @@
-import type { FileDiffMetadata } from "@pierre/diffs"
 import { checkIcon, chevronIcon, clipboardIcon } from "./icons"
 
-type DiffItemContext = {
+type NamedFile = { name: string }
+
+export type DiffItemContext = {
   item: { id: string; collapsed?: boolean }
 }
 
 export function buildCollapseToggle(
-  fileDiff: FileDiffMetadata,
+  fileDiff: NamedFile,
   context: DiffItemContext | undefined,
   onToggle: (id: string) => void,
 ) {
@@ -26,7 +27,7 @@ export function buildCollapseToggle(
   return button
 }
 
-export function buildCopyPathButton(fileDiff: FileDiffMetadata) {
+export function buildCopyPathButton(fileDiff: NamedFile) {
   const button = document.createElement("button")
   button.type = "button"
   button.className = "diff-header-btn diff-copy-btn"
