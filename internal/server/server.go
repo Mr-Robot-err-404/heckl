@@ -14,10 +14,7 @@ import (
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
-// assetHosts allowlists which upstream hosts /api/asset may proxy to.
-// PR body images/videos live on these GitHub-owned domains; anything else
-// is rejected so this endpoint can't be used as an open proxy.
-var assetHosts = map[string]bool{
+var allowedAssetProxyHosts = map[string]bool{
 	"github.com":                        true,
 	"user-images.githubusercontent.com": true,
 	"private-user-images.githubusercontent.com": true,
@@ -27,10 +24,12 @@ type Server struct {
 	gh    *github.Client
 	store *store.Store
 	mux   *http.ServeMux
+
+	githubSessionCookie string
 }
 
-func New(gh *github.Client, store *store.Store) *Server {
-	s := &Server{gh: gh, store: store, mux: http.NewServeMux()}
+func New(gh *github.Client, store *store.Store, githubSessionCookie string) *Server {
+	s := &Server{gh: gh, store: store, mux: http.NewServeMux(), githubSessionCookie: githubSessionCookie}
 	s.routes()
 	return s
 }
@@ -73,8 +72,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 }
 
-// prResponse mirrors the old cached shape (minus id/synced_at, which are
-// meaningless now that nothing is persisted) so the frontend doesn't need to change.
 type prResponse struct {
 	Owner     string `json:"Owner"`
 	Repo      string `json:"Repo"`
@@ -115,9 +112,6 @@ func toPRResponse(owner, repo string, pr github.PR) prResponse {
 	}
 }
 
-// handleListPRs always fetches live from GitHub. No cache: this is a
-// single-user tool well within GitHub's rate limits, and a cache with no
-// invalidation path is worse than no cache at all.
 func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	owner := r.PathValue("owner")
 	repo := r.PathValue("repo")
@@ -287,9 +281,6 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
-// handleAsset proxies GitHub-hosted PR-body images/videos (user-attachments,
-// user-images) which 404 without an authenticated session. Same pattern as
-// handleDiff: authenticate server-side with gh's token, stream bytes back.
 func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
 	raw := r.URL.Query().Get("url")
 	if raw == "" {
@@ -298,7 +289,7 @@ func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	parsed, err := url.Parse(raw)
-	if err != nil || (parsed.Scheme != "https") || !assetHosts[parsed.Host] {
+	if err != nil || (parsed.Scheme != "https") || !allowedAssetProxyHosts[parsed.Host] {
 		slog.Warn("asset proxy: rejected url", "url", raw)
 		http.Error(w, "url not allowed", http.StatusForbidden)
 		return
@@ -309,7 +300,12 @@ func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	req.Header.Set("Authorization", "Bearer "+s.gh.Token())
+
+	if s.githubSessionCookie != "" {
+		req.Header.Set("Cookie", "user_session="+s.githubSessionCookie)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+s.gh.Token())
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

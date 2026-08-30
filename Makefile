@@ -1,7 +1,10 @@
-.PHONY: server up down status reset build
+.PHONY: server build-server up down status reset build
 
 server:
 	go run ./cmd/server
+
+build-server:
+	go build -o bin/server ./cmd/server
 
 up:
 	go run ./cmd/migrate up

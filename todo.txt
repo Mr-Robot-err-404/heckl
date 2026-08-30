@@ -1,4 +1,9 @@
 [x] Render GitHub markdown in PR description
+[ ] Description page — reviewers assigned
+[ ] Description page — checks status
+[ ] Description page — ready to merge state
+[ ] Video seeking — /api/asset doesn't forward Range headers, scrubbing forces full re-download instead of partial fetch
+[ ] Video embeds use a manually-copied github.com user_session cookie (~/.config/pr-review/session_cookie) since GitHub's video short-link redirect isn't reachable via PAT/OAuth Bearer auth at all — only a real web session works. Cookie expires periodically and needs manual refresh. Proper long-term fix TBD (no clean API-based path exists; would need actual automated login, which is its own can of worms).
 [ ] PR file tree sidebar in detail view
 [ ] @pierre/diffs theme matching Evergarden summer
 [ ] Pagination — GitHub only returns 100 PRs, handle larger repos
