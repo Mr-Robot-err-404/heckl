@@ -1,4 +1,4 @@
-.PHONY: server build-server up down status reset build
+.PHONY: server build-server up down status reset build worktree
 
 server:
 	go run ./cmd/server
@@ -17,6 +17,9 @@ status:
 
 reset:
 	go run ./cmd/migrate reset
+
+worktree:
+	go run ./cmd/worktree $(ARGS)
 
 dev:
 	cd web && npm run dev

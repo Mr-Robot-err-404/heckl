@@ -127,5 +127,9 @@ make dev          # vite dev server on :5173, proxies /api to :7331
 - **Repos grouped by org** — single `<optgroup>` dropdown, no separate org selector step.
 - **sqlc** — type-safe queries. **goose** — migrations in a separate `cmd/migrate` binary, not run on server startup.
 - **modernc/sqlite** — pure Go, no CGO.
+- **No agent shell commands** — git (clone/fetch/worktree) and other
+  deterministic ops run in our own Go code (`internal/worktree`), never
+  delegated to an agent via `bash`. Agents only touch things once there's
+  no deterministic way to do it ourselves.
 
 See `todo.txt` for the live task list.

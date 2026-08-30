@@ -40,16 +40,20 @@ Decisions locked in
     `session.prompt` — no custom MCP tool needed
 [x] `git worktree add` per PR at head sha into a fixed local state dir,
     clone-if-missing, no cleanup lifecycle for now
-[x] Cheap scanner models (opencode-go) escalate to a smarter paid judge
-    model, orchestrated explicitly by our Go backend per call — not left to
-    agent-decided Task delegation
+[x] Cheap scanner models (opencode-go) escalate to a paid judge model,
+    orchestrated explicitly per call by our Go backend — not agent-decided
+    Task delegation
+[x] All git ops (clone/fetch/worktree) run in our own Go code, never as an
+    agent shell command — agents only get a finished worktree path. General
+    rule: keep operations outside agents until an agent is the only option
 
 Phase 1 — minimal end-to-end slice
 --------------------------------------
-[ ] `internal/opencode`: CreateSession, Prompt (model/agent + json_schema
-    format), Messages
-[ ] Worktree checkout at PR head sha
-[ ] Single agent `.opencode/agent/pr-reviewer.md`, read-only, cheap model
+[x] `internal/opencode` client — validated live against a real server
+[x] `internal/worktree` — clone/fetch/worktree-add via SSH, validated via
+    `cmd/worktree` (`make worktree ARGS="owner/repo pr sha"`)
+[ ] Single agent `.opencode/agent/pr-reviewer.md` — `bash: deny`, read-only,
+    cheap model, per-session `external_directory` scoped to its worktree
 [ ] One prompt call, structured `concerns` output, stored raw (no judge yet)
 [ ] `pr_review_sessions` + flat `concerns` tables
 [ ] Bare endpoint to confirm concerns landed — no UI polish yet
