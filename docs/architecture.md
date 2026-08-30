@@ -85,24 +85,26 @@ view.render()
 See `docs/diffs-references/recipe-code-view.md` for full CodeView API.
 See `docs/diffs-references/recipe-vanilla.md` for FileDiff single-file usage.
 
-## Theme — Evergarden summer
+## Theme — Gruvbox (dark, medium contrast)
 
 ```css
---base:     #f5efe6
---mantle:   #f2eae1
---crust:    #e8ded5
---surface0: #ede8dd
---surface1: #e6e1d3
---surface2: #ceccbd
---text:     #2b3034
---subtext1: #455355
---subtext0: #576869
---overlay1: #829084
---green:    #91a77a
---red:      #c58687
---blue:     #8294ad
---yellow:   #c4aa80
+--base:     #282828
+--mantle:   #3c3836
+--crust:    #504945
+--surface0: #3c3836
+--surface1: #504945
+--surface2: #665c54
+--text:     #ebdbb2
+--subtext1: #d5c4a1
+--subtext0: #bdae93
+--overlay1: #928374
+--green:    #b8bb26
+--red:      #fb4934
+--blue:     #83a598
+--yellow:   #fabd2f
 ```
+
+`DiffView`'s `CodeView` is locked to the `gruvbox-dark-medium` Shiki theme (single theme name, not a `{dark, light}` pair) so it always matches the app chrome instead of following OS `prefers-color-scheme` — that mismatch (light app UI, OS-dark diff view) was the original bug that prompted the switch away from Evergarden.
 
 ## Makefile
 

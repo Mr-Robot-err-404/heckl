@@ -46,7 +46,7 @@ export function DiffView(props: Props) {
 
     view?.cleanUp()
     view = new CodeView({
-      theme: { dark: "pierre-dark", light: "pierre-light" },
+      theme: "gruvbox-dark-medium",
       hunkSeparators: "line-info",
       diffStyle: "unified",
       diffIndicators: "bars",
