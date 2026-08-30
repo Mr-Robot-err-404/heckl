@@ -52,8 +52,18 @@ Phase 1 — minimal end-to-end slice
 [x] `internal/opencode` client — validated live against a real server
 [x] `internal/worktree` — clone/fetch/worktree-add via SSH, validated via
     `cmd/worktree` (`make worktree ARGS="owner/repo pr sha"`)
-[ ] Single agent `.opencode/agent/pr-reviewer.md` — `bash: deny`, read-only,
-    cheap model, per-session `external_directory` scoped to its worktree
+[x] Per-session `external_directory` permission scoping — confirmed via docs
+    (not model self-narration, which gave contradictory guesses) +
+    `cmd/opencode` (`make opencode ARGS="-worktree <path> <prompt>"`).
+    `opencode.WorktreePermission(path)` encodes the working pattern: deny
+    `external_directory` `*` then allow `<path>/*`. `read` inherits the
+    allow automatically, don't layer an extra explicit `read` rule — that
+    produced an unpredictable deny even inside the allowed path
+[ ] Server startup bootstrap — pr-review's own server checks if `opencode
+    serve` is reachable on the hardcoded port, spawns it from `pr-review/`
+    if not, so `.opencode/agents/*.md` load project-scoped instead of
+    polluting global `~/.config/opencode`
+[ ] `.opencode/agents/pr-reviewer.md` — `bash: deny`, read-only, cheap model
 [ ] One prompt call, structured `concerns` output, stored raw (no judge yet)
 [ ] `pr_review_sessions` + flat `concerns` tables
 [ ] Bare endpoint to confirm concerns landed — no UI polish yet
