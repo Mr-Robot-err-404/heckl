@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/github"
+	"github.com/harrylawton/pr-review/internal/reviewer"
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
@@ -21,13 +22,14 @@ var allowedAssetProxyHosts = map[string]bool{
 }
 
 type Server struct {
-	gh    *github.Client
-	store *store.Store
-	mux   *http.ServeMux
+	gh       *github.Client
+	store    *store.Store
+	reviewer *reviewer.Reviewer
+	mux      *http.ServeMux
 }
 
-func New(gh *github.Client, store *store.Store) *Server {
-	s := &Server{gh: gh, store: store, mux: http.NewServeMux()}
+func New(gh *github.Client, store *store.Store, reviewer *reviewer.Reviewer) *Server {
+	s := &Server{gh: gh, store: store, reviewer: reviewer, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -68,6 +70,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}/{number}", s.handleGetPR)
 	s.mux.HandleFunc("GET /api/diff/{owner}/{repo}/{number}", s.handleDiff)
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
+	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}", s.handleReview)
+	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}", s.handleListReviews)
 }
 
 type prResponse struct {
@@ -249,34 +253,15 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := fmt.Sprintf(
-		"https://api.github.com/repos/%s/%s/pulls/%d",
-		owner, repo, number,
-	)
-	req, err := http.NewRequestWithContext(r.Context(), "GET", url, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	req.Header.Set("Authorization", "Bearer "+s.gh.Token())
-	req.Header.Set("Accept", "application/vnd.github.diff")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-
-	resp, err := http.DefaultClient.Do(req)
+	diff, err := s.gh.GetPRDiff(owner, repo, number)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		http.Error(w, fmt.Sprintf("github: %d", resp.StatusCode), resp.StatusCode)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	io.Copy(w, resp.Body)
+	w.Write(diff)
 }
 
 func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
@@ -320,6 +305,79 @@ func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	io.Copy(w, resp.Body)
+}
+
+func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
+		return
+	}
+
+	pr, err := s.gh.GetPR(owner, repo, number)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	diff, err := s.gh.GetPRDiff(owner, repo, number)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	sess, concerns, err := s.reviewer.Review(r.Context(), reviewer.ReviewRequest{
+		Owner:    owner,
+		Repo:     repo,
+		PRNumber: number,
+		HeadSHA:  pr.HeadSHA(),
+		Title:    pr.Title,
+		Body:     pr.Body,
+		Diff:     string(diff),
+	})
+	if err != nil {
+		slog.Error("review failed", "owner", owner, "repo", repo, "pr", number, "err", err)
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("review complete", "owner", owner, "repo", repo, "pr", number, "concerns", len(concerns), "session_id", sess.ID)
+	jsonOK(w, map[string]any{"session": sess, "concerns": concerns})
+}
+
+func (s *Server) handleListReviews(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
+		return
+	}
+
+	sessions, err := s.store.ListReviewSessions(r.Context(), owner, repo, number)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type sessionWithConcerns struct {
+		Session  *store.ReviewSession   `json:"session"`
+		Concerns []*store.ReviewConcern `json:"concerns"`
+	}
+
+	out := make([]sessionWithConcerns, 0, len(sessions))
+	for _, sess := range sessions {
+		concerns, err := s.store.ListConcerns(r.Context(), sess.ID)
+		if err != nil {
+			jsonError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		out = append(out, sessionWithConcerns{Session: sess, Concerns: concerns})
+	}
+
+	jsonOK(w, out)
 }
 
 func jsonOK(w http.ResponseWriter, v any) {

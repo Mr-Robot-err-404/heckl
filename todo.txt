@@ -40,9 +40,9 @@ Decisions locked in
     `session.prompt` — no custom MCP tool needed
 [x] `git worktree add` per PR at head sha into a fixed local state dir,
     clone-if-missing, no cleanup lifecycle for now
-[x] Cheap scanner models (opencode-go) escalate to a paid judge model,
-    orchestrated explicitly per call by our Go backend — not agent-decided
-    Task delegation
+[x] Cheap scanner -> judge escalation — deferred to Phase 2. Phase 1 uses a
+    single `pr-reviewer` agent whose call is final (goes straight to the
+    human), no judge in the loop yet
 [x] All git ops (clone/fetch/worktree) run in our own Go code, never as an
     agent shell command — agents only get a finished worktree path. General
     rule: keep operations outside agents until an agent is the only option
@@ -59,14 +59,42 @@ Phase 1 — minimal end-to-end slice
     `external_directory` `*` then allow `<path>/*`. `read` inherits the
     allow automatically, don't layer an extra explicit `read` rule — that
     produced an unpredictable deny even inside the allowed path
-[ ] Server startup bootstrap — pr-review's own server checks if `opencode
-    serve` is reachable on the hardcoded port, spawns it from `pr-review/`
-    if not, so `.opencode/agents/*.md` load project-scoped instead of
-    polluting global `~/.config/opencode`
-[ ] `.opencode/agents/pr-reviewer.md` — `bash: deny`, read-only, cheap model
-[ ] One prompt call, structured `concerns` output, stored raw (no judge yet)
-[ ] `pr_review_sessions` + flat `concerns` tables
-[ ] Bare endpoint to confirm concerns landed — no UI polish yet
+[x] Server startup bootstrap — `opencode.Setup(baseURL, projectDir)` checks
+    health on :4420, spawns `opencode serve` from `projectDir` if down so
+    `.opencode/agents/*.md` load project-scoped, verifies required agent
+    files exist (doesn't regenerate them — real .md files, git-tracked,
+    not hardcoded Go strings)
+[x] `.opencode/agents/pr-reviewer.md` — real markdown file, `bash: deny`,
+    `edit: deny`, `external_directory: deny` at rest, single agent making
+    final calls to the human (no separate judge in Phase 1, per scope cut)
+[x] One prompt call, structured `concerns` output, stored — `internal/reviewer`
+    wires worktree -> session -> prompt(format.json_schema) -> parse -> store
+[x] `pr_review_sessions` + flat `concerns` tables — sqlc-generated (added as
+    a real Go tool dependency via `go get -tool`, not machine-installed;
+    `make generate` runs it), store layer converts sqlite types
+    (sql.NullInt64 etc) to clean domain types before they leave `internal/store`
+[x] Bare endpoint to confirm concerns landed — `POST /api/review/{owner}/{repo}/{number}`
+    triggers a review, `GET` lists past sessions + concerns for a PR
+[ ] Stage-visible progress — currently only server-side slog lines
+    (worktree ensure -> session create -> prompt -> parse -> store) show
+    where a review is at; a single `POST /api/review/...` blocks 60-100s+
+    with zero client-visible feedback. Need an SSE stream (or reuse
+    opencode's own `/event` SSE if it exposes granular enough tool/session
+    events) so the frontend can show exactly which stage a review is in —
+    git ops, agent session setup, prompting, parsing, storing — not just a
+    spinner. Likely a `GET /api/review/{owner}/{repo}/{number}/stream` or
+    similar, fed by the same stage transitions already logged in
+    `internal/reviewer`
+[ ] Review latency — currently one big single-shot prompt with the full
+    diff + open worktree access, model free to wander -> 60-100s+ per PR
+    (`duration_ms` on "reviewer: model responded" is the number to watch).
+    Idea worth trying: a cheap first pass that just ranks/picks the top N
+    files of interest from the diff (small, fast, narrow output), then the
+    real `pr-reviewer` call is scoped to those files instead of reasoning
+    over the whole diff + unrestricted worktree browsing. Same shape as the
+    scanner/judge split already planned below, just applied to file
+    selection instead of concern validation — evaluate whether it actually
+    cuts latency/cost before committing, don't assume
 
 Phase 2 — full pipeline (not started)
 -------------------------------------

@@ -23,15 +23,19 @@ func New(token string) *Client {
 
 func (c *Client) Token() string { return c.token }
 
-func (c *Client) do(method, path string) (*http.Response, error) {
+func (c *Client) doAccept(method, path, accept string) (*http.Response, error) {
 	req, err := http.NewRequest(method, baseURL+path, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Accept", accept)
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	return c.http.Do(req)
+}
+
+func (c *Client) do(method, path string) (*http.Response, error) {
+	return c.doAccept(method, path, "application/vnd.github+json")
 }
 
 func (c *Client) decode(path string, out any) error {

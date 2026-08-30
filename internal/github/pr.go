@@ -1,9 +1,16 @@
 package github
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 type User struct {
 	Login string `json:"login"`
+}
+
+type PRHead struct {
+	SHA string `json:"sha"`
 }
 
 type PR struct {
@@ -16,7 +23,10 @@ type PR struct {
 	UpdatedAt string `json:"updated_at"`
 	User      User   `json:"user"`
 	Draft     bool   `json:"draft"`
+	Head      PRHead `json:"head"`
 }
+
+func (pr *PR) HeadSHA() string { return pr.Head.SHA }
 
 type PRFile struct {
 	SHA      string `json:"sha"`
@@ -50,4 +60,17 @@ func (c *Client) GetPRFiles(owner, repo string, number int) ([]PRFile, error) {
 	var files []PRFile
 	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls/%d/files?per_page=100", owner, repo, number), &files)
 	return files, err
+}
+
+func (c *Client) GetPRDiff(owner, repo string, number int) ([]byte, error) {
+	path := fmt.Sprintf("/repos/%s/%s/pulls/%d", owner, repo, number)
+	resp, err := c.doAccept("GET", path, "application/vnd.github.diff")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("github: get pr diff %s/%s#%d returned %d", owner, repo, number, resp.StatusCode)
+	}
+	return io.ReadAll(resp.Body)
 }
