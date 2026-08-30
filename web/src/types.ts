@@ -6,7 +6,6 @@ export type Repo = {
 }
 
 export type PR = {
-  ID: number
   Owner: string
   Repo: string
   Number: number
@@ -18,12 +17,9 @@ export type PR = {
   Draft: boolean
   CreatedAt: string
   UpdatedAt: string
-  SyncedAt: string
 }
 
 export type PRFile = {
-  ID: number
-  PrID: number
   Sha: string
   Filename: string
   Status: string

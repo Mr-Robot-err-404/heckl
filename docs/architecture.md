@@ -50,8 +50,8 @@ pr-review/
 | GET | /api/repos/{owner} | repos by owner |
 | POST | /api/repos | add repo `{owner, name}` |
 | DELETE | /api/repos/{owner}/{name} | remove repo |
-| GET | /api/prs/{owner}/{repo} | list open PRs — fetches from GitHub, caches in SQLite |
-| GET | /api/prs/{owner}/{repo}/{number} | get PR + file patches from cache |
+| GET | /api/prs/{owner}/{repo} | list open PRs — always fetched live from GitHub, no cache |
+| GET | /api/prs/{owner}/{repo}/{number} | get PR + file patches — always fetched live from GitHub, no cache |
 | GET | /api/diff/{owner}/{repo}/{number} | proxy — fetches full unified diff from GitHub API (`Accept: application/vnd.github.diff`), streams raw patch text to client |
 
 ## URL routes
@@ -119,18 +119,11 @@ make dev          # vite dev server on :5173, proxies /api to :7331
 ## Key decisions
 
 - **Auth** — `gh auth token` at startup, no PAT management
-- **Cache** — PRs + per-file patches in SQLite. Diff proxy is live and requires network.
+- **No cache** — PRs, file patches, and diffs are all fetched live from GitHub on every request. A single-user tool never approaches GitHub's 5000 req/hr rate limit, and a cache with no invalidation path is worse than no cache — it was causing PR lists to go stale forever after the first fetch. Removed entirely rather than patched.
 - **No React** — SolidJS throughout. `@pierre/diffs` used via vanilla JS API only.
 - **DiffsHub** — explored as iframe embed, dropped because localStorage auth can't be injected for private repos. Replicated their approach instead: Go proxy + local CodeView rendering.
 - **Repos grouped by org** — single `<optgroup>` dropdown, no separate org selector step.
 - **sqlc** — type-safe queries. **goose** — migrations in a separate `cmd/migrate` binary, not run on server startup.
 - **modernc/sqlite** — pure Go, no CGO.
 
-## Todo
-
-- [ ] Sync button — force re-fetch a PR from GitHub
-- [ ] PR file tree sidebar in review tab
-- [ ] @pierre/diffs theme matching Evergarden summer palette
-- [ ] Pagination — GitHub caps at 100 PRs per request
-- [ ] Keyboard navigation — j/k list, Enter open, Escape back
-- [ ] AI review sessions — walkthrough, correctness, logic, bullshit detector
+See `todo.txt` for the live task list.

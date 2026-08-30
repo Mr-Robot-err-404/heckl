@@ -4,34 +4,6 @@
 
 package store
 
-type Pr struct {
-	ID        int64
-	Owner     string
-	Repo      string
-	Number    int64
-	Title     string
-	Body      string
-	State     string
-	Author    string
-	HtmlUrl   string
-	Draft     int64
-	CreatedAt string
-	UpdatedAt string
-	SyncedAt  string
-}
-
-type PrFile struct {
-	ID        int64
-	PrID      int64
-	Sha       string
-	Filename  string
-	Status    string
-	Additions int64
-	Deletions int64
-	Changes   int64
-	Patch     string
-}
-
 type Repo struct {
 	ID      int64
 	Owner   string

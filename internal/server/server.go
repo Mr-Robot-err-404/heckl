@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
+	"time"
 
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/store"
@@ -29,7 +30,25 @@ func (s *Server) Static(fs http.FileSystem) {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	start := time.Now()
+	sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+	s.mux.ServeHTTP(sw, r)
+	slog.Info("request",
+		"method", r.Method,
+		"path", r.URL.Path,
+		"status", sw.status,
+		"duration_ms", time.Since(start).Milliseconds(),
+	)
+}
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sw *statusWriter) WriteHeader(code int) {
+	sw.status = code
+	sw.ResponseWriter.WriteHeader(code)
 }
 
 func (s *Server) routes() {
@@ -43,44 +62,70 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/diff/{owner}/{repo}/{number}", s.handleDiff)
 }
 
+// prResponse mirrors the old cached shape (minus id/synced_at, which are
+// meaningless now that nothing is persisted) so the frontend doesn't need to change.
+type prResponse struct {
+	Owner     string `json:"Owner"`
+	Repo      string `json:"Repo"`
+	Number    int    `json:"Number"`
+	Title     string `json:"Title"`
+	Body      string `json:"Body"`
+	State     string `json:"State"`
+	Author    string `json:"Author"`
+	HtmlUrl   string `json:"HtmlUrl"`
+	Draft     bool   `json:"Draft"`
+	CreatedAt string `json:"CreatedAt"`
+	UpdatedAt string `json:"UpdatedAt"`
+}
+
+type prFileResponse struct {
+	Sha       string `json:"Sha"`
+	Filename  string `json:"Filename"`
+	Status    string `json:"Status"`
+	Additions int    `json:"Additions"`
+	Deletions int    `json:"Deletions"`
+	Changes   int    `json:"Changes"`
+	Patch     string `json:"Patch"`
+}
+
+func toPRResponse(owner, repo string, pr github.PR) prResponse {
+	return prResponse{
+		Owner:     owner,
+		Repo:      repo,
+		Number:    pr.Number,
+		Title:     pr.Title,
+		Body:      pr.Body,
+		State:     pr.State,
+		Author:    pr.User.Login,
+		HtmlUrl:   pr.HTMLURL,
+		Draft:     pr.Draft,
+		CreatedAt: pr.CreatedAt,
+		UpdatedAt: pr.UpdatedAt,
+	}
+}
+
+// handleListPRs always fetches live from GitHub. No cache: this is a
+// single-user tool well within GitHub's rate limits, and a cache with no
+// invalidation path is worse than no cache at all.
 func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	owner := r.PathValue("owner")
 	repo := r.PathValue("repo")
 
-	prs, err := s.store.ListPRs(r.Context(), owner, repo)
+	start := time.Now()
+	remote, err := s.gh.ListRepoPRs(owner, repo)
 	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("github: list prs failed", "owner", owner, "repo", repo, "err", err)
+		jsonError(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+	slog.Info("github: list prs", "owner", owner, "repo", repo, "count", len(remote), "duration_ms", time.Since(start).Milliseconds())
 
-	if prs == nil {
-		prs = []*store.Pr{}
-	}
-	if len(prs) == 0 {
-		remote, err := s.gh.ListRepoPRs(owner, repo)
-		if err != nil {
-			jsonError(w, err.Error(), http.StatusBadGateway)
-			return
-		}
-		for _, pr := range remote {
-			files, err := s.gh.GetPRFiles(owner, repo, pr.Number)
-			if err != nil {
-				jsonError(w, err.Error(), http.StatusBadGateway)
-				return
-			}
-			if _, err := s.store.SyncPR(r.Context(), owner, repo, &pr, files); err != nil {
-				jsonError(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-		prs, err = s.store.ListPRs(r.Context(), owner, repo)
-		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	out := make([]prResponse, 0, len(remote))
+	for _, pr := range remote {
+		out = append(out, toPRResponse(owner, repo, pr))
 	}
 
-	jsonOK(w, prs)
+	jsonOK(w, out)
 }
 
 func (s *Server) handleGetPR(w http.ResponseWriter, r *http.Request) {
@@ -92,25 +137,37 @@ func (s *Server) handleGetPR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := s.store.GetPR(r.Context(), owner, repo, number)
+	start := time.Now()
+	pr, err := s.gh.GetPR(owner, repo, number)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows") {
-			jsonError(w, "not found", http.StatusNotFound)
-			return
-		}
-		jsonError(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("github: get pr failed", "owner", owner, "repo", repo, "number", number, "err", err)
+		jsonError(w, err.Error(), http.StatusBadGateway)
 		return
 	}
 
-	files, err := s.store.GetPRFiles(r.Context(), pr.ID)
+	files, err := s.gh.GetPRFiles(owner, repo, number)
 	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("github: get pr files failed", "owner", owner, "repo", repo, "number", number, "err", err)
+		jsonError(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+	slog.Info("github: get pr", "owner", owner, "repo", repo, "number", number, "files", len(files), "duration_ms", time.Since(start).Milliseconds())
 
-	jsonOK(w, map[string]any{"pr": pr, "files": files})
+	fileOut := make([]prFileResponse, 0, len(files))
+	for _, f := range files {
+		fileOut = append(fileOut, prFileResponse{
+			Sha:       f.SHA,
+			Filename:  f.Filename,
+			Status:    f.Status,
+			Additions: f.Additions,
+			Deletions: f.Deletions,
+			Changes:   f.Changes,
+			Patch:     f.Patch,
+		})
+	}
+
+	jsonOK(w, map[string]any{"pr": toPRResponse(owner, repo, *pr), "files": fileOut})
 }
-
 
 func (s *Server) handleListOrgs(w http.ResponseWriter, r *http.Request) {
 	orgs, err := s.store.ListOrgs(r.Context())
