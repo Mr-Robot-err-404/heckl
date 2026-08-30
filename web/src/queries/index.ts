@@ -60,3 +60,30 @@ export function usePRDetail(
     enabled: !!owner() && !!repo() && number() != null,
   }))
 }
+
+export function diffQueryKey(owner: string, repo: string, number: number) {
+  return ["diff", owner, repo, number]
+}
+
+export function useDiff(
+  owner: () => string,
+  repo: () => string,
+  number: () => number | null,
+) {
+  return createQuery(() => ({
+    queryKey: diffQueryKey(owner(), repo(), number() ?? 0),
+    queryFn: () => api.diff.get(owner(), repo(), number()!),
+    enabled: !!owner() && !!repo() && number() != null,
+    staleTime: Infinity,
+  }))
+}
+
+export function usePrefetchDiff() {
+  const client = useQueryClient()
+  return (owner: string, repo: string, number: number) =>
+    client.prefetchQuery({
+      queryKey: diffQueryKey(owner, repo, number),
+      queryFn: () => api.diff.get(owner, repo, number),
+      staleTime: Infinity,
+    })
+}

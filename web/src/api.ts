@@ -23,6 +23,12 @@ async function del(path: string): Promise<void> {
   if (!res.ok) throw new Error(`${res.status} ${path}`)
 }
 
+async function getText(path: string): Promise<string> {
+  const res = await fetch(BASE + path)
+  if (!res.ok) throw new Error(`${res.status} ${path}`)
+  return res.text()
+}
+
 export const api = {
   orgs: {
     list: () => get<string[]>("/orgs"),
@@ -37,5 +43,9 @@ export const api = {
     list: (owner: string, repo: string) => get<PR[]>(`/prs/${owner}/${repo}`),
     get: (owner: string, repo: string, number: number) =>
       get<PRDetail>(`/prs/${owner}/${repo}/${number}`),
+  },
+  diff: {
+    get: (owner: string, repo: string, number: number) =>
+      getText(`/diff/${owner}/${repo}/${number}`),
   },
 }

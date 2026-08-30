@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js"
-import { usePRDetail } from "../queries"
+import { usePRDetail, usePrefetchDiff } from "../queries"
 import { DiffView } from "./DiffView"
 import { Markdown } from "./Markdown"
 
@@ -19,6 +19,17 @@ export function PRDetail(props: Props) {
     () => props.prNumber,
   )
   const [tab, setTab] = createSignal<Tab>("description")
+  const [reviewMounted, setReviewMounted] = createSignal(false)
+  const prefetchDiff = usePrefetchDiff()
+
+  const openReview = () => {
+    setTab("review")
+    setReviewMounted(true)
+  }
+
+  const prefetchReview = () => {
+    prefetchDiff(props.owner, props.repo, props.prNumber)
+  }
 
   return (
     <div class="pr-detail">
@@ -31,7 +42,8 @@ export function PRDetail(props: Props) {
         </button>
         <button
           class={`pr-tab ${tab() === "review" ? "active" : ""}`}
-          onClick={() => setTab("review")}
+          onClick={openReview}
+          onMouseEnter={prefetchReview}
         >
           review
         </button>
@@ -51,8 +63,10 @@ export function PRDetail(props: Props) {
             </Show>
           </div>
         </Show>
-        <Show when={tab() === "review"}>
-          <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
+        <Show when={reviewMounted()}>
+          <div style={{ display: tab() === "review" ? "block" : "none" }}>
+            <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
+          </div>
         </Show>
       </div>
     </div>
