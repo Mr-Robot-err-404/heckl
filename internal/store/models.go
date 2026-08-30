@@ -4,6 +4,31 @@
 
 package store
 
+import (
+	"database/sql"
+)
+
+type Concern struct {
+	ID        int64
+	SessionID int64
+	File      string
+	Line      sql.NullInt64
+	Severity  string
+	Title     string
+	Body      string
+	CreatedAt string
+}
+
+type PrReviewSession struct {
+	ID                int64
+	Owner             string
+	Repo              string
+	PrNumber          int64
+	HeadSha           string
+	OpencodeSessionID string
+	CreatedAt         string
+}
+
 type Repo struct {
 	ID      int64
 	Owner   string

@@ -50,3 +50,112 @@ func (s *Store) ListOrgs(ctx context.Context) ([]string, error) {
 func (s *Store) DeleteRepo(ctx context.Context, owner, name string) error {
 	return s.queries.DeleteRepo(ctx, DeleteRepoParams{Owner: owner, Name: name})
 }
+
+func (s *Store) CreateReviewSession(ctx context.Context, owner, repo string, prNumber int, headSHA, opencodeSessionID string) (*ReviewSession, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	row, err := s.queries.CreatePRReviewSession(ctx, CreatePRReviewSessionParams{
+		Owner:             owner,
+		Repo:              repo,
+		PrNumber:          int64(prNumber),
+		HeadSha:           headSHA,
+		OpencodeSessionID: opencodeSessionID,
+		CreatedAt:         now,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return toReviewSession(row), nil
+}
+
+func (s *Store) GetReviewSession(ctx context.Context, id int64) (*ReviewSession, error) {
+	row, err := s.queries.GetPRReviewSession(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return toReviewSession(row), nil
+}
+
+func (s *Store) ListReviewSessions(ctx context.Context, owner, repo string, prNumber int) ([]*ReviewSession, error) {
+	rows, err := s.queries.ListPRReviewSessionsByPR(ctx, ListPRReviewSessionsByPRParams{
+		Owner:    owner,
+		Repo:     repo,
+		PrNumber: int64(prNumber),
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*ReviewSession, len(rows))
+	for i, r := range rows {
+		out[i] = toReviewSession(r)
+	}
+	return out, nil
+}
+
+func (s *Store) CreateConcern(ctx context.Context, sessionID int64, file string, line *int, severity, title, body string) (*ReviewConcern, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	row, err := s.queries.CreateConcern(ctx, CreateConcernParams{
+		SessionID: sessionID,
+		File:      file,
+		Line:      intPtrToNullInt64(line),
+		Severity:  severity,
+		Title:     title,
+		Body:      body,
+		CreatedAt: now,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return toConcern(row), nil
+}
+
+func (s *Store) ListConcerns(ctx context.Context, sessionID int64) ([]*ReviewConcern, error) {
+	rows, err := s.queries.ListConcernsBySession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*ReviewConcern, len(rows))
+	for i, r := range rows {
+		out[i] = toConcern(r)
+	}
+	return out, nil
+}
+
+func toReviewSession(r *PrReviewSession) *ReviewSession {
+	return &ReviewSession{
+		ID:                r.ID,
+		Owner:             r.Owner,
+		Repo:              r.Repo,
+		PRNumber:          int(r.PrNumber),
+		HeadSHA:           r.HeadSha,
+		OpencodeSessionID: r.OpencodeSessionID,
+		CreatedAt:         r.CreatedAt,
+	}
+}
+
+func toConcern(r *Concern) *ReviewConcern {
+	return &ReviewConcern{
+		ID:        r.ID,
+		SessionID: r.SessionID,
+		File:      r.File,
+		Line:      nullInt64ToIntPtr(r.Line),
+		Severity:  r.Severity,
+		Title:     r.Title,
+		Body:      r.Body,
+		CreatedAt: r.CreatedAt,
+	}
+}
+
+func intPtrToNullInt64(v *int) sql.NullInt64 {
+	if v == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: int64(*v), Valid: true}
+}
+
+func nullInt64ToIntPtr(v sql.NullInt64) *int {
+	if !v.Valid {
+		return nil
+	}
+	n := int(v.Int64)
+	return &n
+}
