@@ -1,11 +1,64 @@
+PR Detail — Description
+------------------------
 [x] Render GitHub markdown in PR description
 [ ] Description page — reviewers assigned
 [ ] Description page — checks status
 [ ] Description page — ready to merge state
 [x] Video embeds — investigated, not feasible. GitHub resolves video short-links (github.com/user-attachments/assets/<uuid>) to a signed JWT URL server-side while rendering its own PR page; neither a PAT/OAuth Bearer token nor a manually-copied user_session cookie can trigger that resolution via direct HTTP request. Reverted to plain clickable links (opens on github.com, where the real logged-in session handles it). Would require scraping GitHub's rendered PR page HTML to go further — not worth the fragility for a personal tool.
+
+PR Detail — Review (diff)
+--------------------------
 [ ] PR file tree sidebar in detail view
 [ ] @pierre/diffs theme matching Evergarden summer
+
+PR List
+--------
 [ ] Pagination — GitHub only returns 100 PRs, handle larger repos
 [ ] Keyboard navigation — j/k through PR list, Enter to open, Escape to back
-[ ] AI review sessions — walkthrough, correctness, logic, bullshit detector
+
+Infra / misc
+-------------
 [ ] Color and clean server logs
+
+
+==================================================
+AGENT INTEGRATION — AI PR Review (opencode)
+==================================================
+
+The meat of this project. Persistent `opencode serve` on the home server
+(hardcoded port) — real tool use against a checked-out worktree, not just
+diff text in a prompt. opencode owns session/transcript persistence; we only
+store final structured output ourselves. Not a reversal of "no cache" —
+that was about not caching GitHub-mirrorable data; review output is
+original data we generate.
+
+Decisions locked in
+---------------------
+[x] `internal/opencode` — thin hand-rolled Go HTTP client (no official Go
+    SDK, JS-only), same style as `internal/github`
+[x] Structured concerns via opencode's native `format.json_schema` on
+    `session.prompt` — no custom MCP tool needed
+[x] `git worktree add` per PR at head sha into a fixed local state dir,
+    clone-if-missing, no cleanup lifecycle for now
+[x] Cheap scanner models (opencode-go) escalate to a smarter paid judge
+    model, orchestrated explicitly by our Go backend per call — not left to
+    agent-decided Task delegation
+
+Phase 1 — minimal end-to-end slice
+--------------------------------------
+[ ] `internal/opencode`: CreateSession, Prompt (model/agent + json_schema
+    format), Messages
+[ ] Worktree checkout at PR head sha
+[ ] Single agent `.opencode/agent/pr-reviewer.md`, read-only, cheap model
+[ ] One prompt call, structured `concerns` output, stored raw (no judge yet)
+[ ] `pr_review_sessions` + flat `concerns` tables
+[ ] Bare endpoint to confirm concerns landed — no UI polish yet
+
+Phase 2 — full pipeline (not started)
+-------------------------------------
+[ ] Split into `pr-walkthrough` / `pr-correctness` / `pr-logic` scanners
+[ ] `pr-judge` subagent — high rejection bar, accepts/rewrites concerns
+[ ] Concern lifecycle: open / resolved / dismissed / superseded, fed back
+    into the session on re-review
+[ ] "Agent Review" tab in PRDetail — narrative + concern list, resolve/dismiss
+[ ] Cost controls — `steps` cap, swappable cheap/judge model config
