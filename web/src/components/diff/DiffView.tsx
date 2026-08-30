@@ -1,6 +1,7 @@
 import { createEffect, onCleanup } from "solid-js"
 import { CodeView, parsePatchFiles, type CodeViewItem } from "@pierre/diffs"
-import { useDiff } from "../queries"
+import { useDiff } from "../../queries"
+import { buildCollapseToggle, buildCopyPathButton } from "./diffHeader"
 
 type Props = {
   owner: string
@@ -17,6 +18,16 @@ export function DiffView(props: Props) {
     () => props.repo,
     () => props.prNumber,
   )
+
+  const toggleCollapsed = (id: string) => {
+    const item = view?.getItem(id)
+    if (!item) return
+    view?.updateItem({
+      ...item,
+      collapsed: !item.collapsed,
+      version: (item.version ?? 0) + 1,
+    })
+  }
 
   createEffect(() => {
     const patch = diff.data
@@ -42,6 +53,9 @@ export function DiffView(props: Props) {
       lineDiffType: "word-alt",
       stickyHeaders: true,
       layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
+      renderHeaderPrefix: (fileDiff, context) =>
+        buildCollapseToggle(fileDiff, context, toggleCollapsed),
+      renderHeaderFilenameSuffix: (fileDiff) => buildCopyPathButton(fileDiff),
     })
     view.setup(host)
     view.setItems(items)

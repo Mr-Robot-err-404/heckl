@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js"
 import { usePRDetail, usePrefetchDiff } from "../queries"
-import { DiffView } from "./DiffView"
+import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
 
 type Tab = "description" | "review"
