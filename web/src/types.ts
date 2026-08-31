@@ -33,3 +33,45 @@ export type PRDetail = {
   pr: PR
   files: PRFile[]
 }
+
+export type ReviewStatus = "pending" | "running" | "done" | "error"
+
+export type ReviewStage = {
+  name: string
+  status: ReviewStatus
+  startedAt?: string
+  endedAt?: string
+  durationMs: number
+  detail?: string
+  error?: string
+}
+
+export type ReviewAgent = {
+  name: string
+  status: ReviewStatus
+}
+
+export type Concern = {
+  file: string
+  line?: number
+  severity: "low" | "medium" | "high"
+  title: string
+  body: string
+}
+
+export type Review = {
+  id: string
+  owner: string
+  repo: string
+  prNumber: number
+  headSha: string
+  status: ReviewStatus
+  stages: ReviewStage[]
+  agents: ReviewAgent[]
+  sessionId?: number
+  summary?: string
+  concerns: Concern[]
+  error?: string
+  startedAt: string
+  endedAt?: string
+}

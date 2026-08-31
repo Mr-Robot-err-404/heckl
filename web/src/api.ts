@@ -1,4 +1,4 @@
-import type { PR, PRDetail, Repo } from "./types"
+import type { PR, PRDetail, Repo, Review } from "./types"
 
 const BASE = "/api"
 
@@ -47,5 +47,20 @@ export const api = {
   diff: {
     get: (owner: string, repo: string, number: number) =>
       getText(`/diff/${owner}/${repo}/${number}`),
+  },
+  review: {
+    start: (owner: string, repo: string, number: number) =>
+      post<Review>(`/review/${owner}/${repo}/${number}`, {}),
+    stream: (id: string, onReview: (review: Review) => void) => {
+      const source = new EventSource(`${BASE}/review/live/${id}/stream`)
+      const handle = (e: MessageEvent) => {
+        const review = JSON.parse(e.data) as Review
+        onReview(review)
+        if (review.status === "done" || review.status === "error") source.close()
+      }
+      source.addEventListener("snapshot", handle)
+      source.addEventListener("review", handle)
+      return () => source.close()
+    },
   },
 }

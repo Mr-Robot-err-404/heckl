@@ -7,6 +7,7 @@ type ReviewSession struct {
 	PRNumber          int
 	HeadSHA           string
 	OpencodeSessionID string
+	Summary           string
 	CreatedAt         string
 }
 

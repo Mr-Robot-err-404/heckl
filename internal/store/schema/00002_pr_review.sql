@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS pr_review_sessions (
     pr_number             INTEGER NOT NULL,
     head_sha              TEXT NOT NULL,
     opencode_session_id   TEXT NOT NULL,
+    summary               TEXT NOT NULL DEFAULT '',
     created_at            TEXT NOT NULL
 );
 

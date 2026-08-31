@@ -51,9 +51,9 @@ func (q *Queries) CreateConcern(ctx context.Context, arg CreateConcernParams) (*
 }
 
 const createPRReviewSession = `-- name: CreatePRReviewSession :one
-INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, created_at)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, owner, repo, pr_number, head_sha, opencode_session_id, created_at
+INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at
 `
 
 type CreatePRReviewSessionParams struct {
@@ -62,6 +62,7 @@ type CreatePRReviewSessionParams struct {
 	PrNumber          int64
 	HeadSha           string
 	OpencodeSessionID string
+	Summary           string
 	CreatedAt         string
 }
 
@@ -72,6 +73,7 @@ func (q *Queries) CreatePRReviewSession(ctx context.Context, arg CreatePRReviewS
 		arg.PrNumber,
 		arg.HeadSha,
 		arg.OpencodeSessionID,
+		arg.Summary,
 		arg.CreatedAt,
 	)
 	var i PrReviewSession
@@ -82,13 +84,14 @@ func (q *Queries) CreatePRReviewSession(ctx context.Context, arg CreatePRReviewS
 		&i.PrNumber,
 		&i.HeadSha,
 		&i.OpencodeSessionID,
+		&i.Summary,
 		&i.CreatedAt,
 	)
 	return &i, err
 }
 
 const getPRReviewSession = `-- name: GetPRReviewSession :one
-SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, created_at FROM pr_review_sessions WHERE id = ?
+SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at FROM pr_review_sessions WHERE id = ?
 `
 
 func (q *Queries) GetPRReviewSession(ctx context.Context, id int64) (*PrReviewSession, error) {
@@ -101,6 +104,7 @@ func (q *Queries) GetPRReviewSession(ctx context.Context, id int64) (*PrReviewSe
 		&i.PrNumber,
 		&i.HeadSha,
 		&i.OpencodeSessionID,
+		&i.Summary,
 		&i.CreatedAt,
 	)
 	return &i, err
@@ -143,7 +147,7 @@ func (q *Queries) ListConcernsBySession(ctx context.Context, sessionID int64) ([
 }
 
 const listPRReviewSessionsByPR = `-- name: ListPRReviewSessionsByPR :many
-SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, created_at FROM pr_review_sessions WHERE owner = ? AND repo = ? AND pr_number = ? ORDER BY created_at DESC
+SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at FROM pr_review_sessions WHERE owner = ? AND repo = ? AND pr_number = ? ORDER BY created_at DESC
 `
 
 type ListPRReviewSessionsByPRParams struct {
@@ -168,6 +172,7 @@ func (q *Queries) ListPRReviewSessionsByPR(ctx context.Context, arg ListPRReview
 			&i.PrNumber,
 			&i.HeadSha,
 			&i.OpencodeSessionID,
+			&i.Summary,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

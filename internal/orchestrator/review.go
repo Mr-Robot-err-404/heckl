@@ -56,6 +56,7 @@ type Review struct {
 	Agents []Agent `json:"agents"`
 
 	SessionID int64     `json:"sessionId,omitempty"`
+	Summary   string    `json:"summary,omitempty"`
 	Concerns  []Concern `json:"concerns"`
 	Error     string    `json:"error,omitempty"`
 

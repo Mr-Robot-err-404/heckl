@@ -1,6 +1,6 @@
 -- name: CreatePRReviewSession :one
-INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, created_at)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetPRReviewSession :one

@@ -2,6 +2,7 @@ import { createSignal, Show } from "solid-js"
 import { usePRDetail, usePrefetchDiff } from "../queries"
 import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
+import { ReviewPanel } from "./ReviewPanel"
 
 type Tab = "description" | "review"
 
@@ -65,7 +66,12 @@ export function PRDetail(props: Props) {
         </Show>
         <Show when={reviewMounted()}>
           <div class={`diff-tab-panel ${tab() === "review" ? "" : "hidden"}`}>
-            <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
+            <div class="review-layout">
+              <div class="review-diff">
+                <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
+              </div>
+              <ReviewPanel owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
+            </div>
           </div>
         </Show>
       </div>

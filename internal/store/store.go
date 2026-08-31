@@ -51,7 +51,7 @@ func (s *Store) DeleteRepo(ctx context.Context, owner, name string) error {
 	return s.queries.DeleteRepo(ctx, DeleteRepoParams{Owner: owner, Name: name})
 }
 
-func (s *Store) CreateReviewSession(ctx context.Context, owner, repo string, prNumber int, headSHA, opencodeSessionID string) (*ReviewSession, error) {
+func (s *Store) CreateReviewSession(ctx context.Context, owner, repo string, prNumber int, headSHA, opencodeSessionID, summary string) (*ReviewSession, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	row, err := s.queries.CreatePRReviewSession(ctx, CreatePRReviewSessionParams{
 		Owner:             owner,
@@ -59,6 +59,7 @@ func (s *Store) CreateReviewSession(ctx context.Context, owner, repo string, prN
 		PrNumber:          int64(prNumber),
 		HeadSha:           headSHA,
 		OpencodeSessionID: opencodeSessionID,
+		Summary:           summary,
 		CreatedAt:         now,
 	})
 	if err != nil {
@@ -128,6 +129,7 @@ func toReviewSession(r *PrReviewSession) *ReviewSession {
 		PRNumber:          int(r.PrNumber),
 		HeadSHA:           r.HeadSha,
 		OpencodeSessionID: r.OpencodeSessionID,
+		Summary:           r.Summary,
 		CreatedAt:         r.CreatedAt,
 	}
 }

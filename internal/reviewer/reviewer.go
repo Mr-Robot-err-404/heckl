@@ -59,12 +59,17 @@ type Concern struct {
 }
 
 type reviewOutput struct {
+	Summary  string    `json:"summary"`
 	Concerns []Concern `json:"concerns"`
 }
 
 var concernsSchema = map[string]any{
 	"type": "object",
 	"properties": map[string]any{
+		"summary": map[string]any{
+			"type":        "string",
+			"description": "What this PR is trying to do, in one or two sentences. Plain and specific.",
+		},
 		"concerns": map[string]any{
 			"type": "array",
 			"items": map[string]any{
@@ -81,7 +86,7 @@ var concernsSchema = map[string]any{
 			},
 		},
 	},
-	"required":             []string{"concerns"},
+	"required":             []string{"summary", "concerns"},
 	"additionalProperties": false,
 }
 
@@ -153,10 +158,10 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		return nil, nil, fail(StageParse, fmt.Errorf("reviewer: parse output: %w", err))
 	}
 	emit(ProgressEvent{Stage: StageParse, Done: true, Detail: fmt.Sprintf("%d concerns", len(out.Concerns))})
-	log.Info("reviewer: parsed concerns", "count", len(out.Concerns))
+	log.Info("reviewer: parsed concerns", "count", len(out.Concerns), "summary", out.Summary)
 
 	emit(ProgressEvent{Stage: StageStore})
-	reviewSess, err := r.store.CreateReviewSession(ctx, req.Owner, req.Repo, req.PRNumber, req.HeadSHA, sess.ID)
+	reviewSess, err := r.store.CreateReviewSession(ctx, req.Owner, req.Repo, req.PRNumber, req.HeadSHA, sess.ID, out.Summary)
 	if err != nil {
 		return nil, nil, fail(StageStore, fmt.Errorf("reviewer: store session: %w", err))
 	}

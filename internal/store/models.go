@@ -26,6 +26,7 @@ type PrReviewSession struct {
 	PrNumber          int64
 	HeadSha           string
 	OpencodeSessionID string
+	Summary           string
 	CreatedAt         string
 }
 

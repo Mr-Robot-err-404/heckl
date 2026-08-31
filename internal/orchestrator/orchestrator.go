@@ -107,6 +107,7 @@ func (o *Orchestrator) run(id, key string, in StartInput) {
 			return
 		}
 		r.SessionID = sess.ID
+		r.Summary = sess.Summary
 		r.Concerns = toConcerns(concerns)
 		r.finish(nil)
 	})
