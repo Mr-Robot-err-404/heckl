@@ -72,8 +72,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}", s.handleReview)
 	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}", s.handleListReviews)
-	s.mux.HandleFunc("GET /api/review/live/{id}", s.handleGetReview)
-	s.mux.HandleFunc("GET /api/review/live/{id}/stream", s.handleReviewStream)
+	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}/live", s.handleGetReview)
+	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}/stream", s.handleReviewStream)
 }
 
 type prResponse struct {

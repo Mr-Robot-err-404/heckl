@@ -57,15 +57,23 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
+		return
+	}
+
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		jsonError(w, "streaming not supported", http.StatusInternalServerError)
 		return
 	}
 
-	sub, snapshot, err := s.orchestrator.Subscribe(r.PathValue("id"))
+	sub, snapshot, err := s.orchestrator.Subscribe(owner, repo, number)
 	if err != nil {
-		jsonError(w, err.Error(), http.StatusNotFound)
+		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer s.orchestrator.Unsubscribe(sub)
@@ -79,10 +87,6 @@ func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 	writeEvent(w, "snapshot", snapshot)
 	flusher.Flush()
 
-	if isTerminal(snapshot.Status) {
-		return
-	}
-
 	ticker := time.NewTicker(streamPingInterval)
 	defer ticker.Stop()
 
@@ -95,26 +99,29 @@ func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			flusher.Flush()
-		case review, ok := <-sub.Ch:
+		case _, ok := <-sub.Ready():
 			if !ok {
 				return
 			}
+			review, has := sub.Take()
+			if !has {
+				continue
+			}
 			writeEvent(w, "review", review)
 			flusher.Flush()
-			if isTerminal(review.Status) {
-				return
-			}
 		}
 	}
 }
 
 func (s *Server) handleGetReview(w http.ResponseWriter, r *http.Request) {
-	review, ok := s.orchestrator.Get(r.PathValue("id"))
-	if !ok {
-		jsonError(w, "review not found", http.StatusNotFound)
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
 		return
 	}
-	jsonOK(w, review)
+	jsonOK(w, s.orchestrator.Latest(owner, repo, number))
 }
 
 func (s *Server) handleListReviews(w http.ResponseWriter, r *http.Request) {
@@ -148,10 +155,6 @@ func (s *Server) handleListReviews(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonOK(w, out)
-}
-
-func isTerminal(status orchestrator.Status) bool {
-	return status == orchestrator.StatusDone || status == orchestrator.StatusError
 }
 
 func writeEvent(w http.ResponseWriter, event string, payload any) {

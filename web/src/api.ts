@@ -51,13 +51,14 @@ export const api = {
   review: {
     start: (owner: string, repo: string, number: number) =>
       post<Review>(`/review/${owner}/${repo}/${number}`, {}),
-    stream: (id: string, onReview: (review: Review) => void) => {
-      const source = new EventSource(`${BASE}/review/live/${id}/stream`)
-      const handle = (e: MessageEvent) => {
-        const review = JSON.parse(e.data) as Review
-        onReview(review)
-        if (review.status === "done" || review.status === "error") source.close()
-      }
+    stream: (
+      owner: string,
+      repo: string,
+      number: number,
+      onReview: (review: Review | null) => void,
+    ) => {
+      const source = new EventSource(`${BASE}/review/${owner}/${repo}/${number}/stream`)
+      const handle = (e: MessageEvent) => onReview(JSON.parse(e.data) as Review | null)
       source.addEventListener("snapshot", handle)
       source.addEventListener("review", handle)
       return () => source.close()

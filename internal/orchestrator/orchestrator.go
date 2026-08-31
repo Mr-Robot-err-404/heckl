@@ -14,12 +14,56 @@ import (
 
 type storeConcern = store.ReviewConcern
 
-const subscriberBuffer = 32
-
 type Subscription struct {
-	ID       string
-	ReviewID string
-	Ch       chan *Review
+	ID  string
+	Key string
+
+	mu      sync.Mutex
+	pending *Review
+	signal  chan struct{}
+	closed  bool
+}
+
+func newSubscription(id, key string) *Subscription {
+	return &Subscription{ID: id, Key: key, signal: make(chan struct{}, 1)}
+}
+
+func (s *Subscription) push(review *Review) {
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return
+	}
+	s.pending = review
+	s.mu.Unlock()
+
+	select {
+	case s.signal <- struct{}{}:
+	default:
+	}
+}
+
+func (s *Subscription) Ready() <-chan struct{} { return s.signal }
+
+func (s *Subscription) Take() (*Review, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.pending == nil {
+		return nil, false
+	}
+	review := s.pending
+	s.pending = nil
+	return review, true
+}
+
+func (s *Subscription) close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
+	s.closed = true
+	close(s.signal)
 }
 
 type Orchestrator struct {
@@ -29,7 +73,8 @@ type Orchestrator struct {
 
 	mu          sync.RWMutex
 	reviews     map[string]*Review
-	active      map[string]string
+	latest      map[string]string
+	active      map[string]struct{}
 	subscribers map[string]map[string]*Subscription
 }
 
@@ -39,7 +84,8 @@ func New(ctx context.Context, logger *slog.Logger, rev *reviewer.Reviewer) *Orch
 		logger:      logger,
 		reviewer:    rev,
 		reviews:     make(map[string]*Review),
-		active:      make(map[string]string),
+		latest:      make(map[string]string),
+		active:      make(map[string]struct{}),
 		subscribers: make(map[string]map[string]*Subscription),
 	}
 }
@@ -55,13 +101,13 @@ type StartInput struct {
 }
 
 func (o *Orchestrator) Start(in StartInput) (*Review, error) {
-	key := prKey(in.Owner, in.Repo, in.PRNumber)
+	key := PRKey(in.Owner, in.Repo, in.PRNumber)
 
 	o.mu.Lock()
-	if id, ok := o.active[key]; ok {
-		existing := o.reviews[id]
+	if _, running := o.active[key]; running {
+		existing := o.reviews[o.latest[key]].clone()
 		o.mu.Unlock()
-		return existing.clone(), nil
+		return existing, nil
 	}
 
 	id, err := newID()
@@ -74,10 +120,12 @@ func (o *Orchestrator) Start(in StartInput) (*Review, error) {
 	review.HeadSHA = in.HeadSHA
 	review.Status = StatusRunning
 	o.reviews[id] = review
-	o.active[key] = id
+	o.latest[key] = id
+	o.active[key] = struct{}{}
 	snapshot := review.clone()
 	o.mu.Unlock()
 
+	o.broadcast(key, snapshot)
 	go o.run(id, key, in)
 
 	return snapshot, nil
@@ -86,7 +134,7 @@ func (o *Orchestrator) Start(in StartInput) (*Review, error) {
 func (o *Orchestrator) run(id, key string, in StartInput) {
 	log := o.logger.With("review_id", id, "owner", in.Owner, "repo", in.Repo, "pr", in.PRNumber)
 
-	o.update(id, func(r *Review) {
+	o.update(key, id, func(r *Review) {
 		r.setAgent("pr-reviewer", StatusRunning)
 	})
 
@@ -98,10 +146,14 @@ func (o *Orchestrator) run(id, key string, in StartInput) {
 		Title:    in.Title,
 		Body:     in.Body,
 		Diff:     in.Diff,
-		Progress: o.progressFor(id),
+		Progress: o.progressFor(key, id),
 	})
 
-	o.update(id, func(r *Review) {
+	o.mu.Lock()
+	delete(o.active, key)
+	o.mu.Unlock()
+
+	o.update(key, id, func(r *Review) {
 		if err != nil {
 			r.finish(err)
 			return
@@ -112,10 +164,6 @@ func (o *Orchestrator) run(id, key string, in StartInput) {
 		r.finish(nil)
 	})
 
-	o.mu.Lock()
-	delete(o.active, key)
-	o.mu.Unlock()
-
 	if err != nil {
 		log.Error("orchestrator: review failed", "err", err)
 		return
@@ -123,9 +171,9 @@ func (o *Orchestrator) run(id, key string, in StartInput) {
 	log.Info("orchestrator: review complete", "concerns", len(concerns))
 }
 
-func (o *Orchestrator) progressFor(id string) reviewer.Progress {
+func (o *Orchestrator) progressFor(key, id string) reviewer.Progress {
 	return func(ev reviewer.ProgressEvent) {
-		o.update(id, func(r *Review) {
+		o.update(key, id, func(r *Review) {
 			if ev.Done {
 				r.endStage(ev.Stage, ev.Detail, ev.Err)
 				return
@@ -135,7 +183,7 @@ func (o *Orchestrator) progressFor(id string) reviewer.Progress {
 	}
 }
 
-func (o *Orchestrator) update(id string, mutate func(*Review)) {
+func (o *Orchestrator) update(key, id string, mutate func(*Review)) {
 	o.mu.Lock()
 	review, ok := o.reviews[id]
 	if !ok {
@@ -144,61 +192,70 @@ func (o *Orchestrator) update(id string, mutate func(*Review)) {
 	}
 	mutate(review)
 	snapshot := review.clone()
-	subs := make([]*Subscription, 0, len(o.subscribers[id]))
-	for _, sub := range o.subscribers[id] {
-		subs = append(subs, sub)
-	}
 	o.mu.Unlock()
 
+	o.broadcast(key, snapshot)
+}
+
+func (o *Orchestrator) broadcast(key string, snapshot *Review) {
+	o.mu.RLock()
+	subs := make([]*Subscription, 0, len(o.subscribers[key]))
+	for _, sub := range o.subscribers[key] {
+		subs = append(subs, sub)
+	}
+	o.mu.RUnlock()
+
 	for _, sub := range subs {
-		select {
-		case sub.Ch <- snapshot:
-		default:
-		}
+		sub.push(snapshot)
 	}
 }
 
-func (o *Orchestrator) Get(id string) (*Review, bool) {
+func (o *Orchestrator) Latest(owner, repo string, prNumber int) *Review {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
-	review, ok := o.reviews[id]
-	if !ok {
-		return nil, false
-	}
-	return review.clone(), true
+	return o.latestLocked(PRKey(owner, repo, prNumber))
 }
 
-func (o *Orchestrator) Subscribe(reviewID string) (*Subscription, *Review, error) {
+func (o *Orchestrator) latestLocked(key string) *Review {
+	id, ok := o.latest[key]
+	if !ok {
+		return nil
+	}
+	review, ok := o.reviews[id]
+	if !ok {
+		return nil
+	}
+	return review.clone()
+}
+
+func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscription, *Review, error) {
+	key := PRKey(owner, repo, prNumber)
+
 	o.mu.Lock()
 	defer o.mu.Unlock()
-
-	review, ok := o.reviews[reviewID]
-	if !ok {
-		return nil, nil, fmt.Errorf("orchestrator: unknown review %s", reviewID)
-	}
 
 	id, err := newID()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sub := &Subscription{ID: id, ReviewID: reviewID, Ch: make(chan *Review, subscriberBuffer)}
-	list, ok := o.subscribers[reviewID]
+	sub := newSubscription(id, key)
+	list, ok := o.subscribers[key]
 	if !ok {
 		list = make(map[string]*Subscription)
-		o.subscribers[reviewID] = list
+		o.subscribers[key] = list
 	}
 	list[id] = sub
 
-	o.logger.Info("orchestrator: subscriber added", "review_id", reviewID, "sub_id", id, "subscribers", len(list))
-	return sub, review.clone(), nil
+	o.logger.Info("orchestrator: subscriber added", "pr", key, "sub_id", id, "subscribers", len(list))
+	return sub, o.latestLocked(key), nil
 }
 
 func (o *Orchestrator) Unsubscribe(sub *Subscription) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 
-	list, ok := o.subscribers[sub.ReviewID]
+	list, ok := o.subscribers[sub.Key]
 	if !ok {
 		return
 	}
@@ -206,12 +263,12 @@ func (o *Orchestrator) Unsubscribe(sub *Subscription) {
 		return
 	}
 	delete(list, sub.ID)
-	close(sub.Ch)
+	sub.close()
 
 	if len(list) == 0 {
-		delete(o.subscribers, sub.ReviewID)
+		delete(o.subscribers, sub.Key)
 	}
-	o.logger.Info("orchestrator: subscriber removed", "review_id", sub.ReviewID, "sub_id", sub.ID, "subscribers", len(list))
+	o.logger.Info("orchestrator: subscriber removed", "pr", sub.Key, "sub_id", sub.ID, "subscribers", len(list))
 }
 
 func toConcerns(in []*storeConcern) []Concern {
@@ -228,7 +285,7 @@ func toConcerns(in []*storeConcern) []Concern {
 	return out
 }
 
-func prKey(owner, repo string, prNumber int) string {
+func PRKey(owner, repo string, prNumber int) string {
 	return fmt.Sprintf("%s/%s#%d", owner, repo, prNumber)
 }
 

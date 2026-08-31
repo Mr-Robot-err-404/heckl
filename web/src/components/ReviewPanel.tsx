@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, Show } from "solid-js"
+import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 import { api } from "../api"
 import type { Concern, Review, ReviewStage } from "../types"
 
@@ -18,39 +18,35 @@ const stageLabels: Record<string, string> = {
 
 export function ReviewPanel(props: Props) {
   const [review, setReview] = createSignal<Review | null>(null)
-  const [starting, setStarting] = createSignal(false)
   const [error, setError] = createSignal("")
-  let stop: (() => void) | undefined
 
-  onCleanup(() => stop?.())
-
-  const start = async () => {
-    setStarting(true)
+  createEffect(() => {
+    const { owner, repo, prNumber } = props
+    setReview(null)
     setError("")
-    try {
-      const started = await api.review.start(props.owner, props.repo, props.prNumber)
-      setReview(started)
-      stop?.()
-      stop = api.review.stream(started.id, setReview)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setStarting(false)
-    }
-  }
+    const close = api.review.stream(owner, repo, prNumber, setReview)
+    onCleanup(close)
+  })
 
   const running = () => {
-    const r = review()
-    return r?.status === "pending" || r?.status === "running"
+    const status = review()?.status
+    return status === "pending" || status === "running"
   }
 
-  const activeStage = () => review()?.stages.find((s) => s.status === "running")
+  const start = async () => {
+    setError("")
+    try {
+      await api.review.start(props.owner, props.repo, props.prNumber)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
 
   return (
     <aside class="review-panel">
       <div class="review-panel-head">
         <span class="review-panel-title">agent review</span>
-        <button class="review-run" onClick={start} disabled={starting() || running()}>
+        <button class="review-run" onClick={start} disabled={running()}>
           {running() ? "reviewing..." : review() ? "re-run" : "run"}
         </button>
       </div>
@@ -59,16 +55,13 @@ export function ReviewPanel(props: Props) {
         <div class="review-error">{error()}</div>
       </Show>
 
-      <Show when={review()} keyed>
+      <Show when={review()} keyed fallback={<p class="review-idle">no review yet</p>}>
         {(r) => (
           <>
             <Show when={running()}>
               <div class="review-stages">
                 <For each={r.stages}>{(stage) => <StageRow stage={stage} />}</For>
               </div>
-              <Show when={activeStage()?.name === "prompt"}>
-                <div class="review-hint">agent is reading the diff</div>
-              </Show>
             </Show>
 
             <Show when={r.status === "error"}>
@@ -90,10 +83,6 @@ export function ReviewPanel(props: Props) {
             </Show>
           </>
         )}
-      </Show>
-
-      <Show when={!review() && !error()}>
-        <p class="review-idle">run a single-pass agent review of this PR</p>
       </Show>
     </aside>
   )
