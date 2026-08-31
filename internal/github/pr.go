@@ -29,13 +29,13 @@ type PR struct {
 func (pr *PR) HeadSHA() string { return pr.Head.SHA }
 
 type PRFile struct {
-	SHA      string `json:"sha"`
-	Filename string `json:"filename"`
-	Status   string `json:"status"`
-	Additions int   `json:"additions"`
-	Deletions int   `json:"deletions"`
-	Changes   int   `json:"changes"`
-	Patch    string `json:"patch"`
+	SHA       string `json:"sha"`
+	Filename  string `json:"filename"`
+	Status    string `json:"status"`
+	Additions int    `json:"additions"`
+	Deletions int    `json:"deletions"`
+	Changes   int    `json:"changes"`
+	Patch     string `json:"patch"`
 }
 
 func (c *Client) ListRepoPRs(owner, repo string) ([]PR, error) {

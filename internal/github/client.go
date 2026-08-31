@@ -10,8 +10,8 @@ import (
 const baseURL = "https://api.github.com"
 
 type Client struct {
-	token  string
-	http   *http.Client
+	token string
+	http  *http.Client
 }
 
 func New(token string) *Client {
