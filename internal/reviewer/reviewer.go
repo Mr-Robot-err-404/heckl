@@ -13,23 +13,41 @@ import (
 )
 
 type Reviewer struct {
-	oc      *opencode.Client
-	wt      *worktree.Manager
-	store   *store.Store
+	oc    *opencode.Client
+	wt    *worktree.Manager
+	store *store.Store
 }
 
 func New(oc *opencode.Client, wt *worktree.Manager, s *store.Store) *Reviewer {
 	return &Reviewer{oc: oc, wt: wt, store: s}
 }
 
+type ProgressEvent struct {
+	Stage  string
+	Done   bool
+	Detail string
+	Err    error
+}
+
+type Progress func(ProgressEvent)
+
+const (
+	StageWorktree = "worktree"
+	StageSession  = "session"
+	StagePrompt   = "prompt"
+	StageParse    = "parse"
+	StageStore    = "store"
+)
+
 type ReviewRequest struct {
-	Owner     string
-	Repo      string
-	PRNumber  int
-	HeadSHA   string
-	Title     string
-	Body      string
-	Diff      string
+	Owner    string
+	Repo     string
+	PRNumber int
+	HeadSHA  string
+	Title    string
+	Body     string
+	Diff     string
+	Progress Progress
 }
 
 type Concern struct {
@@ -69,16 +87,27 @@ var concernsSchema = map[string]any{
 
 func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.ReviewSession, []*store.ReviewConcern, error) {
 	log := slog.With("owner", req.Owner, "repo", req.Repo, "pr", req.PRNumber)
+	emit := req.Progress
+	if emit == nil {
+		emit = func(ProgressEvent) {}
+	}
+	fail := func(stage string, err error) error {
+		emit(ProgressEvent{Stage: stage, Done: true, Err: err})
+		log.Error("reviewer: "+stage+" failed", "err", err)
+		return err
+	}
 
+	emit(ProgressEvent{Stage: StageWorktree})
 	log.Info("reviewer: ensuring worktree", "head_sha", req.HeadSHA)
 	t := time.Now()
 	wtPath, err := r.wt.EnsureWorktree(req.Owner, req.Repo, req.PRNumber, req.HeadSHA)
 	if err != nil {
-		log.Error("reviewer: worktree failed", "err", err, "duration_ms", time.Since(t).Milliseconds())
-		return nil, nil, fmt.Errorf("reviewer: worktree: %w", err)
+		return nil, nil, fail(StageWorktree, fmt.Errorf("reviewer: worktree: %w", err))
 	}
+	emit(ProgressEvent{Stage: StageWorktree, Done: true, Detail: wtPath})
 	log.Info("reviewer: worktree ready", "path", wtPath, "duration_ms", time.Since(t).Milliseconds())
 
+	emit(ProgressEvent{Stage: StageSession})
 	log.Info("reviewer: creating opencode session", "agent", "pr-reviewer")
 	t = time.Now()
 	sess, err := r.oc.CreateSession(opencode.CreateSessionRequest{
@@ -87,13 +116,14 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		Permission: opencode.WorktreePermission(wtPath),
 	})
 	if err != nil {
-		log.Error("reviewer: create session failed", "err", err, "duration_ms", time.Since(t).Milliseconds())
-		return nil, nil, fmt.Errorf("reviewer: create session: %w", err)
+		return nil, nil, fail(StageSession, fmt.Errorf("reviewer: create session: %w", err))
 	}
 	log = log.With("session_id", sess.ID)
+	emit(ProgressEvent{Stage: StageSession, Done: true, Detail: sess.ID})
 	log.Info("reviewer: session created", "duration_ms", time.Since(t).Milliseconds())
 
 	prompt := buildPrompt(req)
+	emit(ProgressEvent{Stage: StagePrompt})
 	log.Info("reviewer: prompting model", "prompt_bytes", len(prompt))
 	t = time.Now()
 	msg, err := r.oc.Prompt(sess.ID, opencode.PromptRequest{
@@ -105,41 +135,41 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		},
 	})
 	if err != nil {
-		log.Error("reviewer: prompt failed", "err", err, "duration_ms", time.Since(t).Milliseconds())
-		return nil, nil, fmt.Errorf("reviewer: prompt: %w", err)
+		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: prompt: %w", err))
 	}
-	log.Info("reviewer: model responded", "duration_ms", time.Since(t).Milliseconds())
 	if msg.Info.HasError() {
-		log.Error("reviewer: model returned error", "model_error", string(msg.Info.Error))
-		return nil, nil, fmt.Errorf("reviewer: model error: %s", string(msg.Info.Error))
+		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: model error: %s", string(msg.Info.Error)))
 	}
 	if len(msg.Info.Structured) == 0 {
-		log.Error("reviewer: no structured output returned")
-		return nil, nil, fmt.Errorf("reviewer: no structured output returned")
+		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: no structured output returned"))
 	}
+	emit(ProgressEvent{Stage: StagePrompt, Done: true})
+	log.Info("reviewer: model responded", "duration_ms", time.Since(t).Milliseconds())
 
+	emit(ProgressEvent{Stage: StageParse})
 	var out reviewOutput
 	if err := json.Unmarshal(msg.Info.Structured, &out); err != nil {
-		log.Error("reviewer: parse output failed", "err", err, "raw", string(msg.Info.Structured))
-		return nil, nil, fmt.Errorf("reviewer: parse output: %w", err)
+		log.Error("reviewer: raw structured output", "raw", string(msg.Info.Structured))
+		return nil, nil, fail(StageParse, fmt.Errorf("reviewer: parse output: %w", err))
 	}
+	emit(ProgressEvent{Stage: StageParse, Done: true, Detail: fmt.Sprintf("%d concerns", len(out.Concerns))})
 	log.Info("reviewer: parsed concerns", "count", len(out.Concerns))
 
+	emit(ProgressEvent{Stage: StageStore})
 	reviewSess, err := r.store.CreateReviewSession(ctx, req.Owner, req.Repo, req.PRNumber, req.HeadSHA, sess.ID)
 	if err != nil {
-		log.Error("reviewer: store session failed", "err", err)
-		return nil, nil, fmt.Errorf("reviewer: store session: %w", err)
+		return nil, nil, fail(StageStore, fmt.Errorf("reviewer: store session: %w", err))
 	}
 
 	concerns := make([]*store.ReviewConcern, 0, len(out.Concerns))
 	for _, c := range out.Concerns {
 		stored, err := r.store.CreateConcern(ctx, reviewSess.ID, c.File, c.Line, c.Severity, c.Title, c.Body)
 		if err != nil {
-			log.Error("reviewer: store concern failed", "err", err, "file", c.File)
-			return nil, nil, fmt.Errorf("reviewer: store concern: %w", err)
+			return nil, nil, fail(StageStore, fmt.Errorf("reviewer: store concern: %w", err))
 		}
 		concerns = append(concerns, stored)
 	}
+	emit(ProgressEvent{Stage: StageStore, Done: true})
 
 	log.Info("reviewer: review complete", "concerns", len(concerns))
 	return reviewSess, concerns, nil

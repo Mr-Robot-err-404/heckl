@@ -11,25 +11,25 @@ import (
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/github"
-	"github.com/harrylawton/pr-review/internal/reviewer"
+	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
 var allowedAssetProxyHosts = map[string]bool{
-	"github.com":                        true,
-	"user-images.githubusercontent.com": true,
+	"github.com":                                true,
+	"user-images.githubusercontent.com":         true,
 	"private-user-images.githubusercontent.com": true,
 }
 
 type Server struct {
-	gh       *github.Client
-	store    *store.Store
-	reviewer *reviewer.Reviewer
-	mux      *http.ServeMux
+	gh           *github.Client
+	store        *store.Store
+	orchestrator *orchestrator.Orchestrator
+	mux          *http.ServeMux
 }
 
-func New(gh *github.Client, store *store.Store, reviewer *reviewer.Reviewer) *Server {
-	s := &Server{gh: gh, store: store, reviewer: reviewer, mux: http.NewServeMux()}
+func New(gh *github.Client, store *store.Store, orc *orchestrator.Orchestrator) *Server {
+	s := &Server{gh: gh, store: store, orchestrator: orc, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -72,6 +72,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}", s.handleReview)
 	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}", s.handleListReviews)
+	s.mux.HandleFunc("GET /api/review/live/{id}", s.handleGetReview)
+	s.mux.HandleFunc("GET /api/review/live/{id}/stream", s.handleReviewStream)
 }
 
 type prResponse struct {
@@ -305,79 +307,6 @@ func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	io.Copy(w, resp.Body)
-}
-
-func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
-		return
-	}
-
-	pr, err := s.gh.GetPR(owner, repo, number)
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
-	diff, err := s.gh.GetPRDiff(owner, repo, number)
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
-	sess, concerns, err := s.reviewer.Review(r.Context(), reviewer.ReviewRequest{
-		Owner:    owner,
-		Repo:     repo,
-		PRNumber: number,
-		HeadSHA:  pr.HeadSHA(),
-		Title:    pr.Title,
-		Body:     pr.Body,
-		Diff:     string(diff),
-	})
-	if err != nil {
-		slog.Error("review failed", "owner", owner, "repo", repo, "pr", number, "err", err)
-		jsonError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	slog.Info("review complete", "owner", owner, "repo", repo, "pr", number, "concerns", len(concerns), "session_id", sess.ID)
-	jsonOK(w, map[string]any{"session": sess, "concerns": concerns})
-}
-
-func (s *Server) handleListReviews(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
-		return
-	}
-
-	sessions, err := s.store.ListReviewSessions(r.Context(), owner, repo, number)
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	type sessionWithConcerns struct {
-		Session  *store.ReviewSession   `json:"session"`
-		Concerns []*store.ReviewConcern `json:"concerns"`
-	}
-
-	out := make([]sessionWithConcerns, 0, len(sessions))
-	for _, sess := range sessions {
-		concerns, err := s.store.ListConcerns(r.Context(), sess.ID)
-		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		out = append(out, sessionWithConcerns{Session: sess, Concerns: concerns})
-	}
-
-	jsonOK(w, out)
 }
 
 func jsonOK(w http.ResponseWriter, v any) {

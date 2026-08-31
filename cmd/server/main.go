@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/opencode"
+	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/reviewer"
 	"github.com/harrylawton/pr-review/internal/server"
 	"github.com/harrylawton/pr-review/internal/store"
@@ -45,9 +48,10 @@ func main() {
 
 	wt := worktree.New(projectDir + "/data")
 	rev := reviewer.New(oc, wt, db)
+	orc := orchestrator.New(context.Background(), slog.Default(), rev)
 
 	gh := github.New(token)
-	srv := server.New(gh, db, rev)
+	srv := server.New(gh, db, orc)
 
 	dist, err := fs.Sub(static, "dist")
 	if err != nil {
