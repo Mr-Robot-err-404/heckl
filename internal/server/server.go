@@ -60,6 +60,8 @@ func (sw *statusWriter) WriteHeader(code int) {
 	sw.ResponseWriter.WriteHeader(code)
 }
 
+func (sw *statusWriter) Unwrap() http.ResponseWriter { return sw.ResponseWriter }
+
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/orgs", s.handleListOrgs)
 	s.mux.HandleFunc("GET /api/repos", s.handleListRepos)

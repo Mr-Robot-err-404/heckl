@@ -44,8 +44,8 @@ func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	rc := http.NewResponseController(w)
+	if err := rc.SetWriteDeadline(time.Time{}); err != nil {
 		jsonError(w, "streaming not supported", http.StatusInternalServerError)
 		return
 	}
@@ -60,11 +60,12 @@ func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
-	flusher.Flush()
 
-	writeEvent(w, "snapshot", snapshot)
-	flusher.Flush()
+	if err := writeEvent(w, rc, "snapshot", snapshot); err != nil {
+		return
+	}
 
 	ticker := time.NewTicker(streamPingInterval)
 	defer ticker.Stop()
@@ -77,7 +78,9 @@ func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
 				return
 			}
-			flusher.Flush()
+			if err := rc.Flush(); err != nil {
+				return
+			}
 		case _, ok := <-sub.Ready():
 			if !ok {
 				return
@@ -86,8 +89,9 @@ func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 			if !has {
 				continue
 			}
-			writeEvent(w, "review", review)
-			flusher.Flush()
+			if err := writeEvent(w, rc, "review", review); err != nil {
+				return
+			}
 		}
 	}
 }
@@ -136,10 +140,13 @@ func (s *Server) handleListReviews(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, out)
 }
 
-func writeEvent(w http.ResponseWriter, event string, payload any) {
+func writeEvent(w http.ResponseWriter, rc *http.ResponseController, event string, payload any) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return
+		return err
 	}
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
+	if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data); err != nil {
+		return err
+	}
+	return rc.Flush()
 }

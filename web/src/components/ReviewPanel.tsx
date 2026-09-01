@@ -58,7 +58,7 @@ export function ReviewPanel(props: Props) {
     setError("")
     setStarting(true)
     try {
-      setReview(await api.review.start(props.owner, props.repo, props.prNumber))
+      await api.review.start(props.owner, props.repo, props.prNumber)
     } catch (e) {
       setStarting(false)
       setError(e instanceof Error ? e.message : String(e))
