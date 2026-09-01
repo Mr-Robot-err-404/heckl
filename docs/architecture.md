@@ -18,9 +18,15 @@ A personal PR review tool. Replaces the GitHub review UI with a fast, owned expe
 pr-review/
 ├── cmd/
 │   ├── server/main.go        — HTTP server entrypoint, embeds web/dist
-│   └── migrate/main.go       — goose migration runner
+│   ├── migrate/main.go       — goose migration runner
+│   ├── checkout/main.go      — checkout a PR head sha, print the path
+│   └── opencode/main.go      — one-shot prompt against a running opencode
 ├── internal/
 │   ├── github/               — read-only GitHub API client, auth via `gh auth token`
+│   ├── checkout/             — per-repo clone + detached checkout at a sha
+│   ├── opencode/             — HTTP client for `opencode serve` on :4420
+│   ├── reviewer/             — checkout → session → prompt → parse → store
+│   ├── orchestrator/         — review lifecycle, SSE fan-out keyed by PR
 │   ├── store/                — sqlc-generated queries + Store wrapper
 │   │   ├── schema/           — goose migrations (00001_init.sql, 00002_repos.sql)
 │   │   └── queries/          — sqlc SQL (pr.sql, repo.sql)
@@ -33,12 +39,13 @@ pr-review/
         │   ├── PRList.tsx    — PR list for selected repo
         │   ├── PRDetail.tsx  — tabs: description | review
         │   ├── DiffView.tsx  — @pierre/diffs CodeView, driven by /api/diff proxy
-        │   └── Markdown.tsx  — marked + DOMPurify, images allowed
+        │   ├── Markdown.tsx  — marked + DOMPurify, images allowed
+        │   └── ReviewPanel.tsx — SSE-driven review side panel
         ├── queries/          — TanStack Query hooks (useOrgs, useRepos, usePRs, usePRDetail)
         ├── routes/           — PRListPage, PRDetailPage
         ├── router.tsx        — TanStack Router (/$owner/$repo, /$owner/$repo/$pr)
         ├── api.ts            — typed fetch wrappers
-        └── style.css         — Evergarden summer palette (light)
+        └── style.css         — Gruvbox dark palette
 ```
 
 ## API endpoints
@@ -53,6 +60,11 @@ pr-review/
 | GET | /api/prs/{owner}/{repo} | list open PRs — always fetched live from GitHub, no cache |
 | GET | /api/prs/{owner}/{repo}/{number} | get PR + file patches — always fetched live from GitHub, no cache |
 | GET | /api/diff/{owner}/{repo}/{number} | proxy — fetches full unified diff from GitHub API (`Accept: application/vnd.github.diff`), streams raw patch text to client |
+| GET | /api/asset | authenticated proxy for GitHub-hosted images in PR bodies |
+| POST | /api/review/{owner}/{repo}/{number} | start a review — returns immediately, all progress arrives on the stream |
+| GET | /api/review/{owner}/{repo}/{number} | persisted review sessions + concerns for this PR |
+| GET | /api/review/{owner}/{repo}/{number}/live | current in-memory review, or null |
+| GET | /api/review/{owner}/{repo}/{number}/stream | SSE — `snapshot` on connect, then `review` on every state change |
 
 ## URL routes
 
@@ -118,6 +130,45 @@ make build        # npm build + copy dist + go build binaries
 make dev          # vite dev server on :5173, proxies /api to :7331
 ```
 
+## Review pipeline
+
+`POST /api/review/{owner}/{repo}/{number}` does no work. It calls
+`orchestrator.Start(owner, repo, number)`, which creates the review in
+`running`, broadcasts it to every SSE subscriber, and returns. Everything
+after that happens on the orchestrator's own goroutine and reaches the
+client only through the stream.
+
+Stages, in order, each broadcast on entry and on exit:
+
+```
+fetch     — GetPR + GetPRDiff (inside the goroutine, not the handler)
+checkout  — clone-if-missing + fetch refs/pull/N/head + checkout --detach
+session   — opencode session, read-only permissions scoped to the checkout
+prompt    — single json_schema-constrained prompt, the long pole
+parse     — unmarshal structured output
+store     — review session + concerns
+```
+
+The GitHub fetch used to run in the HTTP handler before `Start` was called,
+which meant the client sat on a dead POST for a second or two with nothing
+on the stream. That was the whole "client is blind" bug — the fan-out was
+always fine, it was being starved.
+
+`finish(err)` closes out any stage still marked `running`, so a failure
+anywhere can't leave a stage spinning forever in the UI.
+
+## Checkout, not worktrees
+
+One plain clone per repo at `data/repos/{owner}/{repo}`, created with
+`--filter=blob:none --no-checkout` so the first clone is cheap and blobs
+are fetched lazily for the shas actually reviewed.
+
+`Acquire` takes a per-repo lock and returns a `Handle`; the caller holds it
+for the whole review and `Release()`s on defer. This serialises reviews of
+two PRs in the same repo — acceptable for a single user, and the tradeoff
+for deleting the entire worktree bookkeeping layer. Reviews are read-only,
+so there is nothing a worktree bought us.
+
 ## Key decisions
 
 - **Auth** — `gh auth token` at startup, no PAT management
@@ -127,8 +178,8 @@ make dev          # vite dev server on :5173, proxies /api to :7331
 - **Repos grouped by org** — single `<optgroup>` dropdown, no separate org selector step.
 - **sqlc** — type-safe queries. **goose** — migrations in a separate `cmd/migrate` binary, not run on server startup.
 - **modernc/sqlite** — pure Go, no CGO.
-- **No agent shell commands** — git (clone/fetch/worktree) and other
-  deterministic ops run in our own Go code (`internal/worktree`), never
+- **No agent shell commands** — git (clone/fetch/checkout) and other
+  deterministic ops run in our own Go code (`internal/checkout`), never
   delegated to an agent via `bash`. Agents only touch things once there's
   no deterministic way to do it ourselves.
 

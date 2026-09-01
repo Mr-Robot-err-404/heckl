@@ -476,7 +476,14 @@ html, body, #root { height: 100%; }
 .review-stage.done { color: var(--subtext0); }
 
 .review-stage-name { flex: 1; }
-.review-stage-time { font-size: 11px; color: var(--overlay0); }
+.review-stage-time { font-size: 11px; color: var(--overlay0); font-variant-numeric: tabular-nums; }
+.review-stage-detail { font-size: 11px; color: var(--overlay1); }
+.review-meta {
+  font-size: 11px;
+  color: var(--overlay1);
+  padding-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
 
 .review-summary {
   font-size: 12px;

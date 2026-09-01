@@ -1,13 +1,14 @@
-package worktree
+package checkout
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
 )
 
-func runGit(dir string, args ...string) error {
-	cmd := exec.Command("git", args...)
+func runGit(ctx context.Context, dir string, args ...string) error {
+	cmd := exec.CommandContext(ctx, "git", args...)
 	if dir != "" {
 		cmd.Dir = dir
 	}

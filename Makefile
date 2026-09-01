@@ -1,4 +1,4 @@
-.PHONY: server build-server up down status reset build worktree opencode generate
+.PHONY: server build-server up down status reset build checkout opencode generate
 
 server:
 	go run ./cmd/server
@@ -21,8 +21,8 @@ reset:
 generate:
 	go tool sqlc generate
 
-worktree:
-	go run ./cmd/worktree $(ARGS)
+checkout:
+	go run ./cmd/checkout $(ARGS)
 
 opencode:
 	go run ./cmd/opencode $(ARGS)

@@ -12,14 +12,17 @@ const (
 )
 
 const (
-	StageWorktree = "worktree"
+	StageFetch    = "fetch"
+	StageCheckout = "checkout"
 	StageSession  = "session"
 	StagePrompt   = "prompt"
 	StageParse    = "parse"
 	StageStore    = "store"
 )
 
-var stageOrder = []string{StageWorktree, StageSession, StagePrompt, StageParse, StageStore}
+const agentName = "pr-reviewer"
+
+var stageOrder = []string{StageFetch, StageCheckout, StageSession, StagePrompt, StageParse, StageStore}
 
 type Stage struct {
 	Name       string     `json:"name"`
@@ -76,7 +79,7 @@ func newReview(id, owner, repo string, prNumber int) *Review {
 		PRNumber:  prNumber,
 		Status:    StatusPending,
 		Stages:    stages,
-		Agents:    []Agent{{Name: "pr-reviewer", Status: StatusPending}},
+		Agents:    []Agent{{Name: agentName, Status: StatusPending}},
 		Concerns:  []Concern{},
 		StartedAt: time.Now().UTC(),
 	}
@@ -141,11 +144,20 @@ func (r *Review) finish(err error) {
 	now := time.Now().UTC()
 	r.EndedAt = &now
 	if err != nil {
+		r.failRunningStages(err)
 		r.Status = StatusError
 		r.Error = err.Error()
-		r.setAgent("pr-reviewer", StatusError)
+		r.setAgent(agentName, StatusError)
 		return
 	}
 	r.Status = StatusDone
-	r.setAgent("pr-reviewer", StatusDone)
+	r.setAgent(agentName, StatusDone)
+}
+
+func (r *Review) failRunningStages(err error) {
+	for i := range r.Stages {
+		if r.Stages[i].Status == StatusRunning {
+			r.endStage(r.Stages[i].Name, "", err)
+		}
+	}
 }

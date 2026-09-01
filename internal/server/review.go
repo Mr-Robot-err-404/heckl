@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
@@ -23,27 +22,7 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := s.gh.GetPR(owner, repo, number)
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
-	diff, err := s.gh.GetPRDiff(owner, repo, number)
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
-	review, err := s.orchestrator.Start(orchestrator.StartInput{
-		Owner:    owner,
-		Repo:     repo,
-		PRNumber: number,
-		HeadSHA:  pr.HeadSHA(),
-		Title:    pr.Title,
-		Body:     pr.Body,
-		Diff:     string(diff),
-	})
+	review, err := s.orchestrator.Start(owner, repo, number)
 	if err != nil {
 		slog.Error("review start failed", "owner", owner, "repo", repo, "pr", number, "err", err)
 		jsonError(w, err.Error(), http.StatusInternalServerError)

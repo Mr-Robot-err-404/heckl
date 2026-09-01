@@ -5,21 +5,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
+	"github.com/harrylawton/pr-review/internal/checkout"
 	"github.com/harrylawton/pr-review/internal/opencode"
 	"github.com/harrylawton/pr-review/internal/store"
-	"github.com/harrylawton/pr-review/internal/worktree"
 )
 
+const maxDiffBytes = 60000
+
 type Reviewer struct {
-	oc    *opencode.Client
-	wt    *worktree.Manager
-	store *store.Store
+	oc       *opencode.Client
+	checkout *checkout.Manager
+	store    *store.Store
 }
 
-func New(oc *opencode.Client, wt *worktree.Manager, s *store.Store) *Reviewer {
-	return &Reviewer{oc: oc, wt: wt, store: s}
+func New(oc *opencode.Client, co *checkout.Manager, s *store.Store) *Reviewer {
+	return &Reviewer{oc: oc, checkout: co, store: s}
 }
 
 type ProgressEvent struct {
@@ -32,7 +35,7 @@ type ProgressEvent struct {
 type Progress func(ProgressEvent)
 
 const (
-	StageWorktree = "worktree"
+	StageCheckout = "checkout"
 	StageSession  = "session"
 	StagePrompt   = "prompt"
 	StageParse    = "parse"
@@ -102,15 +105,16 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		return err
 	}
 
-	emit(ProgressEvent{Stage: StageWorktree})
-	log.Info("reviewer: ensuring worktree", "head_sha", req.HeadSHA)
+	emit(ProgressEvent{Stage: StageCheckout})
+	log.Info("reviewer: checking out", "head_sha", req.HeadSHA)
 	t := time.Now()
-	wtPath, err := r.wt.EnsureWorktree(req.Owner, req.Repo, req.PRNumber, req.HeadSHA)
+	handle, err := r.checkout.Acquire(ctx, req.Owner, req.Repo, req.PRNumber, req.HeadSHA)
 	if err != nil {
-		return nil, nil, fail(StageWorktree, fmt.Errorf("reviewer: worktree: %w", err))
+		return nil, nil, fail(StageCheckout, err)
 	}
-	emit(ProgressEvent{Stage: StageWorktree, Done: true, Detail: wtPath})
-	log.Info("reviewer: worktree ready", "path", wtPath, "duration_ms", time.Since(t).Milliseconds())
+	defer handle.Release()
+	emit(ProgressEvent{Stage: StageCheckout, Done: true, Detail: shortSHA(req.HeadSHA)})
+	log.Info("reviewer: checkout ready", "path", handle.Path, "duration_ms", time.Since(t).Milliseconds())
 
 	emit(ProgressEvent{Stage: StageSession})
 	log.Info("reviewer: creating opencode session", "agent", "pr-reviewer")
@@ -118,13 +122,13 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	sess, err := r.oc.CreateSession(opencode.CreateSessionRequest{
 		Title:      fmt.Sprintf("%s/%s #%d", req.Owner, req.Repo, req.PRNumber),
 		Agent:      "pr-reviewer",
-		Permission: opencode.WorktreePermission(wtPath),
+		Permission: opencode.ReadOnlyPermission(handle.Path),
 	})
 	if err != nil {
 		return nil, nil, fail(StageSession, fmt.Errorf("reviewer: create session: %w", err))
 	}
 	log = log.With("session_id", sess.ID)
-	emit(ProgressEvent{Stage: StageSession, Done: true, Detail: sess.ID})
+	emit(ProgressEvent{Stage: StageSession, Done: true})
 	log.Info("reviewer: session created", "duration_ms", time.Since(t).Milliseconds())
 
 	prompt := buildPrompt(req)
@@ -136,7 +140,7 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		Format: &opencode.OutputFormat{
 			Type:       "json_schema",
 			Schema:     concernsSchema,
-			RetryCount: 2,
+			RetryCount: 1,
 		},
 	})
 	if err != nil {
@@ -148,8 +152,9 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	if len(msg.Info.Structured) == 0 {
 		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: no structured output returned"))
 	}
+	promptMS := time.Since(t).Milliseconds()
 	emit(ProgressEvent{Stage: StagePrompt, Done: true})
-	log.Info("reviewer: model responded", "duration_ms", time.Since(t).Milliseconds())
+	log.Info("reviewer: model responded", "duration_ms", promptMS)
 
 	emit(ProgressEvent{Stage: StageParse})
 	var out reviewOutput
@@ -157,7 +162,7 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		log.Error("reviewer: raw structured output", "raw", string(msg.Info.Structured))
 		return nil, nil, fail(StageParse, fmt.Errorf("reviewer: parse output: %w", err))
 	}
-	emit(ProgressEvent{Stage: StageParse, Done: true, Detail: fmt.Sprintf("%d concerns", len(out.Concerns))})
+	emit(ProgressEvent{Stage: StageParse, Done: true, Detail: concernCount(len(out.Concerns))})
 	log.Info("reviewer: parsed concerns", "count", len(out.Concerns), "summary", out.Summary)
 
 	emit(ProgressEvent{Stage: StageStore})
@@ -181,29 +186,37 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 }
 
 func buildPrompt(req ReviewRequest) string {
-	return fmt.Sprintf(`PR: %s/%s #%d — %s
-
-%s
-
----
-Diff:
-%s
-
----
-Review this diff like a senior engineer doing a quick pass, not an audit.
-The worktree is available if you genuinely need to check something the diff
-doesn't answer — don't explore it just because you can. Return your
-concerns, which may be an empty list.`, req.Owner, req.Repo, req.PRNumber, req.Title, req.Body, truncateDiff(req.Diff, 20000))
+	var b strings.Builder
+	fmt.Fprintf(&b, "PR: %s/%s #%d — %s\n", req.Owner, req.Repo, req.PRNumber, req.Title)
+	if body := strings.TrimSpace(req.Body); body != "" {
+		fmt.Fprintf(&b, "\n%s\n", body)
+	}
+	fmt.Fprintf(&b, "\n---\nDiff:\n%s\n", truncateDiff(req.Diff, maxDiffBytes))
+	b.WriteString("\n---\nReview this diff. Summarise the intent, then report only concerns you are confident about. An empty concerns list is a valid, complete review.")
+	return b.String()
 }
 
 func truncateDiff(diff string, maxBytes int) string {
 	if len(diff) <= maxBytes {
 		return diff
 	}
-	cutoff := fmt.Sprintf("\n[diff truncated at %s — use the worktree to read full files]\n", byteSize(len(diff)))
-	return diff[:maxBytes] + cutoff
+	cut := strings.LastIndex(diff[:maxBytes], "\ndiff --git ")
+	if cut <= 0 {
+		cut = maxBytes
+	}
+	return diff[:cut] + fmt.Sprintf("\n\n[diff truncated — %d of %d bytes shown. Review only what is above; do not go looking for the rest.]\n", cut, len(diff))
 }
 
-func byteSize(n int) string {
-	return fmt.Sprintf("%dKB", n/1024)
+func concernCount(n int) string {
+	if n == 1 {
+		return "1 concern"
+	}
+	return fmt.Sprintf("%d concerns", n)
+}
+
+func shortSHA(sha string) string {
+	if len(sha) > 7 {
+		return sha[:7]
+	}
+	return sha
 }

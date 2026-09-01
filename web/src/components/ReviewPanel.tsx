@@ -9,7 +9,8 @@ type Props = {
 }
 
 const stageLabels: Record<string, string> = {
-  worktree: "checking out",
+  fetch: "fetching pr",
+  checkout: "checking out",
   session: "starting agent",
   prompt: "reviewing",
   parse: "reading result",
@@ -18,26 +19,48 @@ const stageLabels: Record<string, string> = {
 
 export function ReviewPanel(props: Props) {
   const [review, setReview] = createSignal<Review | null>(null)
+  const [starting, setStarting] = createSignal(false)
   const [error, setError] = createSignal("")
+  const [now, setNow] = createSignal(Date.now())
 
   createEffect(() => {
     const { owner, repo, prNumber } = props
     setReview(null)
+    setStarting(false)
     setError("")
-    const close = api.review.stream(owner, repo, prNumber, setReview)
+    const close = api.review.stream(owner, repo, prNumber, (next) => {
+      if (next) setStarting(false)
+      setReview(next)
+    })
     onCleanup(close)
   })
 
-  const running = () => {
+  const inFlight = () => {
     const status = review()?.status
     return status === "pending" || status === "running"
+  }
+  const busy = () => starting() || inFlight()
+
+  createEffect(() => {
+    if (!busy()) return
+    const timer = setInterval(() => setNow(Date.now()), 200)
+    onCleanup(() => clearInterval(timer))
+  })
+
+  const elapsed = () => {
+    const r = review()
+    if (!r) return 0
+    const end = r.endedAt ? Date.parse(r.endedAt) : now()
+    return end - Date.parse(r.startedAt)
   }
 
   const start = async () => {
     setError("")
+    setStarting(true)
     try {
-      await api.review.start(props.owner, props.repo, props.prNumber)
+      setReview(await api.review.start(props.owner, props.repo, props.prNumber))
     } catch (e) {
+      setStarting(false)
       setError(e instanceof Error ? e.message : String(e))
     }
   }
@@ -46,8 +69,8 @@ export function ReviewPanel(props: Props) {
     <aside class="review-panel">
       <div class="review-panel-head">
         <span class="review-panel-title">agent review</span>
-        <button class="review-run" onClick={start} disabled={running()}>
-          {running() ? "reviewing..." : review() ? "re-run" : "run"}
+        <button class="review-run" onClick={start} disabled={busy()}>
+          {busy() ? "reviewing..." : review() ? "re-run" : "run"}
         </button>
       </div>
 
@@ -55,12 +78,23 @@ export function ReviewPanel(props: Props) {
         <div class="review-error">{error()}</div>
       </Show>
 
-      <Show when={review()} keyed fallback={<p class="review-idle">no review yet</p>}>
+      <Show when={starting() && !review()}>
+        <div class="review-stages">
+          <div class="review-stage running">
+            <span class="review-stage-dot" />
+            <span class="review-stage-name">starting</span>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={review()} keyed fallback={<Show when={!starting()}><p class="review-idle">no review yet</p></Show>}>
         {(r) => (
           <>
-            <Show when={running()}>
+            <Show when={r.status !== "done"}>
               <div class="review-stages">
-                <For each={r.stages}>{(stage) => <StageRow stage={stage} />}</For>
+                <For each={r.stages}>
+                  {(stage) => <StageRow stage={stage} now={now()} />}
+                </For>
               </div>
             </Show>
 
@@ -69,6 +103,9 @@ export function ReviewPanel(props: Props) {
             </Show>
 
             <Show when={r.status === "done"}>
+              <div class="review-meta">
+                {r.stages.length} stages · {formatMs(elapsed())}
+              </div>
               <Show when={r.summary}>
                 <p class="review-summary">{r.summary}</p>
               </Show>
@@ -88,13 +125,24 @@ export function ReviewPanel(props: Props) {
   )
 }
 
-function StageRow(props: { stage: ReviewStage }) {
+function StageRow(props: { stage: ReviewStage; now: number }) {
+  const live = () => {
+    if (props.stage.status !== "running" || !props.stage.startedAt) return 0
+    return props.now - Date.parse(props.stage.startedAt)
+  }
+
   return (
     <div class={`review-stage ${props.stage.status}`}>
       <span class="review-stage-dot" />
       <span class="review-stage-name">{stageLabels[props.stage.name] ?? props.stage.name}</span>
+      <Show when={props.stage.detail}>
+        <span class="review-stage-detail">{props.stage.detail}</span>
+      </Show>
       <Show when={props.stage.status === "done" && props.stage.durationMs > 0}>
         <span class="review-stage-time">{formatMs(props.stage.durationMs)}</span>
+      </Show>
+      <Show when={live() > 0}>
+        <span class="review-stage-time">{formatMs(live())}</span>
       </Show>
     </div>
   )

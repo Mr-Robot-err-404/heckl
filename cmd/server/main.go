@@ -9,15 +9,16 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"github.com/harrylawton/pr-review/internal/checkout"
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/opencode"
 	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/reviewer"
 	"github.com/harrylawton/pr-review/internal/server"
 	"github.com/harrylawton/pr-review/internal/store"
-	"github.com/harrylawton/pr-review/internal/worktree"
 )
 
 //go:embed all:dist
@@ -46,11 +47,11 @@ func main() {
 		log.Fatal("opencode setup failed:", err)
 	}
 
-	wt := worktree.New(projectDir + "/data")
-	rev := reviewer.New(oc, wt, db)
-	orc := orchestrator.New(context.Background(), slog.Default(), rev)
-
 	gh := github.New(token)
+	co := checkout.New(filepath.Join(projectDir, "data"))
+	rev := reviewer.New(oc, co, db)
+	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev)
+
 	srv := server.New(gh, db, orc)
 
 	dist, err := fs.Sub(static, "dist")

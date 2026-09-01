@@ -12,14 +12,14 @@ import (
 func main() {
 	url := flag.String("url", "http://127.0.0.1:4420", "opencode server base URL")
 	agent := flag.String("agent", "build", "agent to use")
-	worktree := flag.String("worktree", "", "restrict external_directory access to this path only")
+	checkoutDir := flag.String("checkout", "", "restrict external_directory access to this path only")
 	setup := flag.Bool("setup", false, "bootstrap the server via opencode.Setup instead of assuming it's already running")
 	projectDir := flag.String("project-dir", ".", "project dir to spawn `opencode serve` from when -setup is used")
 	flag.Parse()
 
 	args := flag.Args()
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: opencode [-url url] [-agent name] [-worktree path] [-setup] [-project-dir path] <prompt text...>")
+		fmt.Fprintln(os.Stderr, "usage: opencode [-url url] [-agent name] [-checkout path] [-setup] [-project-dir path] <prompt text...>")
 		os.Exit(1)
 	}
 	prompt := strings.Join(args, " ")
@@ -40,8 +40,8 @@ func main() {
 		Title: "pr-review opencode cli",
 		Agent: *agent,
 	}
-	if *worktree != "" {
-		req.Permission = opencode.WorktreePermission(*worktree)
+	if *checkoutDir != "" {
+		req.Permission = opencode.ReadOnlyPermission(*checkoutDir)
 	}
 
 	sess, err := c.CreateSession(req)

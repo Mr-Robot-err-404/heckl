@@ -7,12 +7,19 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
+	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/reviewer"
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
 type storeConcern = store.ReviewConcern
+
+type PRSource interface {
+	GetPR(owner, repo string, number int) (*github.PR, error)
+	GetPRDiff(owner, repo string, number int) ([]byte, error)
+}
 
 type Subscription struct {
 	ID  string
@@ -69,6 +76,7 @@ func (s *Subscription) close() {
 type Orchestrator struct {
 	ctx      context.Context
 	logger   *slog.Logger
+	source   PRSource
 	reviewer *reviewer.Reviewer
 
 	mu          sync.RWMutex
@@ -78,10 +86,11 @@ type Orchestrator struct {
 	subscribers map[string]map[string]*Subscription
 }
 
-func New(ctx context.Context, logger *slog.Logger, rev *reviewer.Reviewer) *Orchestrator {
+func New(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer) *Orchestrator {
 	return &Orchestrator{
 		ctx:         ctx,
 		logger:      logger,
+		source:      source,
 		reviewer:    rev,
 		reviews:     make(map[string]*Review),
 		latest:      make(map[string]string),
@@ -90,18 +99,8 @@ func New(ctx context.Context, logger *slog.Logger, rev *reviewer.Reviewer) *Orch
 	}
 }
 
-type StartInput struct {
-	Owner    string
-	Repo     string
-	PRNumber int
-	HeadSHA  string
-	Title    string
-	Body     string
-	Diff     string
-}
-
-func (o *Orchestrator) Start(in StartInput) (*Review, error) {
-	key := PRKey(in.Owner, in.Repo, in.PRNumber)
+func (o *Orchestrator) Start(owner, repo string, prNumber int) (*Review, error) {
+	key := PRKey(owner, repo, prNumber)
 
 	o.mu.Lock()
 	if _, running := o.active[key]; running {
@@ -116,9 +115,10 @@ func (o *Orchestrator) Start(in StartInput) (*Review, error) {
 		return nil, err
 	}
 
-	review := newReview(id, in.Owner, in.Repo, in.PRNumber)
-	review.HeadSHA = in.HeadSHA
+	review := newReview(id, owner, repo, prNumber)
 	review.Status = StatusRunning
+	review.startStage(StageFetch)
+	review.setAgent(agentName, StatusRunning)
 	o.reviews[id] = review
 	o.latest[key] = id
 	o.active[key] = struct{}{}
@@ -126,32 +126,47 @@ func (o *Orchestrator) Start(in StartInput) (*Review, error) {
 	o.mu.Unlock()
 
 	o.broadcast(key, snapshot)
-	go o.run(id, key, in)
+	go o.run(id, key, owner, repo, prNumber)
 
 	return snapshot, nil
 }
 
-func (o *Orchestrator) run(id, key string, in StartInput) {
-	log := o.logger.With("review_id", id, "owner", in.Owner, "repo", in.Repo, "pr", in.PRNumber)
+func (o *Orchestrator) run(id, key, owner, repo string, prNumber int) {
+	log := o.logger.With("review_id", id, "owner", owner, "repo", repo, "pr", prNumber)
 
+	defer func() {
+		o.mu.Lock()
+		delete(o.active, key)
+		o.mu.Unlock()
+	}()
+
+	t := time.Now()
+	pr, diff, err := o.fetch(owner, repo, prNumber)
+	if err != nil {
+		o.update(key, id, func(r *Review) {
+			r.endStage(StageFetch, "", err)
+			r.finish(err)
+		})
+		log.Error("orchestrator: fetch failed", "err", err)
+		return
+	}
+	headSHA := pr.HeadSHA()
 	o.update(key, id, func(r *Review) {
-		r.setAgent("pr-reviewer", StatusRunning)
+		r.HeadSHA = headSHA
+		r.endStage(StageFetch, diffSize(len(diff)), nil)
 	})
+	log.Info("orchestrator: pr fetched", "head_sha", headSHA, "diff_bytes", len(diff), "duration_ms", time.Since(t).Milliseconds())
 
 	sess, concerns, err := o.reviewer.Review(o.ctx, reviewer.ReviewRequest{
-		Owner:    in.Owner,
-		Repo:     in.Repo,
-		PRNumber: in.PRNumber,
-		HeadSHA:  in.HeadSHA,
-		Title:    in.Title,
-		Body:     in.Body,
-		Diff:     in.Diff,
+		Owner:    owner,
+		Repo:     repo,
+		PRNumber: prNumber,
+		HeadSHA:  headSHA,
+		Title:    pr.Title,
+		Body:     pr.Body,
+		Diff:     string(diff),
 		Progress: o.progressFor(key, id),
 	})
-
-	o.mu.Lock()
-	delete(o.active, key)
-	o.mu.Unlock()
 
 	o.update(key, id, func(r *Review) {
 		if err != nil {
@@ -168,7 +183,19 @@ func (o *Orchestrator) run(id, key string, in StartInput) {
 		log.Error("orchestrator: review failed", "err", err)
 		return
 	}
-	log.Info("orchestrator: review complete", "concerns", len(concerns))
+	log.Info("orchestrator: review complete", "concerns", len(concerns), "duration_ms", time.Since(t).Milliseconds())
+}
+
+func (o *Orchestrator) fetch(owner, repo string, prNumber int) (*github.PR, []byte, error) {
+	pr, err := o.source.GetPR(owner, repo, prNumber)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetch pr: %w", err)
+	}
+	diff, err := o.source.GetPRDiff(owner, repo, prNumber)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetch diff: %w", err)
+	}
+	return pr, diff, nil
 }
 
 func (o *Orchestrator) progressFor(key, id string) reviewer.Progress {
@@ -287,6 +314,13 @@ func toConcerns(in []*storeConcern) []Concern {
 
 func PRKey(owner, repo string, prNumber int) string {
 	return fmt.Sprintf("%s/%s#%d", owner, repo, prNumber)
+}
+
+func diffSize(n int) string {
+	if n < 1024 {
+		return fmt.Sprintf("%dB", n)
+	}
+	return fmt.Sprintf("%dKB", n/1024)
 }
 
 func newID() (string, error) {

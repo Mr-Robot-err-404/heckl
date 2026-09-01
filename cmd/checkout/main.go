@@ -1,22 +1,23 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/harrylawton/pr-review/internal/worktree"
+	"github.com/harrylawton/pr-review/internal/checkout"
 )
 
 func main() {
-	stateDir := flag.String("state", "data", "state directory for repo clones and worktrees")
+	stateDir := flag.String("state", "data", "state directory for repo clones")
 	flag.Parse()
 
 	args := flag.Args()
 	if len(args) != 3 {
-		fmt.Fprintln(os.Stderr, "usage: worktree [-state dir] <owner/repo> <pr-number> <head-sha>")
+		fmt.Fprintln(os.Stderr, "usage: checkout [-state dir] <owner/repo> <pr-number> <head-sha>")
 		os.Exit(1)
 	}
 
@@ -32,12 +33,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	m := worktree.New(*stateDir)
-	path, err := m.EnsureWorktree(owner, repo, prNumber, args[2])
+	handle, err := checkout.New(*stateDir).Acquire(context.Background(), owner, repo, prNumber, args[2])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
+	defer handle.Release()
 
-	fmt.Println(path)
+	fmt.Println(handle.Path)
 }

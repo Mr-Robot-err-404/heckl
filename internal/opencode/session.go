@@ -26,8 +26,10 @@ type Session struct {
 	Title string `json:"title"`
 }
 
-func WorktreePermission(path string) []PermissionRule {
+func ReadOnlyPermission(path string) []PermissionRule {
 	return []PermissionRule{
+		{Permission: PermissionEdit, Pattern: "*", Action: PermissionDeny},
+		{Permission: PermissionBash, Pattern: "*", Action: PermissionDeny},
 		{Permission: PermissionExternalDirectory, Pattern: "*", Action: PermissionDeny},
 		{Permission: PermissionExternalDirectory, Pattern: path + "/*", Action: PermissionAllow},
 	}
