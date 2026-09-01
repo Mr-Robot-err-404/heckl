@@ -98,7 +98,7 @@ function ConcernRow(props: {
       class={`concern-row sev-${props.concern.severity} ${props.active ? "active" : ""} ${locatable() ? "locatable" : ""}`}
       onClick={() => locatable() && props.onFocus()}
     >
-      <span class="concern-rank">{props.concern.rank}</span>
+      <span class="concern-rank" />
       <span class="concern-row-title">{props.concern.title}</span>
       <span class="concern-row-file">
         {fileName(props.concern.file)}

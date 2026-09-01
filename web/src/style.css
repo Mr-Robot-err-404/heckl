@@ -680,7 +680,7 @@ html, body, #root { height: 100%; }
 .review-findings .review-concern-title { font-size: 13px; }
 .review-findings .review-concern-body { font-size: 13px; line-height: 1.7; }
 
-/* concern ranking + linking */
+/* concern severity mark + linking */
 
 .concern-rank {
   grid-column: 1;
@@ -688,11 +688,6 @@ html, body, #root { height: 100%; }
   width: 15px;
   height: 15px;
   border-radius: 3px;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 15px;
-  text-align: center;
-  color: var(--base);
   background: var(--overlay1);
   flex-shrink: 0;
 }
