@@ -51,9 +51,8 @@ func ReadOnlyPermission(path string) []PermissionRule {
 		rules = append(rules, PermissionRule{Permission: tool, Pattern: "*", Action: PermissionDeny})
 	}
 	return append(rules,
-		PermissionRule{Permission: PermissionRead, Pattern: "*", Action: PermissionDeny},
-		PermissionRule{Permission: PermissionRead, Pattern: path + "/**", Action: PermissionAllow},
 		PermissionRule{Permission: PermissionExternalDirectory, Pattern: "*", Action: PermissionDeny},
+		PermissionRule{Permission: PermissionExternalDirectory, Pattern: path + "/*", Action: PermissionAllow},
 	)
 }
 
