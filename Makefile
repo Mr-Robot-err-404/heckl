@@ -1,9 +1,12 @@
-.PHONY: server build-server up down status reset build dev vet checkout opencode generate
+.PHONY: server build-server up down status reset build dev vet test checkout opencode generate
 
 vet:
 	go build ./...
 	go vet ./...
 	cd web && npx tsc -b
+
+test:
+	go test ./...
 
 server:
 	go run ./cmd/server

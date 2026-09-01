@@ -56,6 +56,8 @@ type ReviewRequest struct {
 type Concern struct {
 	File     string `json:"file"`
 	Line     *int   `json:"line,omitempty"`
+	Side     string `json:"side,omitempty"`
+	Anchor   string `json:"anchor,omitempty"`
 	Severity string `json:"severity"`
 	Title    string `json:"title"`
 	Body     string `json:"body"`
@@ -78,13 +80,28 @@ var concernsSchema = map[string]any{
 			"items": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"file":     map[string]any{"type": "string"},
-					"line":     map[string]any{"type": "integer"},
+					"file": map[string]any{
+						"type":        "string",
+						"description": "Path exactly as it appears in the diff header.",
+					},
+					"line": map[string]any{
+						"type":        "integer",
+						"description": "Line number in the file this concern is about.",
+					},
+					"side": map[string]any{
+						"type":        "string",
+						"enum":        []string{SideAdditions, SideDeletions},
+						"description": "additions if the line is added or unchanged context, deletions if it is a removed line.",
+					},
+					"anchor": map[string]any{
+						"type":        "string",
+						"description": "The exact source text of that line, copied verbatim from the diff without the leading +/-/space marker. This is what pins the concern to a location, so copy it precisely.",
+					},
 					"severity": map[string]any{"type": "string", "enum": []string{"low", "medium", "high"}},
 					"title":    map[string]any{"type": "string"},
 					"body":     map[string]any{"type": "string"},
 				},
-				"required":             []string{"file", "severity", "title", "body"},
+				"required":             []string{"file", "line", "side", "anchor", "severity", "title", "body"},
 				"additionalProperties": false,
 			},
 		},
@@ -162,8 +179,16 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		log.Error("reviewer: raw structured output", "raw", string(msg.Info.Structured))
 		return nil, nil, fail(StageParse, fmt.Errorf("reviewer: parse output: %w", err))
 	}
+	index := parseDiffIndex(req.Diff)
+	anchored := 0
+	for i, c := range out.Concerns {
+		out.Concerns[i] = index.resolve(c)
+		if out.Concerns[i].Line != nil {
+			anchored++
+		}
+	}
 	emit(ProgressEvent{Stage: StageParse, Done: true, Detail: concernCount(len(out.Concerns))})
-	log.Info("reviewer: parsed concerns", "count", len(out.Concerns), "summary", out.Summary)
+	log.Info("reviewer: parsed concerns", "count", len(out.Concerns), "anchored", anchored, "summary", out.Summary)
 
 	emit(ProgressEvent{Stage: StageStore})
 	reviewSess, err := r.store.CreateReviewSession(ctx, req.Owner, req.Repo, req.PRNumber, req.HeadSHA, sess.ID, out.Summary)
@@ -173,7 +198,7 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 
 	concerns := make([]*store.ReviewConcern, 0, len(out.Concerns))
 	for _, c := range out.Concerns {
-		stored, err := r.store.CreateConcern(ctx, reviewSess.ID, c.File, c.Line, c.Severity, c.Title, c.Body)
+		stored, err := r.store.CreateConcern(ctx, reviewSess.ID, c.File, c.Line, c.Side, c.Severity, c.Title, c.Body)
 		if err != nil {
 			return nil, nil, fail(StageStore, fmt.Errorf("reviewer: store concern: %w", err))
 		}
