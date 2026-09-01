@@ -13,7 +13,26 @@ const (
 	PermissionRead              = "read"
 	PermissionGlob              = "glob"
 	PermissionGrep              = "grep"
+	PermissionList              = "list"
+	PermissionTask              = "task"
+	PermissionTodoWrite         = "todowrite"
+	PermissionWebFetch          = "webfetch"
+	PermissionWebSearch         = "websearch"
+	PermissionLSP               = "lsp"
 )
+
+var deniedTools = []string{
+	PermissionEdit,
+	PermissionBash,
+	PermissionGlob,
+	PermissionGrep,
+	PermissionList,
+	PermissionTask,
+	PermissionTodoWrite,
+	PermissionWebFetch,
+	PermissionWebSearch,
+	PermissionLSP,
+}
 
 type PermissionRule struct {
 	Permission string `json:"permission"`
@@ -27,12 +46,15 @@ type Session struct {
 }
 
 func ReadOnlyPermission(path string) []PermissionRule {
-	return []PermissionRule{
-		{Permission: PermissionEdit, Pattern: "*", Action: PermissionDeny},
-		{Permission: PermissionBash, Pattern: "*", Action: PermissionDeny},
-		{Permission: PermissionExternalDirectory, Pattern: "*", Action: PermissionDeny},
-		{Permission: PermissionExternalDirectory, Pattern: path + "/*", Action: PermissionAllow},
+	rules := make([]PermissionRule, 0, len(deniedTools)+3)
+	for _, tool := range deniedTools {
+		rules = append(rules, PermissionRule{Permission: tool, Pattern: "*", Action: PermissionDeny})
 	}
+	return append(rules,
+		PermissionRule{Permission: PermissionRead, Pattern: "*", Action: PermissionDeny},
+		PermissionRule{Permission: PermissionRead, Pattern: path + "/**", Action: PermissionAllow},
+		PermissionRule{Permission: PermissionExternalDirectory, Pattern: "*", Action: PermissionDeny},
+	)
 }
 
 type CreateSessionRequest struct {
