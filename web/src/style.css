@@ -478,6 +478,11 @@ html, body, #root { height: 100%; }
 .review-stage-name { flex: 1; }
 .review-stage-time { font-size: 11px; color: var(--overlay0); font-variant-numeric: tabular-nums; }
 .review-stage-detail { font-size: 11px; color: var(--overlay1); }
+.review-stale {
+  font-size: 11px;
+  color: var(--yellow);
+  padding-bottom: 8px;
+}
 .review-meta {
   font-size: 11px;
   color: var(--overlay1);

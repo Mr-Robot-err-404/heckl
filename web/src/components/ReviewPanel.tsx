@@ -19,6 +19,8 @@ const stageLabels: Record<string, string> = {
 
 export function ReviewPanel(props: Props) {
   const [review, setReview] = createSignal<Review | null>(null)
+  const [synced, setSynced] = createSignal(false)
+  const [connected, setConnected] = createSignal(false)
   const [starting, setStarting] = createSignal(false)
   const [error, setError] = createSignal("")
   const [now, setNow] = createSignal(Date.now())
@@ -26,11 +28,17 @@ export function ReviewPanel(props: Props) {
   createEffect(() => {
     const { owner, repo, prNumber } = props
     setReview(null)
+    setSynced(false)
+    setConnected(false)
     setStarting(false)
     setError("")
-    const close = api.review.stream(owner, repo, prNumber, (next) => {
-      if (next) setStarting(false)
-      setReview(next)
+    const close = api.review.stream(owner, repo, prNumber, {
+      state: (next) => {
+        if (next) setStarting(false)
+        setReview(next)
+        setSynced(true)
+      },
+      connected: setConnected,
     })
     onCleanup(close)
   })
@@ -40,6 +48,7 @@ export function ReviewPanel(props: Props) {
     return status === "pending" || status === "running"
   }
   const busy = () => starting() || inFlight()
+  const canRun = () => synced() && connected() && !busy()
 
   createEffect(() => {
     if (!busy()) return
@@ -69,8 +78,8 @@ export function ReviewPanel(props: Props) {
     <aside class="review-panel">
       <div class="review-panel-head">
         <span class="review-panel-title">agent review</span>
-        <button class="review-run" onClick={start} disabled={busy()}>
-          {busy() ? "reviewing..." : review() ? "re-run" : "run"}
+        <button class="review-run" onClick={start} disabled={!canRun()}>
+          {!synced() ? "connecting..." : busy() ? "reviewing..." : review() ? "re-run" : "run"}
         </button>
       </div>
 
@@ -78,7 +87,15 @@ export function ReviewPanel(props: Props) {
         <div class="review-error">{error()}</div>
       </Show>
 
-      <Show when={starting() && !review()}>
+      <Show when={synced() && !connected()}>
+        <div class="review-stale">connection lost — reconnecting</div>
+      </Show>
+
+      <Show when={!synced()}>
+        <p class="review-idle">syncing with server...</p>
+      </Show>
+
+      <Show when={synced() && starting() && !review()}>
         <div class="review-stages">
           <div class="review-stage running">
             <span class="review-stage-dot" />
@@ -87,7 +104,15 @@ export function ReviewPanel(props: Props) {
         </div>
       </Show>
 
-      <Show when={review()} keyed fallback={<Show when={!starting()}><p class="review-idle">no review yet</p></Show>}>
+      <Show
+        when={synced() && review()}
+        keyed
+        fallback={
+          <Show when={synced() && !starting()}>
+            <p class="review-idle">no review yet</p>
+          </Show>
+        }
+      >
         {(r) => (
           <>
             <Show when={r.status !== "done"}>

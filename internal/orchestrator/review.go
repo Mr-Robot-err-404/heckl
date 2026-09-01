@@ -87,9 +87,9 @@ func newReview(id, owner, repo string, prNumber int) *Review {
 
 func (r *Review) clone() *Review {
 	c := *r
-	c.Stages = append([]Stage(nil), r.Stages...)
-	c.Agents = append([]Agent(nil), r.Agents...)
-	c.Concerns = append([]Concern(nil), r.Concerns...)
+	c.Stages = append(make([]Stage, 0, len(r.Stages)), r.Stages...)
+	c.Agents = append(make([]Agent, 0, len(r.Agents)), r.Agents...)
+	c.Concerns = append(make([]Concern, 0, len(r.Concerns)), r.Concerns...)
 	return &c
 }
 

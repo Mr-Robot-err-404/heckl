@@ -55,12 +55,19 @@ export const api = {
       owner: string,
       repo: string,
       number: number,
-      onReview: (review: Review | null) => void,
+      on: {
+        state: (review: Review | null) => void
+        connected: (connected: boolean) => void
+      },
     ) => {
       const source = new EventSource(`${BASE}/review/${owner}/${repo}/${number}/stream`)
-      const handle = (e: MessageEvent) => onReview(JSON.parse(e.data) as Review | null)
+      const handle = (e: MessageEvent) => {
+        on.connected(true)
+        on.state(JSON.parse(e.data) as Review | null)
+      }
       source.addEventListener("snapshot", handle)
       source.addEventListener("review", handle)
+      source.addEventListener("error", () => on.connected(false))
       return () => source.close()
     },
   },
