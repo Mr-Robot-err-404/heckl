@@ -1,8 +1,10 @@
-import { createEffect, createSignal, Show } from "solid-js"
+import { createEffect, createSignal, For, Show } from "solid-js"
 import { usePRDetail, usePrefetchDiff } from "../queries"
+import { createReview } from "../review"
 import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
 import { ReviewPanel } from "./ReviewPanel"
+import { ReviewPage } from "./ReviewPage"
 import type { Tab } from "../types"
 
 type Props = {
@@ -14,44 +16,51 @@ type Props = {
   onBack: () => void
 }
 
+const tabs: Tab[] = ["description", "files", "review"]
+
 export function PRDetail(props: Props) {
   const detail = usePRDetail(
     () => props.owner,
     () => props.repo,
     () => props.prNumber,
   )
-  const [reviewMounted, setReviewMounted] = createSignal(false)
+  const review = createReview(
+    () => props.owner,
+    () => props.repo,
+    () => props.prNumber,
+  )
+  const [filesMounted, setFilesMounted] = createSignal(false)
   const prefetchDiff = usePrefetchDiff()
 
-  const tab = () => props.tab
-
   createEffect(() => {
-    if (props.tab === "review") setReviewMounted(true)
+    if (props.tab === "files") setFilesMounted(true)
   })
 
-  const prefetchReview = () => {
+  const prefetchFiles = () => {
     prefetchDiff(props.owner, props.repo, props.prNumber)
   }
 
   return (
     <div class="pr-detail">
       <div class="pr-tabs">
-        <button
-          class={`pr-tab ${tab() === "description" ? "active" : ""}`}
-          onClick={() => props.onTabChange("description")}
-        >
-          description
-        </button>
-        <button
-          class={`pr-tab ${tab() === "review" ? "active" : ""}`}
-          onClick={() => props.onTabChange("review")}
-          onMouseEnter={prefetchReview}
-        >
-          review
-        </button>
+        <For each={tabs}>
+          {(tab) => (
+            <button
+              class={`pr-tab ${props.tab === tab ? "active" : ""}`}
+              onClick={() => props.onTabChange(tab)}
+              onMouseEnter={tab === "files" ? prefetchFiles : undefined}
+            >
+              {tab}
+              <Show when={tab === "review" && review.concerns().length > 0}>
+                <span class="pr-tab-badge">{review.concerns().length}</span>
+              </Show>
+            </button>
+          )}
+        </For>
       </div>
+
       <div class="pr-tab-content">
-        <Show when={tab() === "description"}>
+        <Show when={props.tab === "description"}>
           <div class="pr-description">
             <Show when={detail.data} keyed>
               {(d) => (
@@ -65,15 +74,20 @@ export function PRDetail(props: Props) {
             </Show>
           </div>
         </Show>
-        <Show when={reviewMounted()}>
-          <div class={`diff-tab-panel ${tab() === "review" ? "" : "hidden"}`}>
+
+        <Show when={filesMounted()}>
+          <div class={`diff-tab-panel ${props.tab === "files" ? "" : "hidden"}`}>
             <div class="review-layout">
               <div class="review-diff">
                 <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
               </div>
-              <ReviewPanel owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
+              <ReviewPanel state={review} onOpenReview={() => props.onTabChange("review")} />
             </div>
           </div>
+        </Show>
+
+        <Show when={props.tab === "review"}>
+          <ReviewPage state={review} />
         </Show>
       </div>
     </div>
