@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS concerns (
     session_id    INTEGER NOT NULL REFERENCES pr_review_sessions(id) ON DELETE CASCADE,
     file          TEXT NOT NULL,
     line          INTEGER,
+    side          TEXT NOT NULL DEFAULT '' CHECK(side IN ('', 'additions', 'deletions')),
     severity      TEXT NOT NULL CHECK(severity IN ('low', 'medium', 'high')),
     title         TEXT NOT NULL,
     body          TEXT NOT NULL,

@@ -304,6 +304,7 @@ func toConcerns(in []*storeConcern) []Concern {
 		out = append(out, Concern{
 			File:     c.File,
 			Line:     c.Line,
+			Side:     c.Side,
 			Severity: c.Severity,
 			Title:    c.Title,
 			Body:     c.Body,

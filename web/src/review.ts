@@ -1,6 +1,6 @@
 import { createEffect, createSignal, onCleanup, type Accessor } from "solid-js"
 import { api } from "./api"
-import type { Concern, Review } from "./types"
+import type { RankedConcern, Review } from "./types"
 
 export type ReviewState = {
   review: Accessor<Review | null>
@@ -11,7 +11,7 @@ export type ReviewState = {
   error: Accessor<string>
   now: Accessor<number>
   elapsed: Accessor<number>
-  concerns: Accessor<Concern[]>
+  concerns: Accessor<RankedConcern[]>
   start: () => Promise<void>
 }
 
@@ -69,10 +69,10 @@ export function createReview(
     return end - Date.parse(r.startedAt)
   }
 
-  const concerns = () =>
-    [...(review()?.concerns ?? [])].sort(
-      (a, b) => (severityRank[a.severity] ?? 3) - (severityRank[b.severity] ?? 3),
-    )
+  const concerns = (): RankedConcern[] =>
+    [...(review()?.concerns ?? [])]
+      .sort((a, b) => (severityRank[a.severity] ?? 3) - (severityRank[b.severity] ?? 3))
+      .map((c, i) => ({ ...c, rank: i + 1 }))
 
   const start = async () => {
     setError("")

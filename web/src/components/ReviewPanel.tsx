@@ -1,9 +1,11 @@
 import { For, Show } from "solid-js"
 import { fileName, formatMs, type ReviewState } from "../review"
-import type { Concern } from "../types"
+import type { RankedConcern } from "../types"
 
 type Props = {
   state: ReviewState
+  activeRank?: number
+  onFocusConcern: (concern: RankedConcern) => void
   onOpenReview: () => void
 }
 
@@ -65,7 +67,15 @@ export function ReviewPanel(props: Props) {
           fallback={<div class="review-clear">no concerns</div>}
         >
           <ul class="concern-index">
-            <For each={s().concerns()}>{(concern) => <ConcernRow concern={concern} />}</For>
+            <For each={s().concerns()}>
+              {(concern) => (
+                <ConcernRow
+                  concern={concern}
+                  active={props.activeRank === concern.rank}
+                  onFocus={() => props.onFocusConcern(concern)}
+                />
+              )}
+            </For>
           </ul>
         </Show>
         <button class="review-open" onClick={props.onOpenReview}>
@@ -76,14 +86,25 @@ export function ReviewPanel(props: Props) {
   )
 }
 
-function ConcernRow(props: { concern: Concern }) {
+function ConcernRow(props: {
+  concern: RankedConcern
+  active: boolean
+  onFocus: () => void
+}) {
+  const locatable = () => props.concern.line != null && props.concern.side != null
+
   return (
-    <li class={`concern-row sev-${props.concern.severity}`}>
-      <span class="concern-row-sev" />
+    <li
+      class={`concern-row sev-${props.concern.severity} ${props.active ? "active" : ""} ${locatable() ? "locatable" : ""}`}
+      onClick={() => locatable() && props.onFocus()}
+    >
+      <span class="concern-rank">{props.concern.rank}</span>
       <span class="concern-row-title">{props.concern.title}</span>
       <span class="concern-row-file">
         {fileName(props.concern.file)}
-        <Show when={props.concern.line}>:{props.concern.line}</Show>
+        <Show when={props.concern.line} fallback={<span class="concern-unpinned"> · file</span>}>
+          :{props.concern.line}
+        </Show>
       </span>
     </li>
   )

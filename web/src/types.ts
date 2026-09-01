@@ -56,9 +56,20 @@ export type ReviewAgent = {
 export type Concern = {
   file: string
   line?: number
+  side?: "additions" | "deletions"
   severity: "low" | "medium" | "high"
   title: string
   body: string
+}
+
+export type RankedConcern = Concern & { rank: number }
+
+export type ConcernTarget = {
+  file: string
+  line: number
+  side: "additions" | "deletions"
+  rank: number
+  nonce: number
 }
 
 export type Review = {

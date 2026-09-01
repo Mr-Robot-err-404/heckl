@@ -2,11 +2,13 @@ import { createEffect, onCleanup } from "solid-js"
 import { CodeView, parsePatchFiles, type CodeViewItem } from "@pierre/diffs"
 import { useDiff } from "../../queries"
 import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
+import type { ConcernTarget } from "../../types"
 
 type Props = {
   owner: string
   repo: string
   prNumber: number
+  focus: ConcernTarget | null
 }
 
 export function DiffView(props: Props) {
@@ -52,6 +54,7 @@ export function DiffView(props: Props) {
       diffIndicators: "bars",
       lineDiffType: "word-alt",
       stickyHeaders: true,
+      enableLineSelection: true,
       layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
       unsafeCSS: "[data-change-icon] { display: none; }",
       renderHeaderPrefix: (fileDiff, context: unknown) =>
@@ -61,6 +64,29 @@ export function DiffView(props: Props) {
     view.setup(host)
     view.setItems(items)
     view.render()
+  })
+
+  createEffect(() => {
+    const target = props.focus
+    if (!diff.data || !target || !view) return
+
+    const item = view.getItem(target.file)
+    if (!item) return
+    if (item.collapsed) {
+      view.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 })
+    }
+
+    view.setSelectedLines({
+      id: target.file,
+      range: { start: target.line, end: target.line, side: target.side },
+    })
+    view.scrollTo({
+      type: "line",
+      id: target.file,
+      lineNumber: target.line,
+      side: target.side,
+      align: "center",
+    })
   })
 
   onCleanup(() => {

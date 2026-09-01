@@ -16,6 +16,7 @@ type ReviewConcern struct {
 	SessionID int64
 	File      string
 	Line      *int
+	Side      string
 	Severity  string
 	Title     string
 	Body      string

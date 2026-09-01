@@ -10,8 +10,8 @@ SELECT * FROM pr_review_sessions WHERE id = ?;
 SELECT * FROM pr_review_sessions WHERE owner = ? AND repo = ? AND pr_number = ? ORDER BY created_at DESC;
 
 -- name: CreateConcern :one
-INSERT INTO concerns (session_id, file, line, severity, title, body, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO concerns (session_id, file, line, side, severity, title, body, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: ListConcernsBySession :many

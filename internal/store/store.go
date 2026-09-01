@@ -92,12 +92,13 @@ func (s *Store) ListReviewSessions(ctx context.Context, owner, repo string, prNu
 	return out, nil
 }
 
-func (s *Store) CreateConcern(ctx context.Context, sessionID int64, file string, line *int, severity, title, body string) (*ReviewConcern, error) {
+func (s *Store) CreateConcern(ctx context.Context, sessionID int64, file string, line *int, side, severity, title, body string) (*ReviewConcern, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	row, err := s.queries.CreateConcern(ctx, CreateConcernParams{
 		SessionID: sessionID,
 		File:      file,
 		Line:      intPtrToNullInt64(line),
+		Side:      side,
 		Severity:  severity,
 		Title:     title,
 		Body:      body,
@@ -140,6 +141,7 @@ func toConcern(r *Concern) *ReviewConcern {
 		SessionID: r.SessionID,
 		File:      r.File,
 		Line:      nullInt64ToIntPtr(r.Line),
+		Side:      r.Side,
 		Severity:  r.Severity,
 		Title:     r.Title,
 		Body:      r.Body,

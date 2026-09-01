@@ -5,7 +5,7 @@ import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
 import { ReviewPanel } from "./ReviewPanel"
 import { ReviewPage } from "./ReviewPage"
-import type { Tab } from "../types"
+import type { ConcernTarget, RankedConcern, Tab } from "../types"
 
 type Props = {
   owner: string
@@ -30,11 +30,27 @@ export function PRDetail(props: Props) {
     () => props.prNumber,
   )
   const [filesMounted, setFilesMounted] = createSignal(false)
+  const [focus, setFocus] = createSignal<ConcernTarget | null>(null)
   const prefetchDiff = usePrefetchDiff()
 
   createEffect(() => {
     if (props.tab === "files") setFilesMounted(true)
   })
+
+  let nonce = 0
+  const focusConcern = (concern: RankedConcern) => {
+    if (concern.line == null || concern.side == null) return
+    nonce += 1
+    setFocus({
+      file: concern.file,
+      line: concern.line,
+      side: concern.side,
+      rank: concern.rank,
+      nonce,
+    })
+    prefetchDiff(props.owner, props.repo, props.prNumber)
+    props.onTabChange("files")
+  }
 
   const prefetchFiles = () => {
     prefetchDiff(props.owner, props.repo, props.prNumber)
@@ -79,15 +95,25 @@ export function PRDetail(props: Props) {
           <div class={`diff-tab-panel ${props.tab === "files" ? "" : "hidden"}`}>
             <div class="review-layout">
               <div class="review-diff">
-                <DiffView owner={props.owner} repo={props.repo} prNumber={props.prNumber} />
+                <DiffView
+                  owner={props.owner}
+                  repo={props.repo}
+                  prNumber={props.prNumber}
+                  focus={focus()}
+                />
               </div>
-              <ReviewPanel state={review} onOpenReview={() => props.onTabChange("review")} />
+              <ReviewPanel
+                state={review}
+                activeRank={focus()?.rank}
+                onFocusConcern={focusConcern}
+                onOpenReview={() => props.onTabChange("review")}
+              />
             </div>
           </div>
         </Show>
 
         <Show when={props.tab === "review"}>
-          <ReviewPage state={review} />
+          <ReviewPage state={review} onFocusConcern={focusConcern} />
         </Show>
       </div>
     </div>

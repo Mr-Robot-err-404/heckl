@@ -42,6 +42,7 @@ type Agent struct {
 type Concern struct {
 	File     string `json:"file"`
 	Line     *int   `json:"line,omitempty"`
+	Side     string `json:"side,omitempty"`
 	Severity string `json:"severity"`
 	Title    string `json:"title"`
 	Body     string `json:"body"`

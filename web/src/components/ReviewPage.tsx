@@ -1,9 +1,10 @@
 import { For, Show } from "solid-js"
 import { formatMs, type ReviewState } from "../review"
-import type { Concern, ReviewStage } from "../types"
+import type { RankedConcern, ReviewStage } from "../types"
 
 type Props = {
   state: ReviewState
+  onFocusConcern: (concern: RankedConcern) => void
 }
 
 const stageLabels: Record<string, string> = {
@@ -80,7 +81,11 @@ export function ReviewPage(props: Props) {
             when={s().concerns().length > 0}
             fallback={<p class="review-clear">nothing worth flagging</p>}
           >
-            <For each={s().concerns()}>{(concern) => <ConcernCard concern={concern} />}</For>
+            <For each={s().concerns()}>
+              {(concern) => (
+                <ConcernCard concern={concern} onFocus={() => props.onFocusConcern(concern)} />
+              )}
+            </For>
           </Show>
         </section>
       </Show>
@@ -111,17 +116,28 @@ function StageRow(props: { stage: ReviewStage; now: number }) {
   )
 }
 
-function ConcernCard(props: { concern: Concern }) {
+function ConcernCard(props: { concern: RankedConcern; onFocus: () => void }) {
+  const locatable = () => props.concern.line != null && props.concern.side != null
+
   return (
     <article class={`review-concern sev-${props.concern.severity}`}>
       <div class="review-concern-head">
+        <span class="concern-rank">{props.concern.rank}</span>
         <span class="review-concern-title">{props.concern.title}</span>
         <span class="review-concern-sev">{props.concern.severity}</span>
       </div>
-      <div class="review-concern-loc">
-        {props.concern.file}
-        <Show when={props.concern.line}>:{props.concern.line}</Show>
-      </div>
+      <Show
+        when={locatable()}
+        fallback={
+          <div class="review-concern-loc">
+            {props.concern.file} <span class="concern-unpinned">· not pinned to a line</span>
+          </div>
+        }
+      >
+        <button class="review-concern-loc link" onClick={props.onFocus}>
+          {props.concern.file}:{props.concern.line} →
+        </button>
+      </Show>
       <p class="review-concern-body">{props.concern.body}</p>
     </article>
   )

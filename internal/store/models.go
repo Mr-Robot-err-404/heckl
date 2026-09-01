@@ -13,6 +13,7 @@ type Concern struct {
 	SessionID int64
 	File      string
 	Line      sql.NullInt64
+	Side      string
 	Severity  string
 	Title     string
 	Body      string

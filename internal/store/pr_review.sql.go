@@ -11,15 +11,16 @@ import (
 )
 
 const createConcern = `-- name: CreateConcern :one
-INSERT INTO concerns (session_id, file, line, severity, title, body, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, session_id, file, line, severity, title, body, created_at
+INSERT INTO concerns (session_id, file, line, side, severity, title, body, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, session_id, file, line, side, severity, title, body, created_at
 `
 
 type CreateConcernParams struct {
 	SessionID int64
 	File      string
 	Line      sql.NullInt64
+	Side      string
 	Severity  string
 	Title     string
 	Body      string
@@ -31,6 +32,7 @@ func (q *Queries) CreateConcern(ctx context.Context, arg CreateConcernParams) (*
 		arg.SessionID,
 		arg.File,
 		arg.Line,
+		arg.Side,
 		arg.Severity,
 		arg.Title,
 		arg.Body,
@@ -42,6 +44,7 @@ func (q *Queries) CreateConcern(ctx context.Context, arg CreateConcernParams) (*
 		&i.SessionID,
 		&i.File,
 		&i.Line,
+		&i.Side,
 		&i.Severity,
 		&i.Title,
 		&i.Body,
@@ -111,7 +114,7 @@ func (q *Queries) GetPRReviewSession(ctx context.Context, id int64) (*PrReviewSe
 }
 
 const listConcernsBySession = `-- name: ListConcernsBySession :many
-SELECT id, session_id, file, line, severity, title, body, created_at FROM concerns WHERE session_id = ? ORDER BY id ASC
+SELECT id, session_id, file, line, side, severity, title, body, created_at FROM concerns WHERE session_id = ? ORDER BY id ASC
 `
 
 func (q *Queries) ListConcernsBySession(ctx context.Context, sessionID int64) ([]*Concern, error) {
@@ -128,6 +131,7 @@ func (q *Queries) ListConcernsBySession(ctx context.Context, sessionID int64) ([
 			&i.SessionID,
 			&i.File,
 			&i.Line,
+			&i.Side,
 			&i.Severity,
 			&i.Title,
 			&i.Body,
