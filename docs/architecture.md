@@ -128,6 +128,7 @@ make status       # goose migration status
 make reset        # goose reset
 make build        # npm build + copy dist + go build binaries
 make dev          # vite dev server on :5173, proxies /api to :7331
+make vet          # go build + go vet + tsc -b — the verification command
 ```
 
 ## Review pipeline
@@ -168,6 +169,17 @@ for the whole review and `Release()`s on defer. This serialises reviews of
 two PRs in the same repo — acceptable for a single user, and the tradeoff
 for deleting the entire worktree bookkeeping layer. Reviews are read-only,
 so there is nothing a worktree bought us.
+
+## Verification
+
+`make vet` is the check to run after any change. `make build` is for producing
+binaries, not for verifying — it drags in the vite bundle and the dist copy for
+no extra signal.
+
+Do not verify the frontend with a bare `tsc --noEmit`. The root `tsconfig.json`
+is solution-style (references only, no `files`), so that command typechecks
+nothing and passes vacuously. `tsc -b` follows the project references and is
+what `npm run build` actually uses.
 
 ## Key decisions
 

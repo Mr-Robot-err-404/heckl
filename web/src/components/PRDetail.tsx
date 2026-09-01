@@ -1,15 +1,16 @@
-import { createSignal, Show } from "solid-js"
+import { createEffect, createSignal, Show } from "solid-js"
 import { usePRDetail, usePrefetchDiff } from "../queries"
 import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
 import { ReviewPanel } from "./ReviewPanel"
-
-type Tab = "description" | "review"
+import type { Tab } from "../types"
 
 type Props = {
   owner: string
   repo: string
   prNumber: number
+  tab: Tab
+  onTabChange: (tab: Tab) => void
   onBack: () => void
 }
 
@@ -19,14 +20,14 @@ export function PRDetail(props: Props) {
     () => props.repo,
     () => props.prNumber,
   )
-  const [tab, setTab] = createSignal<Tab>("description")
   const [reviewMounted, setReviewMounted] = createSignal(false)
   const prefetchDiff = usePrefetchDiff()
 
-  const openReview = () => {
-    setTab("review")
-    setReviewMounted(true)
-  }
+  const tab = () => props.tab
+
+  createEffect(() => {
+    if (props.tab === "review") setReviewMounted(true)
+  })
 
   const prefetchReview = () => {
     prefetchDiff(props.owner, props.repo, props.prNumber)
@@ -37,13 +38,13 @@ export function PRDetail(props: Props) {
       <div class="pr-tabs">
         <button
           class={`pr-tab ${tab() === "description" ? "active" : ""}`}
-          onClick={() => setTab("description")}
+          onClick={() => props.onTabChange("description")}
         >
           description
         </button>
         <button
           class={`pr-tab ${tab() === "review" ? "active" : ""}`}
-          onClick={openReview}
+          onClick={() => props.onTabChange("review")}
           onMouseEnter={prefetchReview}
         >
           review

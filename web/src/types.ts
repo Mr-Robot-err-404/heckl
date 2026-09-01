@@ -34,6 +34,8 @@ export type PRDetail = {
   files: PRFile[]
 }
 
+export type Tab = "description" | "review"
+
 export type ReviewStatus = "pending" | "running" | "done" | "error"
 
 export type ReviewStage = {

@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js"
+import { createEffect, createSignal, For, Show } from "solid-js"
 import { useNavigate, useParams } from "@tanstack/solid-router"
 import { useAddRepo, useOrgs, useRepos, usePRDetail } from "../queries"
 
@@ -27,6 +27,8 @@ export function TopBar() {
     () => prNumber(),
   )
 
+  let selectRef: HTMLSelectElement | undefined
+
   const reposByOrg = () => {
     const orgList = orgs.data ?? []
     const repoList = repos.data ?? []
@@ -35,6 +37,20 @@ export function TopBar() {
       repos: repoList.filter((r) => r.Owner === org),
     }))
   }
+
+  const orphan = () => {
+    const key = selectedKey()
+    if (!key) return null
+    const known = (repos.data ?? []).some((r) => `${r.Owner}/${r.Name}` === key)
+    return known ? null : key
+  }
+
+  createEffect(() => {
+    const key = selectedKey()
+    reposByOrg()
+    orphan()
+    if (selectRef) selectRef.value = key
+  })
 
   function handleRepoChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value
@@ -83,8 +99,11 @@ export function TopBar() {
             </div>
           }
         >
-          <select class="repo-select" value={selectedKey()} onChange={handleRepoChange}>
+          <select ref={selectRef} class="repo-select" value={selectedKey()} onChange={handleRepoChange}>
             <option value="" disabled>select repo</option>
+            <Show when={orphan()}>
+              {(key) => <option value={key()}>{key()}</option>}
+            </Show>
             <For each={reposByOrg()}>
               {(group) => (
                 <optgroup label={group.org}>

@@ -38,6 +38,7 @@ export function PRList(props: Props) {
               onClick={() => navigate({
                 to: "/$owner/$repo/$pr",
                 params: { owner: props.owner, repo: props.repo, pr: String(pr.Number) },
+                search: { tab: "description" },
               })}
             >
               <div class="pr-row-main">
