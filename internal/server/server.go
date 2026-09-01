@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"time"
 
@@ -34,8 +35,41 @@ func New(gh *github.Client, store *store.Store, orc *orchestrator.Orchestrator) 
 	return s
 }
 
-func (s *Server) Static(fs http.FileSystem) {
-	s.mux.Handle("/", http.FileServer(fs))
+func (s *Server) Static(files http.FileSystem) {
+	assets := http.FileServer(files)
+
+	s.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.NotFound(w, r)
+			return
+		}
+
+		name := path.Clean("/" + r.URL.Path)
+		if f, err := files.Open(name); err == nil {
+			f.Close()
+			assets.ServeHTTP(w, r)
+			return
+		}
+		if path.Ext(name) != "" {
+			http.NotFound(w, r)
+			return
+		}
+
+		index, err := files.Open("/index.html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer index.Close()
+
+		info, err := index.Stat()
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		http.ServeContent(w, r, "index.html", info.ModTime(), index)
+	})
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
