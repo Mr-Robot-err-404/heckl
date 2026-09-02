@@ -1,112 +1,42 @@
 PR Detail — Description
 ------------------------
-[x] Render GitHub markdown in PR description
-[ ] Description page — reviewers assigned
-[ ] Description page — checks status
-[ ] Description page — ready to merge state
-[x] Video embeds — investigated, not feasible. GitHub resolves video short-links (github.com/user-attachments/assets/<uuid>) to a signed JWT URL server-side while rendering its own PR page; neither a PAT/OAuth Bearer token nor a manually-copied user_session cookie can trigger that resolution via direct HTTP request. Reverted to plain clickable links (opens on github.com, where the real logged-in session handles it). Would require scraping GitHub's rendered PR page HTML to go further — not worth the fragility for a personal tool.
+[x] GitHub markdown in PR description
+[x] Video embeds (skipped)
+[x] Reviewers assigned
+[ ] Checks status
+[ ] Ready to merge state
 
 PR Detail — Review (diff)
 --------------------------
-[ ] PR file tree sidebar in detail view
-[ ] @pierre/diffs theme matching Evergarden summer
+[ ] File tree sidebar
+[ ] Concern lifecycle: open / resolved / dismissed / superseded
 
 PR List
 --------
-[ ] Pagination — GitHub only returns 100 PRs, handle larger repos
-[ ] Keyboard navigation — j/k through PR list, Enter to open, Escape to back
+[ ] Pagination past 100 PRs
+[ ] Keyboard nav — j/k, Enter, Escape
 
 Infra / misc
 -------------
-[ ] Color and clean server logs
+[x] Colour and clean server logs
+[ ] Cost controls — steps cap, swappable model config
 
 
-==================================================
-AGENT INTEGRATION — AI PR Review (opencode)
-==================================================
-
-The meat of this project. Persistent `opencode serve` on the home server
-(hardcoded port) — real tool use against a checked-out repo, not just
-diff text in a prompt. opencode owns session/transcript persistence; we only
-store final structured output ourselves. Not a reversal of "no cache" —
-that was about not caching GitHub-mirrorable data; review output is
-original data we generate.
-
-Decisions locked in
----------------------
-[x] `internal/opencode` — thin hand-rolled Go HTTP client (no official Go
-    SDK, JS-only), same style as `internal/github`
-[x] Structured concerns via a custom tool (`.opencode/tools/report.ts`) — the
-    agent calls `report` once as its final action and the Zod args are the
-    schema. Originally used opencode's `format.json_schema`; that works on
-    write but opencode cannot deserialise the stored `format` on read, so
-    `GET /session/{id}/message` 400s and the session becomes unopenable in the
-    web UI. Nothing was lost in the move — enforcement is still server-side,
-    and the submission is now visible in the transcript. Never set
-    `PromptRequest.Format`.
-[x] One plain clone per repo at `data/repos/{owner}/{repo}`, checked out
-    detached at the head sha, clone-if-missing. Worktrees were tried and
-    deliberately deleted — reviews are read-only, so they bought nothing over
-    a lock + shared checkout. Don't reintroduce them.
-[x] Cheap scanner -> judge escalation — deferred to Phase 2. Phase 1 uses a
-    single `pr-reviewer` agent whose call is final (goes straight to the
-    human), no judge in the loop yet
-[x] All git ops (clone/fetch/checkout) run in our own Go code, never as an
-    agent shell command — agents only get a finished checkout path. General
-    rule: keep operations outside agents until an agent is the only option
-
-Phase 1 — minimal end-to-end slice
---------------------------------------
-[x] `internal/opencode` client — validated live against a real server
-[x] `internal/checkout` — clone/fetch/detached-checkout via SSH, validated via
-    `cmd/checkout`
-[x] Per-session `external_directory` permission scoping — confirmed via docs
-    (not model self-narration, which gave contradictory guesses) +
-    `cmd/opencode` (`make opencode ARGS="-checkout <path> <prompt>"`).
-    `opencode.WorktreePermission(path)` encodes the working pattern: deny
-    `external_directory` `*` then allow `<path>/*`. `read` inherits the
-    allow automatically, don't layer an extra explicit `read` rule — that
-    produced an unpredictable deny even inside the allowed path
-[x] Server startup bootstrap — `opencode.Setup(baseURL, projectDir)` checks
-    health on :4420, spawns `opencode serve` from `projectDir` if down so
-    `.opencode/agents/*.md` load project-scoped, verifies required agent
-    files exist (doesn't regenerate them — real .md files, git-tracked,
-    not hardcoded Go strings)
-[x] `.opencode/agents/pr-reviewer.md` — real markdown file, `bash: deny`,
-    `edit: deny`, `external_directory: deny` at rest, single agent making
-    final calls to the human (no separate judge in Phase 1, per scope cut).
-    NOTE: `agent` must be passed on the *prompt* call, not just session
-    creation — omitting it silently falls back to the user's default agent
-    and rewrites the session's agent. Every review before 2026-09-02 ran as
-    the wrong agent with none of these guarantees in force.
-[x] One prompt call, structured `concerns` output, stored — `internal/reviewer`
-    wires checkout -> session -> prompt -> report tool -> parse -> store
-[x] `pr_review_sessions` + flat `concerns` tables — sqlc-generated (added as
-    a real Go tool dependency via `go get -tool`, not machine-installed;
-    `make generate` runs it), store layer converts sqlite types
-    (sql.NullInt64 etc) to clean domain types before they leave `internal/store`
-[x] Bare endpoint to confirm concerns landed — `POST /api/review/{owner}/{repo}/{number}`
-    triggers a review, `GET` lists past sessions + concerns for a PR
-[x] Stage-visible progress — `GET /api/review/{owner}/{repo}/{number}/stream`
-    SSE, fed by the stage transitions in `internal/reviewer`. The POST does
-    no work and returns immediately; all progress arrives on the stream
-[x] Continue a review in opencode — reviews carry `opencodeSessionPath` and
-    the panel links into opencode's web UI on :4420 as soon as the session
-    stage completes. Replaces the idea of an in-app pushback flow; opencode
-    already owns the transcript. Needs `tailscale serve --https=4420` to be
-    reachable from anything other than the home server itself
-[ ] Review latency — one single-shot prompt with the full diff, model free to
-    wander. Worth trying: a cheap first pass that picks the top N files of
-    interest, then scope the real `pr-reviewer` call to those. Same shape as
-    the scanner/judge split below, applied to file selection. RE-MEASURE
-    FIRST: the old 60-100s figure was recorded while reviews were silently
-    running as the wrong agent, so it says nothing about `pr-reviewer`
-
-Phase 2 — full pipeline (not started)
--------------------------------------
-[ ] Split into `pr-walkthrough` / `pr-correctness` / `pr-logic` scanners
-[ ] `pr-judge` subagent — high rejection bar, accepts/rewrites concerns
-[ ] Concern lifecycle: open / resolved / dismissed / superseded, fed back
-    into the session on re-review
-[ ] "Agent Review" tab in PRDetail — narrative + concern list, resolve/dismiss
-[ ] Cost controls — `steps` cap, swappable cheap/judge model config
+Agent integration
+==================
+[x] internal/opencode client
+[x] internal/checkout — clone/fetch/detached checkout
+[x] Per-session external_directory scoping
+[x] Server startup bootstrap — opencode.Setup
+[x] pr-reviewer agent
+[x] report.ts custom tool for structured output
+[x] sqlc-backed pr_review_sessions + concerns
+[x] SSE stage progress
+[x] Continue a review in opencode (needs `tailscale serve --https=4420` remotely)
+[x] Sibling agents — pr-skeptic, per-agent stages, shared checkout
+[ ] Agent selection UI on the run button
+[ ] More siblings
+[ ] Per-agent summaries — currently only the first agent's is kept
+[ ] Partial success — one failing agent currently fails the whole review
+[ ] Review latency — single-shot prompt, model free to wander. Re-measure first;
+    old 60-100s figure was recorded while reviews ran as the wrong agent.

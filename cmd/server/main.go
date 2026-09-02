@@ -14,6 +14,7 @@ import (
 
 	"github.com/harrylawton/pr-review/internal/checkout"
 	"github.com/harrylawton/pr-review/internal/github"
+	"github.com/harrylawton/pr-review/internal/logs"
 	"github.com/harrylawton/pr-review/internal/opencode"
 	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/reviewer"
@@ -25,6 +26,8 @@ import (
 var static embed.FS
 
 func main() {
+	slog.SetDefault(slog.New(logs.New(os.Stdout, logLevel())))
+
 	out, err := exec.Command("gh", "auth", "token").Output()
 	if err != nil {
 		log.Fatal("gh auth token failed — run `gh auth login` first")
@@ -63,8 +66,15 @@ func main() {
 	srv.Static(http.FS(dist))
 
 	addr := ":7331"
-	log.Printf("listening on %s", addr)
+	slog.Info("listening", "addr", addr)
 	if err := http.ListenAndServe(addr, srv); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func logLevel() slog.Level {
+	if strings.EqualFold(os.Getenv("LOG_LEVEL"), "debug") {
+		return slog.LevelDebug
+	}
+	return slog.LevelInfo
 }

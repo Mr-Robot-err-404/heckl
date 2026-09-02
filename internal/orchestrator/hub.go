@@ -138,7 +138,7 @@ func (h *Hub) Subscribe(key string, seed *Review) (*Subscription, *Review, error
 	sub := newSubscription(id, key)
 	entry.subs[id] = sub
 
-	h.logger.Info("orchestrator: subscriber added", "pr", key, "sub_id", id, "subscribers", len(entry.subs))
+	h.logger.Debug("orchestrator: subscriber added", "pr", key, "sub_id", id, "subscribers", len(entry.subs))
 	return sub, entry.review, nil
 }
 
@@ -154,7 +154,7 @@ func (h *Hub) SubscribeAll() (*Subscription, error) {
 	sub := newSubscription(id, globalKey)
 	h.global[id] = sub
 
-	h.logger.Info("orchestrator: global subscriber added", "sub_id", id, "subscribers", len(h.global))
+	h.logger.Debug("orchestrator: global subscriber added", "sub_id", id, "subscribers", len(h.global))
 	return sub, nil
 }
 
@@ -180,7 +180,7 @@ func (h *Hub) Unsubscribe(sub *Subscription) {
 	if len(entry.subs) == 0 {
 		delete(h.entries, sub.Key)
 	}
-	h.logger.Info("orchestrator: subscriber removed", "pr", sub.Key, "sub_id", sub.ID, "subscribers", len(entry.subs))
+	h.logger.Debug("orchestrator: subscriber removed", "pr", sub.Key, "sub_id", sub.ID, "subscribers", len(entry.subs))
 }
 
 func (h *Hub) unsubscribeGlobal(sub *Subscription) {
@@ -192,7 +192,7 @@ func (h *Hub) unsubscribeGlobal(sub *Subscription) {
 	}
 	delete(h.global, sub.ID)
 	sub.close()
-	h.logger.Info("orchestrator: global subscriber removed", "sub_id", sub.ID, "subscribers", len(h.global))
+	h.logger.Debug("orchestrator: global subscriber removed", "sub_id", sub.ID, "subscribers", len(h.global))
 }
 
 func (h *Hub) watching(key string) bool {
@@ -238,7 +238,7 @@ func (h *Hub) hydrate(owner, repo string, prNumber int) *Review {
 		status = StatusError
 	}
 
-	h.logger.Info("orchestrator: hydrated from store", "pr", key, "session_id", sess.ID, "concerns", len(concerns))
+	h.logger.Debug("orchestrator: hydrated from store", "pr", key, "session_id", sess.ID, "concerns", len(concerns))
 
 	return &Review{
 		ID:        fmt.Sprintf("stored-%d", sess.ID),

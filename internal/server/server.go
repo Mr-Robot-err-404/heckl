@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,7 +78,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 	s.mux.ServeHTTP(sw, r)
-	slog.Info("request",
+
+	level := slog.LevelInfo
+	switch {
+	case sw.status >= 400:
+		level = slog.LevelWarn
+	case !strings.HasPrefix(r.URL.Path, "/api/"):
+		level = slog.LevelDebug
+	}
+
+	slog.Log(r.Context(), level, "request",
 		"method", r.Method,
 		"path", r.URL.Path,
 		"status", sw.status,
@@ -184,7 +194,7 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, err.Error(), http.StatusBadGateway)
 		return
 	}
-	slog.Info("github: list prs", "owner", owner, "repo", repo, "count", len(remote), "duration_ms", time.Since(start).Milliseconds())
+	slog.Debug("github: list prs", "owner", owner, "repo", repo, "count", len(remote), "duration_ms", time.Since(start).Milliseconds())
 
 	numbers := make([]int, 0, len(remote))
 	for _, pr := range remote {
@@ -273,7 +283,7 @@ func (s *Server) handleGetPR(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, filesErr.Error(), http.StatusBadGateway)
 		return
 	}
-	slog.Info("github: get pr", "owner", owner, "repo", repo, "number", number, "files", len(files), "duration_ms", time.Since(start).Milliseconds())
+	slog.Debug("github: get pr", "owner", owner, "repo", repo, "number", number, "files", len(files), "duration_ms", time.Since(start).Milliseconds())
 
 	fileOut := make([]prFileResponse, 0, len(files))
 	for _, f := range files {

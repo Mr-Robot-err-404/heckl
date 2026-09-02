@@ -53,21 +53,21 @@ pr-review/
 
 ## API endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /api/orgs | distinct owners from repos table |
-| GET | /api/repos | all repos |
-| GET | /api/repos/{owner} | repos by owner |
-| POST | /api/repos | add repo `{owner, name}` |
-| DELETE | /api/repos/{owner}/{name} | remove repo |
-| GET | /api/prs/{owner}/{repo} | list open PRs — always fetched live from GitHub, no cache |
-| GET | /api/prs/{owner}/{repo}/{number} | get PR + file patches — always fetched live from GitHub, no cache |
-| GET | /api/diff/{owner}/{repo}/{number} | proxy — fetches full unified diff from GitHub API (`Accept: application/vnd.github.diff`), streams raw patch text to client |
-| GET | /api/asset | authenticated proxy for GitHub-hosted images in PR bodies |
-| POST | /api/review/{owner}/{repo}/{number} | start a review — returns immediately, all progress arrives on the stream |
-| GET | /api/review/{owner}/{repo}/{number}/stream | SSE for one PR — `snapshot` on connect, then `review` on every state change |
-| GET | /api/reviews/stream | SSE for every PR — `snapshot` is the in-flight list, then `review` per state change |
-| GET | /api/reviews/history | paged review history — `?limit&offset`, plus optional `?owner&repo` to scope to one repo. Returns `{sessions, hasMore}` |
+| Method | Path                                       | Description                                                                                                                 |
+| ------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| GET    | /api/orgs                                  | distinct owners from repos table                                                                                            |
+| GET    | /api/repos                                 | all repos                                                                                                                   |
+| GET    | /api/repos/{owner}                         | repos by owner                                                                                                              |
+| POST   | /api/repos                                 | add repo `{owner, name}`                                                                                                    |
+| DELETE | /api/repos/{owner}/{name}                  | remove repo                                                                                                                 |
+| GET    | /api/prs/{owner}/{repo}                    | list open PRs — always fetched live from GitHub, no cache                                                                   |
+| GET    | /api/prs/{owner}/{repo}/{number}           | get PR + file patches — always fetched live from GitHub, no cache                                                           |
+| GET    | /api/diff/{owner}/{repo}/{number}          | proxy — fetches full unified diff from GitHub API (`Accept: application/vnd.github.diff`), streams raw patch text to client |
+| GET    | /api/asset                                 | authenticated proxy for GitHub-hosted images in PR bodies                                                                   |
+| POST   | /api/review/{owner}/{repo}/{number}        | start a review — returns immediately, all progress arrives on the stream                                                    |
+| GET    | /api/review/{owner}/{repo}/{number}/stream | SSE for one PR — `snapshot` on connect, then `review` on every state change                                                 |
+| GET    | /api/reviews/stream                        | SSE for every PR — `snapshot` is the in-flight list, then `review` per state change                                         |
+| GET    | /api/reviews/history                       | paged review history — `?limit&offset`, plus optional `?owner&repo` to scope to one repo. Returns `{sessions, hasMore}`     |
 
 ## URL routes
 
@@ -103,20 +103,9 @@ See `docs/diffs-references/recipe-vanilla.md` for FileDiff single-file usage.
 ## Theme — Gruvbox (dark, medium contrast)
 
 ```css
---base:     #282828
---mantle:   #3c3836
---crust:    #504945
---surface0: #3c3836
---surface1: #504945
---surface2: #665c54
---text:     #ebdbb2
---subtext1: #d5c4a1
---subtext0: #bdae93
---overlay1: #928374
---green:    #b8bb26
---red:      #fb4934
---blue:     #83a598
---yellow:   #fabd2f
+--base: #282828 --mantle: #3c3836 --crust: #504945 --surface0: #3c3836 --surface1: #504945
+  --surface2: #665c54 --text: #ebdbb2 --subtext1: #d5c4a1 --subtext0: #bdae93 --overlay1: #928374
+  --green: #b8bb26 --red: #fb4934 --blue: #83a598 --yellow: #fabd2f;
 ```
 
 `DiffView`'s `CodeView` is locked to the `gruvbox-dark-medium` Shiki theme (single theme name, not a `{dark, light}` pair) so it always matches the app chrome instead of following OS `prefers-color-scheme` — that mismatch (light app UI, OS-dark diff view) was the original bug that prompted the switch away from Evergarden.
@@ -228,7 +217,7 @@ replacement is correct for one PR (latest state wins) but drops events when a
 subscriber watches all of them, so `Take()` returns every distinct PR's latest
 state rather than one review.
 
-`SubscribeAll` registers with the hub *before* snapshotting the runner. The
+`SubscribeAll` registers with the hub _before_ snapshotting the runner. The
 reverse order can lose an event in the gap; this order can only duplicate one,
 and the client keys by PR so a duplicate is a no-op.
 
