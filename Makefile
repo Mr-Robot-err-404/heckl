@@ -1,4 +1,4 @@
-.PHONY: server build-server up down status reset build dev vet test checkout opencode generate
+.PHONY: server build-server up down down-to redo status reset build dev vet test checkout opencode generate
 
 vet:
 	go build ./...
@@ -19,6 +19,12 @@ up:
 
 down:
 	go run ./cmd/migrate down
+
+down-to:
+	go run ./cmd/migrate down-to $(V)
+
+redo:
+	go run ./cmd/migrate redo
 
 status:
 	go run ./cmd/migrate status

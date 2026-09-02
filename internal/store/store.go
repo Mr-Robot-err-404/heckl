@@ -51,21 +51,55 @@ func (s *Store) DeleteRepo(ctx context.Context, owner, name string) error {
 	return s.queries.DeleteRepo(ctx, DeleteRepoParams{Owner: owner, Name: name})
 }
 
-func (s *Store) CreateReviewSession(ctx context.Context, owner, repo string, prNumber int, headSHA, opencodeSessionID, summary string) (*ReviewSession, error) {
-	now := time.Now().UTC().Format(time.RFC3339)
+func (s *Store) CreateReviewSession(ctx context.Context, in NewReviewSession) (*ReviewSession, error) {
+	status := in.Status
+	if status == "" {
+		status = ReviewStatusDone
+	}
 	row, err := s.queries.CreatePRReviewSession(ctx, CreatePRReviewSessionParams{
-		Owner:             owner,
-		Repo:              repo,
-		PrNumber:          int64(prNumber),
-		HeadSha:           headSHA,
-		OpencodeSessionID: opencodeSessionID,
-		Summary:           summary,
-		CreatedAt:         now,
+		Owner:             in.Owner,
+		Repo:              in.Repo,
+		PrNumber:          int64(in.PRNumber),
+		HeadSha:           in.HeadSHA,
+		OpencodeSessionID: in.OpencodeSessionID,
+		Summary:           in.Summary,
+		Status:            status,
+		Error:             in.Error,
+		DurationMs:        in.DurationMS,
+		CreatedAt:         time.Now().UTC().Format(time.RFC3339),
 	})
 	if err != nil {
 		return nil, err
 	}
 	return toReviewSession(row), nil
+}
+
+func (s *Store) ListRecentReviewSessions(ctx context.Context, limit int) ([]*RecentReviewSession, error) {
+	rows, err := s.queries.ListRecentPRReviewSessions(ctx, int64(limit))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*RecentReviewSession, len(rows))
+	for i, r := range rows {
+		out[i] = &RecentReviewSession{
+			ReviewSession: toReviewSession(&PrReviewSession{
+				ID:                r.ID,
+				Owner:             r.Owner,
+				Repo:              r.Repo,
+				PrNumber:          r.PrNumber,
+				HeadSha:           r.HeadSha,
+				OpencodeSessionID: r.OpencodeSessionID,
+				Summary:           r.Summary,
+				Status:            r.Status,
+				Error:             r.Error,
+				DurationMs:        r.DurationMs,
+				CreatedAt:         r.CreatedAt,
+			}),
+			ConcernCount: r.ConcernCount,
+			HighCount:    r.HighCount,
+		}
+	}
+	return out, nil
 }
 
 func (s *Store) GetReviewSession(ctx context.Context, id int64) (*ReviewSession, error) {
@@ -131,6 +165,9 @@ func toReviewSession(r *PrReviewSession) *ReviewSession {
 		HeadSHA:           r.HeadSha,
 		OpencodeSessionID: r.OpencodeSessionID,
 		Summary:           r.Summary,
+		Status:            r.Status,
+		Error:             r.Error,
+		DurationMS:        r.DurationMs,
 		CreatedAt:         r.CreatedAt,
 	}
 }

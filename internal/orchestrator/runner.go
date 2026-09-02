@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/reviewer"
+	"github.com/harrylawton/pr-review/internal/store"
 )
 
 type Runner struct {
@@ -16,6 +18,7 @@ type Runner struct {
 	logger   *slog.Logger
 	source   PRSource
 	reviewer *reviewer.Reviewer
+	store    ReviewStore
 	publish  func(key string, review *Review)
 	path     SessionPath
 
@@ -23,16 +26,28 @@ type Runner struct {
 	inFlight map[string]*Review
 }
 
-func newRunner(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, publish func(string, *Review), path SessionPath) *Runner {
+func newRunner(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, st ReviewStore, publish func(string, *Review), path SessionPath) *Runner {
 	return &Runner{
 		ctx:      ctx,
 		logger:   logger,
 		source:   source,
 		reviewer: rev,
+		store:    st,
 		publish:  publish,
 		path:     path,
 		inFlight: make(map[string]*Review),
 	}
+}
+
+func (r *Runner) Active() []*Review {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]*Review, 0, len(r.inFlight))
+	for _, review := range r.inFlight {
+		out = append(out, review.clone())
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].StartedAt.After(out[j].StartedAt) })
+	return out
 }
 
 func (r *Runner) InFlight(key string) *Review {
@@ -85,6 +100,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int) {
 			rv.endStage(StageFetch, "", err)
 			rv.finish(err)
 		})
+		r.persistFailure(key, err)
 		log.Error("orchestrator: fetch failed", "err", err)
 		return
 	}
@@ -97,14 +113,15 @@ func (r *Runner) run(key, owner, repo string, prNumber int) {
 	log.Info("orchestrator: pr fetched", "head_sha", headSHA, "diff_bytes", len(diff), "duration_ms", time.Since(t).Milliseconds())
 
 	sess, concerns, err := r.reviewer.Review(r.ctx, reviewer.ReviewRequest{
-		Owner:    owner,
-		Repo:     repo,
-		PRNumber: prNumber,
-		HeadSHA:  headSHA,
-		Title:    pr.Title,
-		Body:     pr.Body,
-		Diff:     string(diff),
-		Progress: r.progressFor(key),
+		Owner:     owner,
+		Repo:      repo,
+		PRNumber:  prNumber,
+		HeadSHA:   headSHA,
+		Title:     pr.Title,
+		Body:      pr.Body,
+		Diff:      string(diff),
+		StartedAt: t,
+		Progress:  r.progressFor(key),
 	})
 
 	r.update(key, func(rv *Review) {
@@ -119,6 +136,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int) {
 	})
 
 	if err != nil {
+		r.persistFailure(key, err)
 		log.Error("orchestrator: review failed", "err", err)
 		return
 	}
@@ -141,6 +159,7 @@ func (r *Runner) progressFor(key string) reviewer.Progress {
 	return func(ev reviewer.ProgressEvent) {
 		r.update(key, func(rv *Review) {
 			if ev.SessionID != "" {
+				rv.OpencodeSessionID = ev.SessionID
 				rv.OpencodeSessionPath = r.path(ev.SessionID)
 			}
 			if ev.Done {
@@ -164,6 +183,29 @@ func (r *Runner) update(key string, mutate func(*Review)) {
 	r.mu.Unlock()
 
 	r.publish(key, snapshot)
+}
+
+func (r *Runner) persistFailure(key string, cause error) {
+	if r.store == nil {
+		return
+	}
+	review := r.InFlight(key)
+	if review == nil {
+		return
+	}
+	_, err := r.store.CreateReviewSession(r.ctx, store.NewReviewSession{
+		Owner:             review.Owner,
+		Repo:              review.Repo,
+		PRNumber:          review.PRNumber,
+		HeadSHA:           review.HeadSHA,
+		OpencodeSessionID: review.OpencodeSessionID,
+		Status:            store.ReviewStatusError,
+		Error:             cause.Error(),
+		DurationMS:        time.Since(review.StartedAt).Milliseconds(),
+	})
+	if err != nil {
+		r.logger.Error("orchestrator: persist failed review", "pr", key, "err", err)
+	}
 }
 
 func (r *Runner) release(key string) {

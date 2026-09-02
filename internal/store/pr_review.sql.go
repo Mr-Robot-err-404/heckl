@@ -54,9 +54,9 @@ func (q *Queries) CreateConcern(ctx context.Context, arg CreateConcernParams) (*
 }
 
 const createPRReviewSession = `-- name: CreatePRReviewSession :one
-INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at
+INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at
 `
 
 type CreatePRReviewSessionParams struct {
@@ -66,6 +66,9 @@ type CreatePRReviewSessionParams struct {
 	HeadSha           string
 	OpencodeSessionID string
 	Summary           string
+	Status            string
+	Error             string
+	DurationMs        int64
 	CreatedAt         string
 }
 
@@ -77,6 +80,9 @@ func (q *Queries) CreatePRReviewSession(ctx context.Context, arg CreatePRReviewS
 		arg.HeadSha,
 		arg.OpencodeSessionID,
 		arg.Summary,
+		arg.Status,
+		arg.Error,
+		arg.DurationMs,
 		arg.CreatedAt,
 	)
 	var i PrReviewSession
@@ -88,13 +94,16 @@ func (q *Queries) CreatePRReviewSession(ctx context.Context, arg CreatePRReviewS
 		&i.HeadSha,
 		&i.OpencodeSessionID,
 		&i.Summary,
+		&i.Status,
+		&i.Error,
+		&i.DurationMs,
 		&i.CreatedAt,
 	)
 	return &i, err
 }
 
 const getPRReviewSession = `-- name: GetPRReviewSession :one
-SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at FROM pr_review_sessions WHERE id = ?
+SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at FROM pr_review_sessions WHERE id = ?
 `
 
 func (q *Queries) GetPRReviewSession(ctx context.Context, id int64) (*PrReviewSession, error) {
@@ -108,6 +117,9 @@ func (q *Queries) GetPRReviewSession(ctx context.Context, id int64) (*PrReviewSe
 		&i.HeadSha,
 		&i.OpencodeSessionID,
 		&i.Summary,
+		&i.Status,
+		&i.Error,
+		&i.DurationMs,
 		&i.CreatedAt,
 	)
 	return &i, err
@@ -151,7 +163,7 @@ func (q *Queries) ListConcernsBySession(ctx context.Context, sessionID int64) ([
 }
 
 const listPRReviewSessionsByPR = `-- name: ListPRReviewSessionsByPR :many
-SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at FROM pr_review_sessions WHERE owner = ? AND repo = ? AND pr_number = ? ORDER BY created_at DESC
+SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at FROM pr_review_sessions WHERE owner = ? AND repo = ? AND pr_number = ? ORDER BY created_at DESC
 `
 
 type ListPRReviewSessionsByPRParams struct {
@@ -177,7 +189,73 @@ func (q *Queries) ListPRReviewSessionsByPR(ctx context.Context, arg ListPRReview
 			&i.HeadSha,
 			&i.OpencodeSessionID,
 			&i.Summary,
+			&i.Status,
+			&i.Error,
+			&i.DurationMs,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRecentPRReviewSessions = `-- name: ListRecentPRReviewSessions :many
+SELECT
+    s.id, s.owner, s.repo, s.pr_number, s.head_sha, s.opencode_session_id, s.summary, s.status, s.error, s.duration_ms, s.created_at,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id) AS concern_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count
+FROM pr_review_sessions s
+ORDER BY s.created_at DESC, s.id DESC
+LIMIT ?
+`
+
+type ListRecentPRReviewSessionsRow struct {
+	ID                int64
+	Owner             string
+	Repo              string
+	PrNumber          int64
+	HeadSha           string
+	OpencodeSessionID string
+	Summary           string
+	Status            string
+	Error             string
+	DurationMs        int64
+	CreatedAt         string
+	ConcernCount      int64
+	HighCount         int64
+}
+
+func (q *Queries) ListRecentPRReviewSessions(ctx context.Context, limit int64) ([]*ListRecentPRReviewSessionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRecentPRReviewSessions, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ListRecentPRReviewSessionsRow
+	for rows.Next() {
+		var i ListRecentPRReviewSessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Repo,
+			&i.PrNumber,
+			&i.HeadSha,
+			&i.OpencodeSessionID,
+			&i.Summary,
+			&i.Status,
+			&i.Error,
+			&i.DurationMs,
+			&i.CreatedAt,
+			&i.ConcernCount,
+			&i.HighCount,
 		); err != nil {
 			return nil, err
 		}

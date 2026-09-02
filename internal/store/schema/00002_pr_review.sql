@@ -7,8 +7,13 @@ CREATE TABLE IF NOT EXISTS pr_review_sessions (
     head_sha              TEXT NOT NULL,
     opencode_session_id   TEXT NOT NULL,
     summary               TEXT NOT NULL DEFAULT '',
+    status                TEXT NOT NULL DEFAULT 'done' CHECK(status IN ('done', 'error')),
+    error                 TEXT NOT NULL DEFAULT '',
+    duration_ms           INTEGER NOT NULL DEFAULT 0,
     created_at            TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_pr_review_sessions_created_at ON pr_review_sessions(created_at DESC);
 
 CREATE TABLE IF NOT EXISTS concerns (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -18,9 +18,9 @@ func main() {
 
 	args := flag.Args()
 	if len(args) == 0 {
-		log.Fatal("usage: migrate [-db path] <up|down|status|reset|version>")
+		log.Fatal("usage: migrate [-db path] <up|up-to|down|down-to|redo|status|reset|version> [version]")
 	}
-	command := args[0]
+	command, rest := args[0], args[1:]
 
 	db, err := sql.Open("sqlite", *dbPath)
 	if err != nil {
@@ -33,7 +33,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := goose.RunContext(context.Background(), command, db, "schema"); err != nil {
+	if err := goose.RunContext(context.Background(), command, db, "schema", rest...); err != nil {
 		log.Fatal(err)
 	}
 

@@ -47,14 +47,22 @@ const (
 )
 
 type ReviewRequest struct {
-	Owner    string
-	Repo     string
-	PRNumber int
-	HeadSHA  string
-	Title    string
-	Body     string
-	Diff     string
-	Progress Progress
+	Owner     string
+	Repo      string
+	PRNumber  int
+	HeadSHA   string
+	Title     string
+	Body      string
+	Diff      string
+	StartedAt time.Time
+	Progress  Progress
+}
+
+func (r ReviewRequest) elapsedMS() int64 {
+	if r.StartedAt.IsZero() {
+		return 0
+	}
+	return time.Since(r.StartedAt).Milliseconds()
 }
 
 type Concern struct {
@@ -154,7 +162,16 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	log.Info("reviewer: parsed concerns", "count", len(out.Concerns), "anchored", anchored, "summary", out.Summary)
 
 	emit(ProgressEvent{Stage: StageStore})
-	reviewSess, err := r.store.CreateReviewSession(ctx, req.Owner, req.Repo, req.PRNumber, req.HeadSHA, sess.ID, out.Summary)
+	reviewSess, err := r.store.CreateReviewSession(ctx, store.NewReviewSession{
+		Owner:             req.Owner,
+		Repo:              req.Repo,
+		PRNumber:          req.PRNumber,
+		HeadSHA:           req.HeadSHA,
+		OpencodeSessionID: sess.ID,
+		Summary:           out.Summary,
+		Status:            store.ReviewStatusDone,
+		DurationMS:        req.elapsedMS(),
+	})
 	if err != nil {
 		return nil, nil, fail(StageStore, fmt.Errorf("reviewer: store session: %w", err))
 	}

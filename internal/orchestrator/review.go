@@ -60,6 +60,7 @@ type Review struct {
 	Agents []Agent `json:"agents"`
 
 	SessionID           int64  `json:"sessionId,omitempty"`
+	OpencodeSessionID   string `json:"-"`
 	OpencodeSessionPath string `json:"opencodeSessionPath,omitempty"`
 
 	Summary  string    `json:"summary,omitempty"`

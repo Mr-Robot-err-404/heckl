@@ -107,6 +107,34 @@ func (s *Server) handleGetReview(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, s.orchestrator.Latest(owner, repo, number))
 }
 
+const defaultHistoryLimit = 50
+
+func (s *Server) handleActiveReviews(w http.ResponseWriter, r *http.Request) {
+	jsonOK(w, s.orchestrator.Active())
+}
+
+func (s *Server) handleReviewHistory(w http.ResponseWriter, r *http.Request) {
+	limit := defaultHistoryLimit
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n <= 0 {
+			jsonError(w, "invalid limit", http.StatusBadRequest)
+			return
+		}
+		limit = n
+	}
+
+	sessions, err := s.store.ListRecentReviewSessions(r.Context(), limit)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, sess := range sessions {
+		sess.OpencodeSessionPath = s.orchestrator.SessionPath(sess.OpencodeSessionID)
+	}
+	jsonOK(w, sessions)
+}
+
 func (s *Server) handleListReviews(w http.ResponseWriter, r *http.Request) {
 	owner := r.PathValue("owner")
 	repo := r.PathValue("repo")

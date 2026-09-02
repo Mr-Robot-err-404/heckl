@@ -22,6 +22,7 @@ type PRSource interface {
 type ReviewStore interface {
 	ListReviewSessions(ctx context.Context, owner, repo string, prNumber int) ([]*store.ReviewSession, error)
 	ListConcerns(ctx context.Context, sessionID int64) ([]*store.ReviewConcern, error)
+	CreateReviewSession(ctx context.Context, in store.NewReviewSession) (*store.ReviewSession, error)
 }
 
 type SessionPath func(opencodeSessionID string) string
@@ -37,7 +38,7 @@ func New(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewe
 	}
 	hub := newHub(ctx, logger, st, path)
 	return &Orchestrator{
-		runner: newRunner(ctx, logger, source, rev, hub.Publish, path),
+		runner: newRunner(ctx, logger, source, rev, st, hub.Publish, path),
 		hub:    hub,
 	}
 }
@@ -59,6 +60,17 @@ func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscriptio
 
 func (o *Orchestrator) Unsubscribe(sub *Subscription) {
 	o.hub.Unsubscribe(sub)
+}
+
+func (o *Orchestrator) SessionPath(opencodeSessionID string) string {
+	if opencodeSessionID == "" {
+		return ""
+	}
+	return o.hub.path(opencodeSessionID)
+}
+
+func (o *Orchestrator) Active() []*Review {
+	return o.runner.Active()
 }
 
 func (o *Orchestrator) Latest(owner, repo string, prNumber int) *Review {

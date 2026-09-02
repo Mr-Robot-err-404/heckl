@@ -1,7 +1,16 @@
 -- name: CreatePRReviewSession :one
-INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
+
+-- name: ListRecentPRReviewSessions :many
+SELECT
+    s.*,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id) AS concern_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count
+FROM pr_review_sessions s
+ORDER BY s.created_at DESC, s.id DESC
+LIMIT ?;
 
 -- name: GetPRReviewSession :one
 SELECT * FROM pr_review_sessions WHERE id = ?;

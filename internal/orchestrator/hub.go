@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/harrylawton/pr-review/internal/store"
 )
 
 type Subscription struct {
@@ -178,17 +180,25 @@ func (h *Hub) hydrate(owner, repo string, prNumber int) *Review {
 	}
 	sess := sessions[0]
 
-	concerns, err := h.store.ListConcerns(h.ctx, sess.ID)
-	if err != nil {
-		h.logger.Error("orchestrator: hydrate concerns", "pr", key, "session_id", sess.ID, "err", err)
-		return nil
+	var concerns []*storeConcern
+	if sess.Status != store.ReviewStatusError {
+		concerns, err = h.store.ListConcerns(h.ctx, sess.ID)
+		if err != nil {
+			h.logger.Error("orchestrator: hydrate concerns", "pr", key, "session_id", sess.ID, "err", err)
+			return nil
+		}
 	}
 
-	at, err := time.Parse(time.RFC3339, sess.CreatedAt)
+	ended, err := time.Parse(time.RFC3339, sess.CreatedAt)
 	if err != nil {
-		at = time.Now().UTC()
+		ended = time.Now().UTC()
 	}
-	ended := at
+	at := ended.Add(-time.Duration(sess.DurationMS) * time.Millisecond)
+
+	status := StatusDone
+	if sess.Status == store.ReviewStatusError {
+		status = StatusError
+	}
 
 	h.logger.Info("orchestrator: hydrated from store", "pr", key, "session_id", sess.ID, "concerns", len(concerns))
 
@@ -198,11 +208,12 @@ func (h *Hub) hydrate(owner, repo string, prNumber int) *Review {
 		Repo:      sess.Repo,
 		PRNumber:  sess.PRNumber,
 		HeadSHA:   sess.HeadSHA,
-		Status:    StatusDone,
+		Status:    status,
 		Stages:    []Stage{},
 		Agents:    []Agent{},
 		SessionID: sess.ID,
 		Summary:   sess.Summary,
+		Error:     sess.Error,
 
 		OpencodeSessionPath: h.path(sess.OpencodeSessionID),
 		Concerns:            toConcerns(concerns),
