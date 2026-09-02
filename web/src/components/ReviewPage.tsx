@@ -29,8 +29,10 @@ export function ReviewPage(props: Props) {
               {s().concerns().length === 0
                 ? "no concerns"
                 : `${s().concerns().length} concern${s().concerns().length === 1 ? "" : "s"}`}
-              {" · "}
-              {formatMs(s().elapsed())}
+              <Show when={s().elapsed() > 0}>
+                {" · "}
+                {formatMs(s().elapsed())}
+              </Show>
             </span>
           </Show>
         </div>

@@ -50,7 +50,7 @@ func main() {
 	gh := github.New(token)
 	co := checkout.New(filepath.Join(projectDir, "data"))
 	rev := reviewer.New(oc, co, db)
-	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev)
+	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev, db)
 
 	srv := server.New(gh, db, orc)
 
