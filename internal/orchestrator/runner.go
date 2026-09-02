@@ -17,18 +17,20 @@ type Runner struct {
 	source   PRSource
 	reviewer *reviewer.Reviewer
 	publish  func(key string, review *Review)
+	path     SessionPath
 
 	mu       sync.RWMutex
 	inFlight map[string]*Review
 }
 
-func newRunner(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, publish func(string, *Review)) *Runner {
+func newRunner(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, publish func(string, *Review), path SessionPath) *Runner {
 	return &Runner{
 		ctx:      ctx,
 		logger:   logger,
 		source:   source,
 		reviewer: rev,
 		publish:  publish,
+		path:     path,
 		inFlight: make(map[string]*Review),
 	}
 }
@@ -138,6 +140,9 @@ func (r *Runner) fetch(owner, repo string, prNumber int) (*github.PR, []byte, er
 func (r *Runner) progressFor(key string) reviewer.Progress {
 	return func(ev reviewer.ProgressEvent) {
 		r.update(key, func(rv *Review) {
+			if ev.SessionID != "" {
+				rv.OpencodeSessionPath = r.path(ev.SessionID)
+			}
 			if ev.Done {
 				rv.endStage(ev.Stage, ev.Detail, ev.Err)
 				return

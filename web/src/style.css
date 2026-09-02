@@ -603,8 +603,24 @@ html, body, #root { height: 100%; }
   padding: 0;
   cursor: pointer;
   text-align: left;
+  display: block;
+  text-decoration: none;
 }
 .review-open:hover { color: var(--text); }
+
+.review-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-session-link {
+  font-size: 11px;
+  color: var(--overlay1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.review-session-link:hover { color: var(--text); }
 
 .pr-tab-badge {
   margin-left: 6px;

@@ -1,5 +1,5 @@
 import { For, Show } from "solid-js"
-import { formatMs, type ReviewState } from "../review"
+import { formatMs, opencodeUrl, type ReviewState } from "../review"
 import type { RankedConcern, ReviewStage } from "../types"
 
 type Props = {
@@ -36,9 +36,21 @@ export function ReviewPage(props: Props) {
             </span>
           </Show>
         </div>
-        <button class="review-run" onClick={s().start} disabled={!s().canRun()}>
-          {!s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"}
-        </button>
+        <div class="review-page-actions">
+          <Show when={s().review()?.opencodeSessionPath}>
+            <a
+              class="review-session-link"
+              href={opencodeUrl(s().review()?.opencodeSessionPath)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              continue in opencode ↗
+            </a>
+          </Show>
+          <button class="review-run" onClick={s().start} disabled={!s().canRun()}>
+            {!s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"}
+          </button>
+        </div>
       </div>
 
       <Show when={s().error()}>

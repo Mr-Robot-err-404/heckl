@@ -82,6 +82,7 @@ export type Review = {
   stages: ReviewStage[]
   agents: ReviewAgent[]
   sessionId?: number
+  opencodeSessionPath?: string
   summary?: string
   concerns: Concern[]
   error?: string

@@ -69,16 +69,18 @@ type Hub struct {
 	ctx    context.Context
 	logger *slog.Logger
 	store  ReviewStore
+	path   SessionPath
 
 	mu      sync.Mutex
 	entries map[string]*hubEntry
 }
 
-func newHub(ctx context.Context, logger *slog.Logger, st ReviewStore) *Hub {
+func newHub(ctx context.Context, logger *slog.Logger, st ReviewStore, path SessionPath) *Hub {
 	return &Hub{
 		ctx:     ctx,
 		logger:  logger,
 		store:   st,
+		path:    path,
 		entries: make(map[string]*hubEntry),
 	}
 }
@@ -201,8 +203,10 @@ func (h *Hub) hydrate(owner, repo string, prNumber int) *Review {
 		Agents:    []Agent{},
 		SessionID: sess.ID,
 		Summary:   sess.Summary,
-		Concerns:  toConcerns(concerns),
-		StartedAt: at,
-		EndedAt:   &ended,
+
+		OpencodeSessionPath: h.path(sess.OpencodeSessionID),
+		Concerns:            toConcerns(concerns),
+		StartedAt:           at,
+		EndedAt:             &ended,
 	}
 }

@@ -24,15 +24,20 @@ type ReviewStore interface {
 	ListConcerns(ctx context.Context, sessionID int64) ([]*store.ReviewConcern, error)
 }
 
+type SessionPath func(opencodeSessionID string) string
+
 type Orchestrator struct {
 	runner *Runner
 	hub    *Hub
 }
 
-func New(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, st ReviewStore) *Orchestrator {
-	hub := newHub(ctx, logger, st)
+func New(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, st ReviewStore, path SessionPath) *Orchestrator {
+	if path == nil {
+		path = func(string) string { return "" }
+	}
+	hub := newHub(ctx, logger, st, path)
 	return &Orchestrator{
-		runner: newRunner(ctx, logger, source, rev, hub.Publish),
+		runner: newRunner(ctx, logger, source, rev, hub.Publish, path),
 		hub:    hub,
 	}
 }

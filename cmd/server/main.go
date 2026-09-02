@@ -50,7 +50,8 @@ func main() {
 	gh := github.New(token)
 	co := checkout.New(filepath.Join(projectDir, "data"))
 	rev := reviewer.New(oc, co, db)
-	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev, db)
+	sessionPath := func(id string) string { return opencode.SessionPath(projectDir, id) }
+	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev, db, sessionPath)
 
 	srv := server.New(gh, db, orc)
 

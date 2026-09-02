@@ -1,5 +1,5 @@
 import { For, Show } from "solid-js"
-import { fileName, formatMs, type ReviewState } from "../review"
+import { fileName, formatMs, opencodeUrl, type ReviewState } from "../review"
 import type { RankedConcern } from "../types"
 
 type Props = {
@@ -81,6 +81,17 @@ export function ReviewPanel(props: Props) {
         <button class="review-open" onClick={props.onOpenReview}>
           full review →
         </button>
+      </Show>
+
+      <Show when={s().review()?.opencodeSessionPath}>
+        <a
+          class="review-open"
+          href={opencodeUrl(s().review()?.opencodeSessionPath)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          continue in opencode ↗
+        </a>
       </Show>
     </aside>
   )

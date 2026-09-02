@@ -158,6 +158,25 @@ always fine, it was being starved.
 `finish(err)` closes out any stage still marked `running`, so a failure
 anywhere can't leave a stage spinning forever in the UI.
 
+## Continuing a review in opencode
+
+Every review already stores its `opencode_session_id`. The web UI that
+`opencode serve` exposes on :4420 routes sessions at `/:dir/session/:id`,
+where `:dir` is base64url (no padding) of the session's working directory —
+`/home/schultz/toolbox/pr-review`, the `projectDir` the server was spawned
+from. `opencode.SessionPath` builds that path.
+
+The server emits only the **path**, never a full URL. The browser prepends
+its own `location.hostname` and port 4420 (`opencodeUrl` in `review.ts`).
+That's deliberate: the Go server reaches opencode on `127.0.0.1`, but the
+link has to resolve in a browser on the work laptop over Tailscale, where
+loopback is the wrong machine. Server owns the base64 of its own filesystem
+path; the client owns the host it can actually reach. No config either side.
+
+The link appears as soon as the `session` stage completes, not when the
+review finishes, so a running review can be watched live. This replaces any
+in-app pushback/follow-up flow — opencode already owns the transcript.
+
 ## Checkout, not worktrees
 
 One plain clone per repo at `data/repos/{owner}/{repo}`, created with

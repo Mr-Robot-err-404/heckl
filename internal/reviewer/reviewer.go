@@ -26,10 +26,11 @@ func New(oc *opencode.Client, co *checkout.Manager, s *store.Store) *Reviewer {
 }
 
 type ProgressEvent struct {
-	Stage  string
-	Done   bool
-	Detail string
-	Err    error
+	Stage     string
+	Done      bool
+	Detail    string
+	SessionID string
+	Err       error
 }
 
 type Progress func(ProgressEvent)
@@ -145,7 +146,7 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 		return nil, nil, fail(StageSession, fmt.Errorf("reviewer: create session: %w", err))
 	}
 	log = log.With("session_id", sess.ID)
-	emit(ProgressEvent{Stage: StageSession, Done: true})
+	emit(ProgressEvent{Stage: StageSession, Done: true, SessionID: sess.ID})
 	log.Info("reviewer: session created", "duration_ms", time.Since(t).Milliseconds())
 
 	prompt := buildPrompt(req)

@@ -88,6 +88,13 @@ export function createReview(
   return { review, synced, connected, busy, canRun, error, now, elapsed, concerns, start }
 }
 
+const opencodePort = "4420"
+
+export function opencodeUrl(path: string | undefined) {
+  if (!path) return ""
+  return `${window.location.protocol}//${window.location.hostname}:${opencodePort}${path}`
+}
+
 export function formatMs(ms: number) {
   if (ms < 1000) return `${ms}ms`
   return `${(ms / 1000).toFixed(1)}s`

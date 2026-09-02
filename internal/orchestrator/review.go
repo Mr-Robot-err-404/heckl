@@ -59,10 +59,12 @@ type Review struct {
 	Stages []Stage `json:"stages"`
 	Agents []Agent `json:"agents"`
 
-	SessionID int64     `json:"sessionId,omitempty"`
-	Summary   string    `json:"summary,omitempty"`
-	Concerns  []Concern `json:"concerns"`
-	Error     string    `json:"error,omitempty"`
+	SessionID           int64  `json:"sessionId,omitempty"`
+	OpencodeSessionPath string `json:"opencodeSessionPath,omitempty"`
+
+	Summary  string    `json:"summary,omitempty"`
+	Concerns []Concern `json:"concerns"`
+	Error    string    `json:"error,omitempty"`
 
 	StartedAt time.Time  `json:"startedAt"`
 	EndedAt   *time.Time `json:"endedAt,omitempty"`
