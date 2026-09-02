@@ -15,6 +15,8 @@ import (
 
 const maxDiffBytes = 60000
 
+const reviewAgent = "pr-reviewer"
+
 type Reviewer struct {
 	oc       *opencode.Client
 	checkout *checkout.Manager
@@ -135,11 +137,11 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	log.Info("reviewer: checkout ready", "path", handle.Path, "duration_ms", time.Since(t).Milliseconds())
 
 	emit(ProgressEvent{Stage: StageSession})
-	log.Info("reviewer: creating opencode session", "agent", "pr-reviewer")
+	log.Info("reviewer: creating opencode session", "agent", reviewAgent)
 	t = time.Now()
 	sess, err := r.oc.CreateSession(opencode.CreateSessionRequest{
 		Title:      fmt.Sprintf("%s/%s #%d", req.Owner, req.Repo, req.PRNumber),
-		Agent:      "pr-reviewer",
+		Agent:      reviewAgent,
 		Permission: opencode.ReadOnlyPermission(handle.Path),
 	})
 	if err != nil {
@@ -154,6 +156,7 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	log.Info("reviewer: prompting model", "prompt_bytes", len(prompt))
 	t = time.Now()
 	msg, err := r.oc.Prompt(sess.ID, opencode.PromptRequest{
+		Agent: reviewAgent,
 		Parts: []opencode.Part{{Type: "text", Text: prompt}},
 		Format: &opencode.OutputFormat{
 			Type:       "json_schema",
