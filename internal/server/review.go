@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/harrylawton/pr-review/internal/store"
 )
 
 const streamPingInterval = 5 * time.Second
@@ -96,17 +94,6 @@ func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleGetReview(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
-		return
-	}
-	jsonOK(w, s.orchestrator.Latest(owner, repo, number))
-}
-
 const defaultHistoryLimit = 50
 
 func (s *Server) handleActiveReviews(w http.ResponseWriter, r *http.Request) {
@@ -133,39 +120,6 @@ func (s *Server) handleReviewHistory(w http.ResponseWriter, r *http.Request) {
 		sess.OpencodeSessionPath = s.orchestrator.SessionPath(sess.OpencodeSessionID)
 	}
 	jsonOK(w, sessions)
-}
-
-func (s *Server) handleListReviews(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
-		return
-	}
-
-	sessions, err := s.store.ListReviewSessions(r.Context(), owner, repo, number)
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	type sessionWithConcerns struct {
-		Session  *store.ReviewSession   `json:"session"`
-		Concerns []*store.ReviewConcern `json:"concerns"`
-	}
-
-	out := make([]sessionWithConcerns, 0, len(sessions))
-	for _, sess := range sessions {
-		concerns, err := s.store.ListConcerns(r.Context(), sess.ID)
-		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		out = append(out, sessionWithConcerns{Session: sess, Concerns: concerns})
-	}
-
-	jsonOK(w, out)
 }
 
 func writeEvent(w http.ResponseWriter, rc *http.ResponseController, event string, payload any) error {

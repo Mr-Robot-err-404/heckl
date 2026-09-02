@@ -73,14 +73,6 @@ func (o *Orchestrator) Active() []*Review {
 	return o.runner.Active()
 }
 
-func (o *Orchestrator) Latest(owner, repo string, prNumber int) *Review {
-	key := PRKey(owner, repo, prNumber)
-	if review := o.runner.InFlight(key); review != nil {
-		return review
-	}
-	return o.hub.Cached(key)
-}
-
 func toConcerns(in []*storeConcern) []Concern {
 	out := make([]Concern, 0, len(in))
 	for _, c := range in {

@@ -148,15 +148,6 @@ func (h *Hub) Unsubscribe(sub *Subscription) {
 	h.logger.Info("orchestrator: subscriber removed", "pr", sub.Key, "sub_id", sub.ID, "subscribers", len(entry.subs))
 }
 
-func (h *Hub) Cached(key string) *Review {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if entry, ok := h.entries[key]; ok {
-		return entry.review
-	}
-	return nil
-}
-
 func (h *Hub) watching(key string) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
