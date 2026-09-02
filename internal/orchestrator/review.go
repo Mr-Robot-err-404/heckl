@@ -20,9 +20,9 @@ const (
 	StageStore    = "store"
 )
 
-const agentName = "pr-reviewer"
+var reviewStageOrder = []string{StageFetch, StageCheckout, StageStore}
 
-var stageOrder = []string{StageFetch, StageCheckout, StageSession, StagePrompt, StageParse, StageStore}
+var agentStageOrder = []string{StageSession, StagePrompt, StageParse}
 
 type Stage struct {
 	Name       string     `json:"name"`
@@ -35,11 +35,15 @@ type Stage struct {
 }
 
 type Agent struct {
-	Name   string `json:"name"`
-	Status Status `json:"status"`
+	Name                string  `json:"name"`
+	Status              Status  `json:"status"`
+	Stages              []Stage `json:"stages"`
+	OpencodeSessionID   string  `json:"-"`
+	OpencodeSessionPath string  `json:"opencodeSessionPath,omitempty"`
 }
 
 type Concern struct {
+	Agent    string `json:"agent"`
 	File     string `json:"file"`
 	Line     *int   `json:"line,omitempty"`
 	Side     string `json:"side,omitempty"`
@@ -71,10 +75,18 @@ type Review struct {
 	EndedAt   *time.Time `json:"endedAt,omitempty"`
 }
 
-func newReview(id, owner, repo string, prNumber int) *Review {
-	stages := make([]Stage, len(stageOrder))
-	for i, name := range stageOrder {
+func newStages(names []string) []Stage {
+	stages := make([]Stage, len(names))
+	for i, name := range names {
 		stages[i] = Stage{Name: name, Status: StatusPending}
+	}
+	return stages
+}
+
+func newReview(id, owner, repo string, prNumber int, agents []string) *Review {
+	list := make([]Agent, len(agents))
+	for i, name := range agents {
+		list[i] = Agent{Name: name, Status: StatusPending, Stages: newStages(agentStageOrder)}
 	}
 	return &Review{
 		ID:        id,
@@ -82,8 +94,8 @@ func newReview(id, owner, repo string, prNumber int) *Review {
 		Repo:      repo,
 		PRNumber:  prNumber,
 		Status:    StatusPending,
-		Stages:    stages,
-		Agents:    []Agent{{Name: agentName, Status: StatusPending}},
+		Stages:    newStages(reviewStageOrder),
+		Agents:    list,
 		Concerns:  []Concern{},
 		StartedAt: time.Now().UTC(),
 	}
@@ -92,32 +104,56 @@ func newReview(id, owner, repo string, prNumber int) *Review {
 func (r *Review) clone() *Review {
 	c := *r
 	c.Stages = append(make([]Stage, 0, len(r.Stages)), r.Stages...)
-	c.Agents = append(make([]Agent, 0, len(r.Agents)), r.Agents...)
 	c.Concerns = append(make([]Concern, 0, len(r.Concerns)), r.Concerns...)
+	c.Agents = make([]Agent, 0, len(r.Agents))
+	for _, a := range r.Agents {
+		a.Stages = append(make([]Stage, 0, len(a.Stages)), a.Stages...)
+		c.Agents = append(c.Agents, a)
+	}
 	return &c
 }
 
-func (r *Review) stage(name string) *Stage {
-	for i := range r.Stages {
-		if r.Stages[i].Name == name {
-			return &r.Stages[i]
+func (r *Review) agent(name string) *Agent {
+	for i := range r.Agents {
+		if r.Agents[i].Name == name {
+			return &r.Agents[i]
 		}
 	}
 	return nil
 }
 
-func (r *Review) startStage(name string) {
-	s := r.stage(name)
+func (r *Review) stage(agentName, name string) *Stage {
+	stages := r.Stages
+	if agentName != "" {
+		a := r.agent(agentName)
+		if a == nil {
+			return nil
+		}
+		stages = a.Stages
+	}
+	for i := range stages {
+		if stages[i].Name == name {
+			return &stages[i]
+		}
+	}
+	return nil
+}
+
+func (r *Review) startStage(agentName, name string) {
+	s := r.stage(agentName, name)
 	if s == nil {
 		return
 	}
 	now := time.Now().UTC()
 	s.Status = StatusRunning
 	s.StartedAt = &now
+	if a := r.agent(agentName); a != nil && a.Status == StatusPending {
+		a.Status = StatusRunning
+	}
 }
 
-func (r *Review) endStage(name, detail string, err error) {
-	s := r.stage(name)
+func (r *Review) endStage(agentName, name, detail string, err error) {
+	s := r.stage(agentName, name)
 	if s == nil {
 		return
 	}
@@ -130,18 +166,28 @@ func (r *Review) endStage(name, detail string, err error) {
 	if err != nil {
 		s.Status = StatusError
 		s.Error = err.Error()
+		if a := r.agent(agentName); a != nil {
+			a.Status = StatusError
+		}
 		return
 	}
 	s.Status = StatusDone
+	if a := r.agent(agentName); a != nil && lastStage(a.Stages, name) {
+		a.Status = StatusDone
+	}
 }
 
-func (r *Review) setAgent(name string, status Status) {
-	for i := range r.Agents {
-		if r.Agents[i].Name == name {
-			r.Agents[i].Status = status
-			return
-		}
+func lastStage(stages []Stage, name string) bool {
+	return len(stages) > 0 && stages[len(stages)-1].Name == name
+}
+
+func (r *Review) setAgentSession(name, id, path string) {
+	a := r.agent(name)
+	if a == nil {
+		return
 	}
+	a.OpencodeSessionID = id
+	a.OpencodeSessionPath = path
 }
 
 func (r *Review) finish(err error) {
@@ -151,17 +197,25 @@ func (r *Review) finish(err error) {
 		r.failRunningStages(err)
 		r.Status = StatusError
 		r.Error = err.Error()
-		r.setAgent(agentName, StatusError)
 		return
 	}
 	r.Status = StatusDone
-	r.setAgent(agentName, StatusDone)
 }
 
-func (r *Review) failRunningStages(err error) {
+func (r *Review) failRunningStages(cause error) {
 	for i := range r.Stages {
 		if r.Stages[i].Status == StatusRunning {
-			r.endStage(r.Stages[i].Name, "", err)
+			r.endStage("", r.Stages[i].Name, "", cause)
+		}
+	}
+	for i := range r.Agents {
+		for j := range r.Agents[i].Stages {
+			if r.Agents[i].Stages[j].Status == StatusRunning {
+				r.endStage(r.Agents[i].Name, r.Agents[i].Stages[j].Name, "", cause)
+			}
+		}
+		if r.Agents[i].Status == StatusRunning || r.Agents[i].Status == StatusPending {
+			r.Agents[i].Status = StatusError
 		}
 	}
 }

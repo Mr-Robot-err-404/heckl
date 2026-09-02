@@ -70,9 +70,12 @@ export type ReviewStage = {
 export type ReviewAgent = {
   name: string
   status: ReviewStatus
+  stages: ReviewStage[]
+  opencodeSessionPath?: string
 }
 
 export type Concern = {
+  agent: string
   file: string
   line?: number
   side?: "additions" | "deletions"

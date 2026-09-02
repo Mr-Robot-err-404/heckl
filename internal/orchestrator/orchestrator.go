@@ -43,8 +43,8 @@ func New(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewe
 	}
 }
 
-func (o *Orchestrator) Start(owner, repo string, prNumber int) (*Review, error) {
-	return o.runner.Start(owner, repo, prNumber)
+func (o *Orchestrator) Start(owner, repo string, prNumber int, agents []string) (*Review, error) {
+	return o.runner.Start(owner, repo, prNumber, agents)
 }
 
 func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscription, *Review, error) {
@@ -81,6 +81,7 @@ func toConcerns(in []*storeConcern) []Concern {
 	out := make([]Concern, 0, len(in))
 	for _, c := range in {
 		out = append(out, Concern{
+			Agent:    c.Agent,
 			File:     c.File,
 			Line:     c.Line,
 			Side:     c.Side,

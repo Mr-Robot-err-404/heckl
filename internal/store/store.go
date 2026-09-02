@@ -63,6 +63,7 @@ func (s *Store) CreateReviewSession(ctx context.Context, in NewReviewSession) (*
 		HeadSha:           in.HeadSHA,
 		OpencodeSessionID: in.OpencodeSessionID,
 		Summary:           in.Summary,
+		Agents:            in.Agents,
 		Status:            status,
 		Error:             in.Error,
 		DurationMs:        in.DurationMS,
@@ -171,16 +172,28 @@ func (s *Store) ListReviewSessions(ctx context.Context, owner, repo string, prNu
 	return out, nil
 }
 
-func (s *Store) CreateConcern(ctx context.Context, sessionID int64, file string, line *int, side, severity, title, body string) (*ReviewConcern, error) {
+type NewConcern struct {
+	SessionID int64
+	Agent     string
+	File      string
+	Line      *int
+	Side      string
+	Severity  string
+	Title     string
+	Body      string
+}
+
+func (s *Store) CreateConcern(ctx context.Context, c NewConcern) (*ReviewConcern, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	row, err := s.queries.CreateConcern(ctx, CreateConcernParams{
-		SessionID: sessionID,
-		File:      file,
-		Line:      intPtrToNullInt64(line),
-		Side:      side,
-		Severity:  severity,
-		Title:     title,
-		Body:      body,
+		SessionID: c.SessionID,
+		Agent:     c.Agent,
+		File:      c.File,
+		Line:      intPtrToNullInt64(c.Line),
+		Side:      c.Side,
+		Severity:  c.Severity,
+		Title:     c.Title,
+		Body:      c.Body,
 		CreatedAt: now,
 	})
 	if err != nil {
@@ -210,6 +223,7 @@ func toReviewSession(r *PrReviewSession) *ReviewSession {
 		HeadSHA:           r.HeadSha,
 		OpencodeSessionID: r.OpencodeSessionID,
 		Summary:           r.Summary,
+		Agents:            r.Agents,
 		Status:            r.Status,
 		Error:             r.Error,
 		DurationMS:        r.DurationMs,
@@ -221,6 +235,7 @@ func toConcern(r *Concern) *ReviewConcern {
 	return &ReviewConcern{
 		ID:        r.ID,
 		SessionID: r.SessionID,
+		Agent:     r.Agent,
 		File:      r.File,
 		Line:      nullInt64ToIntPtr(r.Line),
 		Side:      r.Side,

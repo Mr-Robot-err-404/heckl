@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS pr_review_sessions (
     head_sha              TEXT NOT NULL,
     opencode_session_id   TEXT NOT NULL,
     summary               TEXT NOT NULL DEFAULT '',
+    agents                TEXT NOT NULL DEFAULT '',
     status                TEXT NOT NULL DEFAULT 'done' CHECK(status IN ('done', 'error')),
     error                 TEXT NOT NULL DEFAULT '',
     duration_ms           INTEGER NOT NULL DEFAULT 0,
@@ -18,6 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_pr_review_sessions_created_at ON pr_review_sessio
 CREATE TABLE IF NOT EXISTS concerns (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id    INTEGER NOT NULL REFERENCES pr_review_sessions(id) ON DELETE CASCADE,
+    agent         TEXT NOT NULL DEFAULT '',
     file          TEXT NOT NULL,
     line          INTEGER,
     side          TEXT NOT NULL DEFAULT '' CHECK(side IN ('', 'additions', 'deletions')),

@@ -59,8 +59,9 @@ func (r *Runner) InFlight(key string) *Review {
 	return nil
 }
 
-func (r *Runner) Start(owner, repo string, prNumber int) (*Review, error) {
+func (r *Runner) Start(owner, repo string, prNumber int, agents []string) (*Review, error) {
 	key := PRKey(owner, repo, prNumber)
+	agents = normaliseAgents(agents)
 
 	r.mu.Lock()
 	if existing, running := r.inFlight[key]; running {
@@ -75,21 +76,37 @@ func (r *Runner) Start(owner, repo string, prNumber int) (*Review, error) {
 		return nil, err
 	}
 
-	review := newReview(id, owner, repo, prNumber)
+	review := newReview(id, owner, repo, prNumber, agents)
 	review.Status = StatusRunning
-	review.startStage(StageFetch)
-	review.setAgent(agentName, StatusRunning)
+	review.startStage("", StageFetch)
 	r.inFlight[key] = review
 	snapshot := review.clone()
 	r.mu.Unlock()
 
 	r.publish(key, snapshot)
-	go r.run(key, owner, repo, prNumber)
+	go r.run(key, owner, repo, prNumber, agents)
 
 	return snapshot, nil
 }
 
-func (r *Runner) run(key, owner, repo string, prNumber int) {
+func normaliseAgents(selected []string) []string {
+	allowed := reviewer.AgentOrder()
+	out := make([]string, 0, len(allowed))
+	for _, name := range allowed {
+		for _, want := range selected {
+			if want == name {
+				out = append(out, name)
+				break
+			}
+		}
+	}
+	if len(out) == 0 {
+		return []string{reviewer.AgentReviewer}
+	}
+	return out
+}
+
+func (r *Runner) run(key, owner, repo string, prNumber int, agents []string) {
 	log := r.logger.With("owner", owner, "repo", repo, "pr", prNumber)
 	defer r.release(key)
 
@@ -97,7 +114,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int) {
 	pr, diff, err := r.fetch(owner, repo, prNumber)
 	if err != nil {
 		r.update(key, func(rv *Review) {
-			rv.endStage(StageFetch, "", err)
+			rv.endStage("", StageFetch, "", err)
 			rv.finish(err)
 		})
 		r.persistFailure(key, err)
@@ -108,20 +125,36 @@ func (r *Runner) run(key, owner, repo string, prNumber int) {
 	headSHA := pr.HeadSHA()
 	r.update(key, func(rv *Review) {
 		rv.HeadSHA = headSHA
-		rv.endStage(StageFetch, diffSize(len(diff)), nil)
+		rv.endStage("", StageFetch, diffSize(len(diff)), nil)
 	})
 	log.Info("orchestrator: pr fetched", "head_sha", headSHA, "diff_bytes", len(diff), "duration_ms", time.Since(t).Milliseconds())
 
+	r.update(key, func(rv *Review) { rv.startStage("", StageCheckout) })
+	handle, err := r.reviewer.Checkout().Acquire(r.ctx, owner, repo, prNumber, headSHA)
+	if err != nil {
+		r.update(key, func(rv *Review) {
+			rv.endStage("", StageCheckout, "", err)
+			rv.finish(err)
+		})
+		r.persistFailure(key, err)
+		log.Error("orchestrator: checkout failed", "err", err)
+		return
+	}
+	defer handle.Release()
+	r.update(key, func(rv *Review) { rv.endStage("", StageCheckout, shortSHA(headSHA), nil) })
+
 	sess, concerns, err := r.reviewer.Review(r.ctx, reviewer.ReviewRequest{
-		Owner:     owner,
-		Repo:      repo,
-		PRNumber:  prNumber,
-		HeadSHA:   headSHA,
-		Title:     pr.Title,
-		Body:      pr.Body,
-		Diff:      string(diff),
-		StartedAt: t,
-		Progress:  r.progressFor(key),
+		Owner:        owner,
+		Repo:         repo,
+		PRNumber:     prNumber,
+		HeadSHA:      headSHA,
+		Title:        pr.Title,
+		Body:         pr.Body,
+		Diff:         string(diff),
+		CheckoutPath: handle.Path,
+		Agents:       agents,
+		StartedAt:    t,
+		Progress:     r.progressFor(key),
 	})
 
 	r.update(key, func(rv *Review) {
@@ -159,16 +192,26 @@ func (r *Runner) progressFor(key string) reviewer.Progress {
 	return func(ev reviewer.ProgressEvent) {
 		r.update(key, func(rv *Review) {
 			if ev.SessionID != "" {
-				rv.OpencodeSessionID = ev.SessionID
-				rv.OpencodeSessionPath = r.path(ev.SessionID)
+				rv.setAgentSession(ev.Agent, ev.SessionID, r.path(ev.SessionID))
+				if rv.OpencodeSessionID == "" {
+					rv.OpencodeSessionID = ev.SessionID
+					rv.OpencodeSessionPath = r.path(ev.SessionID)
+				}
 			}
 			if ev.Done {
-				rv.endStage(ev.Stage, ev.Detail, ev.Err)
+				rv.endStage(ev.Agent, ev.Stage, ev.Detail, ev.Err)
 				return
 			}
-			rv.startStage(ev.Stage)
+			rv.startStage(ev.Agent, ev.Stage)
 		})
 	}
+}
+
+func shortSHA(sha string) string {
+	if len(sha) > 7 {
+		return sha[:7]
+	}
+	return sha
 }
 
 func (r *Runner) update(key string, mutate func(*Review)) {

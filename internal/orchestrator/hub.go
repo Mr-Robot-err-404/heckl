@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -202,6 +203,18 @@ func (h *Hub) watching(key string) bool {
 	return ok
 }
 
+func storedAgents(csv string, status Status) []Agent {
+	out := []Agent{}
+	for _, name := range strings.Split(csv, ",") {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		out = append(out, Agent{Name: name, Status: status, Stages: []Stage{}})
+	}
+	return out
+}
+
 func (h *Hub) hydrate(owner, repo string, prNumber int) *Review {
 	if h.store == nil {
 		return nil
@@ -248,7 +261,7 @@ func (h *Hub) hydrate(owner, repo string, prNumber int) *Review {
 		HeadSHA:   sess.HeadSHA,
 		Status:    status,
 		Stages:    []Stage{},
-		Agents:    []Agent{},
+		Agents:    storedAgents(sess.Agents, status),
 		SessionID: sess.ID,
 		Summary:   sess.Summary,
 		Error:     sess.Error,

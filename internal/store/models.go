@@ -11,6 +11,7 @@ import (
 type Concern struct {
 	ID        int64
 	SessionID int64
+	Agent     string
 	File      string
 	Line      sql.NullInt64
 	Side      string
@@ -28,6 +29,7 @@ type PrReviewSession struct {
 	HeadSha           string
 	OpencodeSessionID string
 	Summary           string
+	Agents            string
 	Status            string
 	Error             string
 	DurationMs        int64

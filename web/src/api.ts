@@ -79,8 +79,8 @@ export const api = {
     },
   },
   review: {
-    start: (owner: string, repo: string, number: number) =>
-      post<Review>(`/review/${owner}/${repo}/${number}`, {}),
+    start: (owner: string, repo: string, number: number, agents: string[]) =>
+      post<Review>(`/review/${owner}/${repo}/${number}`, { agents }),
     stream: (
       owner: string,
       repo: string,

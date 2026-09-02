@@ -1,6 +1,6 @@
 import { For, Show } from "solid-js"
-import { formatMs, opencodeUrl, type ReviewState } from "../review"
-import type { RankedConcern, ReviewStage } from "../types"
+import { agentLabel, formatMs, opencodeUrl, type ReviewState } from "../review"
+import type { RankedConcern, ReviewAgent, ReviewStage } from "../types"
 
 type Props = {
   state: ReviewState
@@ -18,6 +18,14 @@ const stageLabels: Record<string, string> = {
 
 export function ReviewPage(props: Props) {
   const s = () => props.state
+
+  const agents = (): ReviewAgent[] => s().review()?.agents ?? []
+
+  const grouped = () =>
+    agents().map((agent) => ({
+      agent,
+      concerns: s().concerns().filter((c) => c.agent === agent.name),
+    }))
 
   return (
     <div class="review-page">
@@ -47,7 +55,7 @@ export function ReviewPage(props: Props) {
               continue in opencode ↗
             </a>
           </Show>
-          <button class="review-run" onClick={s().start} disabled={!s().canRun()}>
+          <button class="review-run" onClick={() => s().start()} disabled={!s().canRun()}>
             {!s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"}
           </button>
         </div>
@@ -75,6 +83,30 @@ export function ReviewPage(props: Props) {
             {(stage) => <StageRow stage={stage} now={s().now()} />}
           </For>
         </div>
+        <div class="agent-lanes">
+          <For each={agents()}>
+            {(agent) => (
+              <div class={`agent-lane is-${agent.status}`}>
+                <div class="agent-lane-head">
+                  <span class="agent-lane-name">{agentLabel(agent.name)}</span>
+                  <Show when={agent.opencodeSessionPath}>
+                    <a
+                      class="review-session-link"
+                      href={opencodeUrl(agent.opencodeSessionPath)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      watch ↗
+                    </a>
+                  </Show>
+                </div>
+                <For each={agent.stages}>
+                  {(stage) => <StageRow stage={stage} now={s().now()} />}
+                </For>
+              </div>
+            )}
+          </For>
+        </div>
       </Show>
 
       <Show when={s().review()?.status === "error"}>
@@ -89,19 +121,35 @@ export function ReviewPage(props: Props) {
           </section>
         </Show>
 
-        <section class="review-findings">
-          <h3 class="review-section-title">concerns</h3>
-          <Show
-            when={s().concerns().length > 0}
-            fallback={<p class="review-clear">nothing worth flagging</p>}
-          >
-            <For each={s().concerns()}>
-              {(concern) => (
-                <ConcernCard concern={concern} onFocus={() => props.onFocusConcern(concern)} />
-              )}
-            </For>
-          </Show>
-        </section>
+        <For each={grouped()}>
+          {(group) => (
+            <section class="review-findings">
+              <h3 class="review-section-title">
+                {agentLabel(group.agent.name)}
+                <Show when={group.agent.opencodeSessionPath}>
+                  <a
+                    class="review-session-link"
+                    href={opencodeUrl(group.agent.opencodeSessionPath)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    session ↗
+                  </a>
+                </Show>
+              </h3>
+              <Show
+                when={group.concerns.length > 0}
+                fallback={<p class="review-clear">nothing worth flagging</p>}
+              >
+                <For each={group.concerns}>
+                  {(concern) => (
+                    <ConcernCard concern={concern} onFocus={() => props.onFocusConcern(concern)} />
+                  )}
+                </For>
+              </Show>
+            </section>
+          )}
+        </For>
       </Show>
     </div>
   )

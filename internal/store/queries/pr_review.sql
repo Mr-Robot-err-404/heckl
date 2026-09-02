@@ -1,6 +1,6 @@
 -- name: CreatePRReviewSession :one
-INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, agents, status, error, duration_ms, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: ListRecentPRReviewSessions :many
@@ -49,8 +49,8 @@ WHERE s.owner = ? AND s.repo = ?
   );
 
 -- name: CreateConcern :one
-INSERT INTO concerns (session_id, file, line, side, severity, title, body, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO concerns (session_id, agent, file, line, side, severity, title, body, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: ListConcernsBySession :many

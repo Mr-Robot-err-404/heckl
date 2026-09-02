@@ -1,5 +1,5 @@
 import { For, Show } from "solid-js"
-import { fileName, formatMs, opencodeUrl, type ReviewState } from "../review"
+import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review"
 import type { RankedConcern } from "../types"
 
 type Props = {
@@ -26,7 +26,7 @@ export function ReviewPanel(props: Props) {
     <aside class="review-panel">
       <div class="review-panel-head">
         <span class="review-panel-title">agent review</span>
-        <button class="review-run" onClick={s().start} disabled={!s().canRun()}>
+        <button class="review-run" onClick={() => s().start()} disabled={!s().canRun()}>
           {!s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"}
         </button>
       </div>
@@ -51,6 +51,29 @@ export function ReviewPanel(props: Props) {
           </span>
           <span class="review-stage-time">{formatMs(s().elapsed())}</span>
         </div>
+        <ul class="agent-progress">
+          <For each={s().review()?.agents ?? []}>
+            {(agent) => (
+              <li class={`agent-progress-row is-${agent.status}`}>
+                <span class="review-stage-dot" />
+                <span class="agent-progress-name">{agentLabel(agent.name)}</span>
+                <span class="review-stage-detail">
+                  {stageLabels[agent.stages.find((st) => st.status === "running")?.name ?? ""] ?? ""}
+                </span>
+                <Show when={agent.opencodeSessionPath}>
+                  <a
+                    class="agent-progress-link"
+                    href={opencodeUrl(agent.opencodeSessionPath)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    ↗
+                  </a>
+                </Show>
+              </li>
+            )}
+          </For>
+        </ul>
       </Show>
 
       <Show when={s().synced() && !s().busy() && !s().review()}>

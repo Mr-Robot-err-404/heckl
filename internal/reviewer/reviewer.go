@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/checkout"
@@ -15,8 +16,25 @@ import (
 
 const maxDiffBytes = 60000
 
-const reviewAgent = "pr-reviewer"
 const reportTool = "report"
+
+const (
+	AgentReviewer = "pr-reviewer"
+	AgentSkeptic  = "pr-skeptic"
+)
+
+var agentOrder = []string{AgentReviewer, AgentSkeptic}
+
+func AgentOrder() []string { return append([]string{}, agentOrder...) }
+
+func agentRank(name string) int {
+	for i, a := range agentOrder {
+		if a == name {
+			return i
+		}
+	}
+	return len(agentOrder)
+}
 
 type Reviewer struct {
 	oc       *opencode.Client
@@ -28,7 +46,10 @@ func New(oc *opencode.Client, co *checkout.Manager, s *store.Store) *Reviewer {
 	return &Reviewer{oc: oc, checkout: co, store: s}
 }
 
+func (r *Reviewer) Checkout() *checkout.Manager { return r.checkout }
+
 type ProgressEvent struct {
+	Agent     string
 	Stage     string
 	Done      bool
 	Detail    string
@@ -39,23 +60,24 @@ type ProgressEvent struct {
 type Progress func(ProgressEvent)
 
 const (
-	StageCheckout = "checkout"
-	StageSession  = "session"
-	StagePrompt   = "prompt"
-	StageParse    = "parse"
-	StageStore    = "store"
+	StageSession = "session"
+	StagePrompt  = "prompt"
+	StageParse   = "parse"
+	StageStore   = "store"
 )
 
 type ReviewRequest struct {
-	Owner     string
-	Repo      string
-	PRNumber  int
-	HeadSHA   string
-	Title     string
-	Body      string
-	Diff      string
-	StartedAt time.Time
-	Progress  Progress
+	Owner        string
+	Repo         string
+	PRNumber     int
+	HeadSHA      string
+	Title        string
+	Body         string
+	Diff         string
+	CheckoutPath string
+	Agents       []string
+	StartedAt    time.Time
+	Progress     Progress
 }
 
 func (r ReviewRequest) elapsedMS() int64 {
@@ -66,6 +88,7 @@ func (r ReviewRequest) elapsedMS() int64 {
 }
 
 type Concern struct {
+	Agent    string `json:"-"`
 	File     string `json:"file"`
 	Line     *int   `json:"line,omitempty"`
 	Side     string `json:"side,omitempty"`
@@ -80,114 +103,204 @@ type reviewOutput struct {
 	Concerns []Concern `json:"concerns"`
 }
 
+type agentResult struct {
+	agent     string
+	sessionID string
+	out       reviewOutput
+	err       error
+}
+
 func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.ReviewSession, []*store.ReviewConcern, error) {
 	log := slog.With("owner", req.Owner, "repo", req.Repo, "pr", req.PRNumber)
 	emit := req.Progress
 	if emit == nil {
 		emit = func(ProgressEvent) {}
 	}
-	fail := func(stage string, err error) error {
-		emit(ProgressEvent{Stage: stage, Done: true, Err: err})
-		log.Error("reviewer: "+stage+" failed", "err", err)
-		return err
+
+	agents := req.Agents
+	if len(agents) == 0 {
+		agents = []string{AgentReviewer}
 	}
 
-	emit(ProgressEvent{Stage: StageCheckout})
-	log.Info("reviewer: checking out", "head_sha", req.HeadSHA)
-	t := time.Now()
-	handle, err := r.checkout.Acquire(ctx, req.Owner, req.Repo, req.PRNumber, req.HeadSHA)
+	results := make([]agentResult, len(agents))
+	var wg sync.WaitGroup
+	for i, name := range agents {
+		wg.Go(func() {
+			results[i] = r.runAgent(req, name, emit, log)
+		})
+	}
+	wg.Wait()
+
+	sortByAgentRank(results)
+
+	if err := firstError(results); err != nil {
+		return nil, nil, err
+	}
+
+	index := parseDiffIndex(req.Diff)
+	var concerns []Concern
+	for i := range results {
+		for _, c := range results[i].out.Concerns {
+			c.Agent = results[i].agent
+			concerns = append(concerns, index.resolve(c))
+		}
+	}
+
+	emit(ProgressEvent{Stage: StageStore})
+	session, stored, err := r.persist(ctx, req, results, concerns)
 	if err != nil {
-		return nil, nil, fail(StageCheckout, err)
+		emit(ProgressEvent{Stage: StageStore, Done: true, Err: err})
+		return nil, nil, err
 	}
-	defer handle.Release()
-	emit(ProgressEvent{Stage: StageCheckout, Done: true, Detail: shortSHA(req.HeadSHA)})
-	log.Info("reviewer: checkout ready", "path", handle.Path, "duration_ms", time.Since(t).Milliseconds())
+	emit(ProgressEvent{Stage: StageStore, Done: true})
 
-	emit(ProgressEvent{Stage: StageSession})
-	log.Info("reviewer: creating opencode session", "agent", reviewAgent)
-	t = time.Now()
+	log.Info("reviewer: review complete", "agents", len(agents), "concerns", len(stored))
+	return session, stored, nil
+}
+
+func (r *Reviewer) runAgent(req ReviewRequest, name string, emit Progress, parent *slog.Logger) agentResult {
+	log := parent.With("agent", name)
+	res := agentResult{agent: name}
+
+	fail := func(stage string, err error) agentResult {
+		emit(ProgressEvent{Agent: name, Stage: stage, Done: true, Err: err})
+		log.Error("reviewer: "+stage+" failed", "err", err)
+		res.err = err
+		return res
+	}
+
+	emit(ProgressEvent{Agent: name, Stage: StageSession})
+	t := time.Now()
 	sess, err := r.oc.CreateSession(opencode.CreateSessionRequest{
-		Title:      fmt.Sprintf("%s/%s #%d", req.Owner, req.Repo, req.PRNumber),
-		Agent:      reviewAgent,
-		Permission: opencode.ReadOnlyPermission(handle.Path),
+		Title:      fmt.Sprintf("%s/%s #%d — %s", req.Owner, req.Repo, req.PRNumber, name),
+		Agent:      name,
+		Permission: opencode.ReadOnlyPermission(req.CheckoutPath),
 	})
 	if err != nil {
-		return nil, nil, fail(StageSession, fmt.Errorf("reviewer: create session: %w", err))
+		return fail(StageSession, fmt.Errorf("reviewer: create session (%s): %w", name, err))
 	}
+	res.sessionID = sess.ID
 	log = log.With("session_id", sess.ID)
-	emit(ProgressEvent{Stage: StageSession, Done: true, SessionID: sess.ID})
+	emit(ProgressEvent{Agent: name, Stage: StageSession, Done: true, SessionID: sess.ID})
 	log.Info("reviewer: session created", "duration_ms", time.Since(t).Milliseconds())
 
 	prompt := buildPrompt(req)
-	emit(ProgressEvent{Stage: StagePrompt})
-	log.Info("reviewer: prompting model", "prompt_bytes", len(prompt))
+	emit(ProgressEvent{Agent: name, Stage: StagePrompt})
 	t = time.Now()
 	msg, err := r.oc.Prompt(sess.ID, opencode.PromptRequest{
-		Agent: reviewAgent,
+		Agent: name,
 		Parts: []opencode.Part{{Type: "text", Text: prompt}},
 	})
 	if err != nil {
-		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: prompt: %w", err))
+		return fail(StagePrompt, fmt.Errorf("reviewer: prompt (%s): %w", name, err))
 	}
 	if msg.Info.HasError() {
-		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: model error: %s", string(msg.Info.Error)))
+		return fail(StagePrompt, fmt.Errorf("reviewer: model error (%s): %s", name, string(msg.Info.Error)))
 	}
 	msgs, err := r.oc.Messages(sess.ID)
 	if err != nil {
-		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: read session messages: %w", err))
+		return fail(StagePrompt, fmt.Errorf("reviewer: read session messages (%s): %w", name, err))
 	}
 	reported, ok := opencode.ToolInput(msgs, reportTool)
 	if !ok {
-		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: agent never called the %s tool", reportTool))
+		return fail(StagePrompt, fmt.Errorf("reviewer: %s never called the %s tool", name, reportTool))
 	}
-	promptMS := time.Since(t).Milliseconds()
-	emit(ProgressEvent{Stage: StagePrompt, Done: true})
-	log.Info("reviewer: model responded", "duration_ms", promptMS)
+	emit(ProgressEvent{Agent: name, Stage: StagePrompt, Done: true})
+	log.Info("reviewer: model responded", "duration_ms", time.Since(t).Milliseconds())
 
-	emit(ProgressEvent{Stage: StageParse})
-	var out reviewOutput
-	if err := json.Unmarshal(reported, &out); err != nil {
+	emit(ProgressEvent{Agent: name, Stage: StageParse})
+	if err := json.Unmarshal(reported, &res.out); err != nil {
 		log.Error("reviewer: raw tool input", "raw", string(reported))
-		return nil, nil, fail(StageParse, fmt.Errorf("reviewer: parse %s input: %w", reportTool, err))
+		return fail(StageParse, fmt.Errorf("reviewer: parse %s input (%s): %w", reportTool, name, err))
 	}
-	index := parseDiffIndex(req.Diff)
-	anchored := 0
-	for i, c := range out.Concerns {
-		out.Concerns[i] = index.resolve(c)
-		if out.Concerns[i].Line != nil {
-			anchored++
-		}
-	}
-	emit(ProgressEvent{Stage: StageParse, Done: true, Detail: concernCount(len(out.Concerns))})
-	log.Info("reviewer: parsed concerns", "count", len(out.Concerns), "anchored", anchored, "summary", out.Summary)
+	emit(ProgressEvent{Agent: name, Stage: StageParse, Done: true, Detail: concernCount(len(res.out.Concerns))})
+	log.Info("reviewer: parsed concerns", "count", len(res.out.Concerns))
 
-	emit(ProgressEvent{Stage: StageStore})
-	reviewSess, err := r.store.CreateReviewSession(ctx, store.NewReviewSession{
+	return res
+}
+
+func (r *Reviewer) persist(
+	ctx context.Context,
+	req ReviewRequest,
+	results []agentResult,
+	concerns []Concern,
+) (*store.ReviewSession, []*store.ReviewConcern, error) {
+	session, err := r.store.CreateReviewSession(ctx, store.NewReviewSession{
 		Owner:             req.Owner,
 		Repo:              req.Repo,
 		PRNumber:          req.PRNumber,
 		HeadSHA:           req.HeadSHA,
-		OpencodeSessionID: sess.ID,
-		Summary:           out.Summary,
+		OpencodeSessionID: primarySessionID(results),
+		Summary:           primarySummary(results),
+		Agents:            strings.Join(agentNames(results), ","),
 		Status:            store.ReviewStatusDone,
 		DurationMS:        req.elapsedMS(),
 	})
 	if err != nil {
-		return nil, nil, fail(StageStore, fmt.Errorf("reviewer: store session: %w", err))
+		return nil, nil, fmt.Errorf("reviewer: store session: %w", err)
 	}
 
-	concerns := make([]*store.ReviewConcern, 0, len(out.Concerns))
-	for _, c := range out.Concerns {
-		stored, err := r.store.CreateConcern(ctx, reviewSess.ID, c.File, c.Line, c.Side, c.Severity, c.Title, c.Body)
+	out := make([]*store.ReviewConcern, 0, len(concerns))
+	for _, c := range concerns {
+		stored, err := r.store.CreateConcern(ctx, store.NewConcern{
+			SessionID: session.ID,
+			Agent:     c.Agent,
+			File:      c.File,
+			Line:      c.Line,
+			Side:      c.Side,
+			Severity:  c.Severity,
+			Title:     c.Title,
+			Body:      c.Body,
+		})
 		if err != nil {
-			return nil, nil, fail(StageStore, fmt.Errorf("reviewer: store concern: %w", err))
+			return nil, nil, fmt.Errorf("reviewer: store concern: %w", err)
 		}
-		concerns = append(concerns, stored)
+		out = append(out, stored)
 	}
-	emit(ProgressEvent{Stage: StageStore, Done: true})
+	return session, out, nil
+}
 
-	log.Info("reviewer: review complete", "concerns", len(concerns))
-	return reviewSess, concerns, nil
+func sortByAgentRank(results []agentResult) {
+	for i := 1; i < len(results); i++ {
+		for j := i; j > 0 && agentRank(results[j].agent) < agentRank(results[j-1].agent); j-- {
+			results[j], results[j-1] = results[j-1], results[j]
+		}
+	}
+}
+
+func firstError(results []agentResult) error {
+	for _, res := range results {
+		if res.err != nil {
+			return res.err
+		}
+	}
+	return nil
+}
+
+func agentNames(results []agentResult) []string {
+	names := make([]string, 0, len(results))
+	for _, res := range results {
+		names = append(names, res.agent)
+	}
+	return names
+}
+
+func primarySummary(results []agentResult) string {
+	for _, res := range results {
+		if s := strings.TrimSpace(res.out.Summary); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func primarySessionID(results []agentResult) string {
+	for _, res := range results {
+		if res.sessionID != "" {
+			return res.sessionID
+		}
+	}
+	return ""
 }
 
 func buildPrompt(req ReviewRequest) string {
@@ -217,11 +330,4 @@ func concernCount(n int) string {
 		return "1 concern"
 	}
 	return fmt.Sprintf("%d concerns", n)
-}
-
-func shortSHA(sha string) string {
-	if len(sha) > 7 {
-		return sha[:7]
-	}
-	return sha
 }

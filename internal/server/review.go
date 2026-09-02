@@ -24,14 +24,19 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	review, err := s.orchestrator.Start(owner, repo, number)
+	var body struct {
+		Agents []string `json:"agents"`
+	}
+	json.NewDecoder(r.Body).Decode(&body)
+
+	review, err := s.orchestrator.Start(owner, repo, number, body.Agents)
 	if err != nil {
 		slog.Error("review start failed", "owner", owner, "repo", repo, "pr", number, "err", err)
 		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("review started", "owner", owner, "repo", repo, "pr", number, "review_id", review.ID)
+	slog.Info("review started", "owner", owner, "repo", repo, "pr", number, "review_id", review.ID, "agents", len(review.Agents))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(review)

@@ -12,10 +12,26 @@ export type ReviewState = {
   now: Accessor<number>
   elapsed: Accessor<number>
   concerns: Accessor<RankedConcern[]>
-  start: () => Promise<void>
+  start: (agents?: string[]) => Promise<void>
 }
 
 const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
+export const agentOrder = ["pr-reviewer", "pr-skeptic"]
+
+export const agentLabels: Record<string, string> = {
+  "pr-reviewer": "core review",
+  "pr-skeptic": "is this necessary?",
+}
+
+export function agentLabel(name: string) {
+  return agentLabels[name] ?? name
+}
+
+function agentRank(name: string) {
+  const i = agentOrder.indexOf(name)
+  return i === -1 ? agentOrder.length : i
+}
 
 export function createReview(
   owner: Accessor<string>,
@@ -71,14 +87,18 @@ export function createReview(
 
   const concerns = (): RankedConcern[] =>
     [...(review()?.concerns ?? [])]
-      .sort((a, b) => (severityRank[a.severity] ?? 3) - (severityRank[b.severity] ?? 3))
+      .sort(
+        (a, b) =>
+          agentRank(a.agent) - agentRank(b.agent) ||
+          (severityRank[a.severity] ?? 3) - (severityRank[b.severity] ?? 3),
+      )
       .map((c, i) => ({ ...c, rank: i + 1 }))
 
-  const start = async () => {
+  const start = async (agents: string[] = [...agentOrder]) => {
     setError("")
     setStarting(true)
     try {
-      await api.review.start(owner(), repo(), prNumber())
+      await api.review.start(owner(), repo(), prNumber(), agents)
     } catch (e) {
       setStarting(false)
       setError(e instanceof Error ? e.message : String(e))
