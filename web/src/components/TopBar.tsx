@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, Show } from "solid-js"
 import { useNavigate, useParams } from "@tanstack/solid-router"
-import { useAddRepo, useOrgs, useRepos, usePRDetail } from "../queries"
+import { useAddRepo, useOrgs, useRepos, usePRDetail, usePrefetch, resolved, historyPageSize } from "../queries"
 import { useActiveReviews } from "../activeReviews"
 
 export function TopBar() {
@@ -8,6 +8,7 @@ export function TopBar() {
   const orgs = useOrgs()
   const repos = useRepos()
   const addRepo = useAddRepo()
+  const prefetch = usePrefetch()
   const navigate = useNavigate()
   const [input, setInput] = createSignal("")
   const [error, setError] = createSignal<string | null>(null)
@@ -31,9 +32,13 @@ export function TopBar() {
 
   let selectRef: HTMLSelectElement | undefined
 
+  const orgData = resolved(orgs)
+  const repoData = resolved(repos)
+  const detailData = resolved(prDetail)
+
   const reposByOrg = () => {
-    const orgList = orgs.data ?? []
-    const repoList = repos.data ?? []
+    const orgList = orgData() ?? []
+    const repoList = repoData() ?? []
     return orgList.map((org) => ({
       org,
       repos: repoList.filter((r) => r.Owner === org),
@@ -43,7 +48,7 @@ export function TopBar() {
   const orphan = () => {
     const key = selectedKey()
     if (!key) return null
-    const known = (repos.data ?? []).some((r) => `${r.Owner}/${r.Name}` === key)
+    const known = (repoData() ?? []).some((r) => `${r.Owner}/${r.Name}` === key)
     return known ? null : key
   }
 
@@ -79,7 +84,11 @@ export function TopBar() {
   return (
     <header class="topbar">
       <div class="topbar-left">
-        <button class="topbar-brand" onClick={() => navigate({ to: "/", search: { page: 0 } })}>
+        <button
+          class="topbar-brand"
+          onMouseEnter={() => prefetch.historyPage(0)}
+          onClick={() => navigate({ to: "/", search: { page: 0 } })}
+        >
           pr review
           <Show when={activeReviews.count() > 0}>
             <span class="brand-badge">{activeReviews.count()}</span>
@@ -116,7 +125,15 @@ export function TopBar() {
                 <optgroup label={group.org}>
                   <For each={group.repos}>
                     {(repo) => (
-                      <option value={`${repo.Owner}/${repo.Name}`}>{repo.Name}</option>
+                      <option
+                        value={`${repo.Owner}/${repo.Name}`}
+                        onMouseEnter={() => {
+                          prefetch.prs(repo.Owner, repo.Name)
+                          prefetch.repoHistory(repo.Owner, repo.Name, historyPageSize)
+                        }}
+                      >
+                        {repo.Name}
+                      </option>
                     )}
                   </For>
                 </optgroup>
@@ -126,10 +143,10 @@ export function TopBar() {
           </select>
         </Show>
       </div>
-      <Show when={prDetail.data} keyed>
+      <Show when={detailData()} keyed>
         {(d) => <span class="topbar-pr-title">{d.pr.Title}</span>}
       </Show>
-      <Show when={prDetail.data} keyed>
+      <Show when={detailData()} keyed>
         {(d) => {
           const additions = d.files.reduce((n, f) => n + f.Additions, 0)
           const deletions = d.files.reduce((n, f) => n + f.Deletions, 0)

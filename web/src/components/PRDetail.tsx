@@ -1,5 +1,5 @@
 import { createEffect, createSignal, For, Show } from "solid-js"
-import { usePRDetail, usePrefetchDiff } from "../queries"
+import { usePRDetail, usePrefetch, resolved } from "../queries"
 import { createReview } from "../review"
 import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
@@ -24,6 +24,7 @@ export function PRDetail(props: Props) {
     () => props.repo,
     () => props.prNumber,
   )
+  const detailData = resolved(detail)
   const review = createReview(
     () => props.owner,
     () => props.repo,
@@ -31,7 +32,7 @@ export function PRDetail(props: Props) {
   )
   const [filesMounted, setFilesMounted] = createSignal(false)
   const [focus, setFocus] = createSignal<ConcernTarget | null>(null)
-  const prefetchDiff = usePrefetchDiff()
+  const prefetch = usePrefetch()
 
   createEffect(() => {
     if (props.tab === "files") setFilesMounted(true)
@@ -48,12 +49,12 @@ export function PRDetail(props: Props) {
       rank: concern.rank,
       nonce,
     })
-    prefetchDiff(props.owner, props.repo, props.prNumber)
+    prefetch.diff(props.owner, props.repo, props.prNumber)
     props.onTabChange("files")
   }
 
   const prefetchFiles = () => {
-    prefetchDiff(props.owner, props.repo, props.prNumber)
+    prefetch.diff(props.owner, props.repo, props.prNumber)
   }
 
   return (
@@ -78,15 +79,15 @@ export function PRDetail(props: Props) {
       <div class="pr-tab-content">
         <Show when={props.tab === "description"}>
           <div class="pr-description">
-            <Show when={detail.data} keyed>
+            <Show when={detailData()} keyed>
               {(d) => (
                 <Show when={d.pr.Body} fallback={<span class="muted">no description</span>}>
                   <Markdown content={d.pr.Body} />
                 </Show>
               )}
             </Show>
-            <Show when={detail.isLoading}>
-              <span class="muted">loading...</span>
+            <Show when={detail.isPending}>
+              <span class="skeleton skeleton-title" />
             </Show>
           </div>
         </Show>

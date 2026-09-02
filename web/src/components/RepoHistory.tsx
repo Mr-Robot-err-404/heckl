@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js"
 import { useActiveReviews } from "../activeReviews"
-import { historyPageSize, useRepoReviewHistory } from "../queries"
+import { historyPageSize, useRepoReviewHistory, usePrefetch, resolved } from "../queries"
 import { ReviewRow, activeRow, historyRow, type Row } from "./ReviewRow"
 
 type Props = {
@@ -11,19 +11,21 @@ type Props = {
 export function RepoHistory(props: Props) {
   const { active } = useActiveReviews()
   const [limit, setLimit] = createSignal(historyPageSize)
+  const prefetch = usePrefetch()
 
   const history = useRepoReviewHistory(
     () => props.owner,
     () => props.repo,
     limit,
   )
+  const historyData = resolved(history)
 
   const activeHere = () =>
     active().filter((r) => r.owner === props.owner && r.repo === props.repo)
 
   const rows = (): Row[] => [
     ...activeHere().map(activeRow),
-    ...(history.data?.sessions ?? []).map(historyRow),
+    ...(historyData()?.sessions ?? []).map(historyRow),
   ]
 
   return (
@@ -52,10 +54,13 @@ export function RepoHistory(props: Props) {
         </ul>
       </Show>
 
-      <Show when={history.data?.hasMore}>
+      <Show when={historyData()?.hasMore}>
         <button
           class="topbar-btn load-more"
           disabled={history.isFetching}
+          onMouseEnter={() =>
+            prefetch.repoHistory(props.owner, props.repo, limit() + historyPageSize)
+          }
           onClick={() => setLimit((n) => n + historyPageSize)}
         >
           {history.isFetching ? "loading…" : "load more"}

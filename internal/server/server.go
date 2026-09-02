@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/github"
@@ -190,17 +191,33 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 		numbers = append(numbers, pr.Number)
 	}
 
-	viewer, err := s.gh.Viewer()
-	if err != nil {
-		slog.Warn("github: viewer lookup failed", "err", err)
-	}
-	reviews := s.gh.ReviewsForPRs(owner, repo, numbers)
+	var (
+		wg        sync.WaitGroup
+		viewer    string
+		reviews   map[int][]github.Review
+		summaries map[int]*store.RepoReviewSummary
+	)
 
-	summaries, err := s.store.RepoReviewSummary(r.Context(), owner, repo)
-	if err != nil {
-		slog.Error("store: repo review summary failed", "owner", owner, "repo", repo, "err", err)
-		summaries = map[int]*store.RepoReviewSummary{}
-	}
+	wg.Go(func() {
+		login, err := s.gh.Viewer()
+		if err != nil {
+			slog.Warn("github: viewer lookup failed", "err", err)
+			return
+		}
+		viewer = login
+	})
+	wg.Go(func() {
+		reviews = s.gh.ReviewsForPRs(owner, repo, numbers)
+	})
+	wg.Go(func() {
+		stored, err := s.store.RepoReviewSummary(r.Context(), owner, repo)
+		if err != nil {
+			slog.Error("store: repo review summary failed", "owner", owner, "repo", repo, "err", err)
+			stored = map[int]*store.RepoReviewSummary{}
+		}
+		summaries = stored
+	})
+	wg.Wait()
 
 	out := make([]prResponse, 0, len(remote))
 	for _, pr := range remote {
@@ -230,17 +247,30 @@ func (s *Server) handleGetPR(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := time.Now()
-	pr, err := s.gh.GetPR(owner, repo, number)
-	if err != nil {
-		slog.Error("github: get pr failed", "owner", owner, "repo", repo, "number", number, "err", err)
-		jsonError(w, err.Error(), http.StatusBadGateway)
+
+	var (
+		wg       sync.WaitGroup
+		pr       *github.PR
+		prErr    error
+		files    []github.PRFile
+		filesErr error
+	)
+	wg.Go(func() {
+		pr, prErr = s.gh.GetPR(owner, repo, number)
+	})
+	wg.Go(func() {
+		files, filesErr = s.gh.GetPRFiles(owner, repo, number)
+	})
+	wg.Wait()
+
+	if prErr != nil {
+		slog.Error("github: get pr failed", "owner", owner, "repo", repo, "number", number, "err", prErr)
+		jsonError(w, prErr.Error(), http.StatusBadGateway)
 		return
 	}
-
-	files, err := s.gh.GetPRFiles(owner, repo, number)
-	if err != nil {
-		slog.Error("github: get pr files failed", "owner", owner, "repo", repo, "number", number, "err", err)
-		jsonError(w, err.Error(), http.StatusBadGateway)
+	if filesErr != nil {
+		slog.Error("github: get pr files failed", "owner", owner, "repo", repo, "number", number, "err", filesErr)
+		jsonError(w, filesErr.Error(), http.StatusBadGateway)
 		return
 	}
 	slog.Info("github: get pr", "owner", owner, "repo", repo, "number", number, "files", len(files), "duration_ms", time.Since(start).Milliseconds())

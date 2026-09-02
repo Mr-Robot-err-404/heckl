@@ -1,6 +1,6 @@
 import { For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
-import { usePRs } from "../queries"
+import { usePRs, usePrefetch, resolved } from "../queries"
 import { RepoHistory } from "./RepoHistory"
 import { PRStatus } from "./PRStatus"
 import { useActiveReviews } from "../activeReviews"
@@ -19,9 +19,13 @@ function timeAgo(iso: string): string {
   return `${Math.floor(d / 30)}mo ago`
 }
 
+const skeletonRows = Array.from({ length: 6 })
+
 export function PRList(props: Props) {
   const navigate = useNavigate()
   const prs = usePRs(() => props.owner, () => props.repo)
+  const rows = resolved(prs)
+  const prefetch = usePrefetch()
   const { active } = useActiveReviews()
 
   const isReviewing = (number: number) =>
@@ -33,18 +37,31 @@ export function PRList(props: Props) {
     <div class="repo-page">
       <div class="pr-list-page">
         <div class="pr-list-meta">
-          <Show when={prs.data}>
-            <span>{prs.data!.length} open pull requests</span>
+          <Show when={rows()} keyed>
+            {(list) => <span>{list.length} open pull requests</span>}
           </Show>
-          <Show when={prs.isLoading}>
-            <span class="muted">loading...</span>
+          <Show when={prs.isFetching && !prs.isPending}>
+            <span class="muted">refreshing…</span>
           </Show>
         </div>
         <ul class="pr-list">
-          <For each={prs.data}>
+          <Show when={prs.isPending}>
+            <For each={skeletonRows}>
+              {() => (
+                <li class="pr-row is-skeleton">
+                  <div class="pr-row-main">
+                    <span class="skeleton skeleton-title" />
+                    <span class="skeleton skeleton-meta" />
+                  </div>
+                </li>
+              )}
+            </For>
+          </Show>
+          <For each={rows()}>
             {(pr) => (
               <li
                 class="pr-row"
+                onMouseEnter={() => prefetch.pr(props.owner, props.repo, pr.Number)}
                 onClick={() => navigate({
                   to: "/$owner/$repo/$pr",
                   params: { owner: props.owner, repo: props.repo, pr: String(pr.Number) },

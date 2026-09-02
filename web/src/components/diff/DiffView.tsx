@@ -1,6 +1,6 @@
 import { createEffect, onCleanup } from "solid-js"
 import { CodeView, parsePatchFiles, type CodeViewItem } from "@pierre/diffs"
-import { useDiff } from "../../queries"
+import { useDiff, resolved } from "../../queries"
 import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
 import type { ConcernTarget } from "../../types"
 
@@ -20,6 +20,7 @@ export function DiffView(props: Props) {
     () => props.repo,
     () => props.prNumber,
   )
+  const patchData = resolved(diff)
 
   const toggleCollapsed = (id: string) => {
     const item = view?.getItem(id)
@@ -32,7 +33,7 @@ export function DiffView(props: Props) {
   }
 
   createEffect(() => {
-    const patch = diff.data
+    const patch = patchData()
     if (!patch) return
 
     const items: CodeViewItem[] = parsePatchFiles(
@@ -68,7 +69,7 @@ export function DiffView(props: Props) {
 
   createEffect(() => {
     const target = props.focus
-    if (!diff.data || !target || !view) return
+    if (!patchData() || !target || !view) return
 
     const item = view.getItem(target.file)
     if (!item) return

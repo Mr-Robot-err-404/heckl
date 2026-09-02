@@ -2,18 +2,26 @@ package github
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 )
 
-const reviewFetchConcurrency = 8
+const reviewFetchConcurrency = 24
 
 func (c *Client) Viewer() (string, error) {
-	c.viewerOnce.Do(func() {
-		var u User
-		c.viewerErr = c.decode("/user", &u)
-		c.viewer = u.Login
-	})
-	return c.viewer, c.viewerErr
+	c.viewerMu.Lock()
+	defer c.viewerMu.Unlock()
+
+	if c.viewer != "" {
+		return c.viewer, nil
+	}
+
+	var u User
+	if err := c.decode("/user", &u); err != nil {
+		return "", err
+	}
+	c.viewer = u.Login
+	return c.viewer, nil
 }
 
 func (c *Client) ListPRReviews(owner, repo string, number int) ([]Review, error) {
@@ -38,6 +46,7 @@ func (c *Client) ReviewsForPRs(owner, repo string, numbers []int) map[int][]Revi
 
 			reviews, err := c.ListPRReviews(owner, repo, n)
 			if err != nil {
+				slog.Warn("github: list pr reviews failed", "owner", owner, "repo", repo, "number", n, "err", err)
 				return
 			}
 			mu.Lock()

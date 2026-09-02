@@ -1,3 +1,4 @@
+import { Suspense } from "solid-js"
 import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/solid-router"
 import { PRListPage } from "./routes/PRListPage"
 import { PRDetailPage } from "./routes/PRDetailPage"
@@ -12,7 +13,9 @@ const rootRoute = createRootRoute({
       <div class="layout">
         <TopBar />
         <div class="content">
-          <Outlet />
+          <Suspense>
+            <Outlet />
+          </Suspense>
         </div>
       </div>
     </ActiveReviewsProvider>

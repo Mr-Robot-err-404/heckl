@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
 import { formatMs, relativeTime } from "../review"
+import { usePrefetch } from "../queries"
 import type { Review, ReviewHistoryRow } from "../types"
 
 export type Severity = "critical" | "warning" | "low"
@@ -70,6 +71,10 @@ export function historyRow(session: ReviewHistoryRow): Row {
 
 export function ReviewRow(props: { row: Row; showRepo?: boolean }) {
   const navigate = useNavigate()
+  const prefetch = usePrefetch()
+
+  const warm = () =>
+    prefetch.pr(props.row.owner, props.row.repo, props.row.prNumber)
 
   const open = () =>
     navigate({
@@ -83,7 +88,7 @@ export function ReviewRow(props: { row: Row; showRepo?: boolean }) {
     })
 
   return (
-    <li class={`review-row is-${props.row.status}`} onClick={open}>
+    <li class={`review-row is-${props.row.status}`} onMouseEnter={warm} onClick={open}>
       <div class="review-row-top">
         <span class={`pill pill-${props.row.status}`}>{props.row.label}</span>
         <span class="review-row-pr">

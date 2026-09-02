@@ -48,6 +48,7 @@ func main() {
 	}
 
 	gh := github.New(token)
+	gh.Warm()
 	co := checkout.New(filepath.Join(projectDir, "data"))
 	rev := reviewer.New(oc, co, db)
 	sessionPath := func(id string) string { return opencode.SessionPath(projectDir, id) }

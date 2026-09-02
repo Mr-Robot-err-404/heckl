@@ -14,16 +14,24 @@ type Client struct {
 	token string
 	http  *http.Client
 
-	viewerOnce sync.Once
-	viewer     string
-	viewerErr  error
+	viewerMu sync.Mutex
+	viewer   string
 }
 
 func New(token string) *Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConns = 64
+	transport.MaxIdleConnsPerHost = 32
+	transport.IdleConnTimeout = 5 * time.Minute
+
 	return &Client{
 		token: token,
-		http:  &http.Client{Timeout: 30 * time.Second},
+		http:  &http.Client{Timeout: 30 * time.Second, Transport: transport},
 	}
+}
+
+func (c *Client) Warm() {
+	go c.Viewer()
 }
 
 func (c *Client) Token() string { return c.token }
