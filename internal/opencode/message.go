@@ -7,9 +7,34 @@ type ModelRef struct {
 	ModelID    string `json:"modelID"`
 }
 
+type ToolState struct {
+	Status string          `json:"status"`
+	Input  json.RawMessage `json:"input,omitempty"`
+	Error  string          `json:"error,omitempty"`
+}
+
 type Part struct {
-	Type string `json:"type"`
-	Text string `json:"text,omitempty"`
+	Type  string     `json:"type"`
+	Text  string     `json:"text,omitempty"`
+	Tool  string     `json:"tool,omitempty"`
+	State *ToolState `json:"state,omitempty"`
+}
+
+func ToolInput(msgs []MessageResponse, name string) (json.RawMessage, bool) {
+	for i := len(msgs) - 1; i >= 0; i-- {
+		parts := msgs[i].Parts
+		for j := len(parts) - 1; j >= 0; j-- {
+			p := parts[j]
+			if p.Type != "tool" || p.Tool != name || p.State == nil {
+				continue
+			}
+			if p.State.Status != "completed" || len(p.State.Input) == 0 {
+				continue
+			}
+			return p.State.Input, true
+		}
+	}
+	return nil, false
 }
 
 type OutputFormat struct {

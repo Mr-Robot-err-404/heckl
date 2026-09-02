@@ -16,6 +16,7 @@ import (
 const maxDiffBytes = 60000
 
 const reviewAgent = "pr-reviewer"
+const reportTool = "report"
 
 type Reviewer struct {
 	oc       *opencode.Client
@@ -71,48 +72,6 @@ type reviewOutput struct {
 	Concerns []Concern `json:"concerns"`
 }
 
-var concernsSchema = map[string]any{
-	"type": "object",
-	"properties": map[string]any{
-		"summary": map[string]any{
-			"type":        "string",
-			"description": "What this PR is trying to do, in one or two sentences. Plain and specific.",
-		},
-		"concerns": map[string]any{
-			"type": "array",
-			"items": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"file": map[string]any{
-						"type":        "string",
-						"description": "Path exactly as it appears in the diff header.",
-					},
-					"line": map[string]any{
-						"type":        "integer",
-						"description": "Line number in the file this concern is about.",
-					},
-					"side": map[string]any{
-						"type":        "string",
-						"enum":        []string{SideAdditions, SideDeletions},
-						"description": "additions if the line is added or unchanged context, deletions if it is a removed line.",
-					},
-					"anchor": map[string]any{
-						"type":        "string",
-						"description": "The exact source text of that line, copied verbatim from the diff without the leading +/-/space marker. This is what pins the concern to a location, so copy it precisely.",
-					},
-					"severity": map[string]any{"type": "string", "enum": []string{"low", "medium", "high"}},
-					"title":    map[string]any{"type": "string"},
-					"body":     map[string]any{"type": "string"},
-				},
-				"required":             []string{"file", "line", "side", "anchor", "severity", "title", "body"},
-				"additionalProperties": false,
-			},
-		},
-	},
-	"required":             []string{"summary", "concerns"},
-	"additionalProperties": false,
-}
-
 func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.ReviewSession, []*store.ReviewConcern, error) {
 	log := slog.With("owner", req.Owner, "repo", req.Repo, "pr", req.PRNumber)
 	emit := req.Progress
@@ -158,11 +117,6 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	msg, err := r.oc.Prompt(sess.ID, opencode.PromptRequest{
 		Agent: reviewAgent,
 		Parts: []opencode.Part{{Type: "text", Text: prompt}},
-		Format: &opencode.OutputFormat{
-			Type:       "json_schema",
-			Schema:     concernsSchema,
-			RetryCount: 1,
-		},
 	})
 	if err != nil {
 		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: prompt: %w", err))
@@ -170,8 +124,13 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	if msg.Info.HasError() {
 		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: model error: %s", string(msg.Info.Error)))
 	}
-	if len(msg.Info.Structured) == 0 {
-		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: no structured output returned"))
+	msgs, err := r.oc.Messages(sess.ID)
+	if err != nil {
+		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: read session messages: %w", err))
+	}
+	reported, ok := opencode.ToolInput(msgs, reportTool)
+	if !ok {
+		return nil, nil, fail(StagePrompt, fmt.Errorf("reviewer: agent never called the %s tool", reportTool))
 	}
 	promptMS := time.Since(t).Milliseconds()
 	emit(ProgressEvent{Stage: StagePrompt, Done: true})
@@ -179,9 +138,9 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 
 	emit(ProgressEvent{Stage: StageParse})
 	var out reviewOutput
-	if err := json.Unmarshal(msg.Info.Structured, &out); err != nil {
-		log.Error("reviewer: raw structured output", "raw", string(msg.Info.Structured))
-		return nil, nil, fail(StageParse, fmt.Errorf("reviewer: parse output: %w", err))
+	if err := json.Unmarshal(reported, &out); err != nil {
+		log.Error("reviewer: raw tool input", "raw", string(reported))
+		return nil, nil, fail(StageParse, fmt.Errorf("reviewer: parse %s input: %w", reportTool, err))
 	}
 	index := parseDiffIndex(req.Diff)
 	anchored := 0
@@ -221,7 +180,7 @@ func buildPrompt(req ReviewRequest) string {
 		fmt.Fprintf(&b, "\n%s\n", body)
 	}
 	fmt.Fprintf(&b, "\n---\nDiff:\n%s\n", truncateDiff(req.Diff, maxDiffBytes))
-	b.WriteString("\n---\nReview this diff. Summarise the intent, then report only concerns you are confident about. An empty concerns list is a valid, complete review.")
+	fmt.Fprintf(&b, "\n---\nReview this diff, then call the %s tool exactly once with the summary and every concern you are confident about. An empty concerns list is a valid, complete review.", reportTool)
 	return b.String()
 }
 

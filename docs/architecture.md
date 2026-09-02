@@ -21,8 +21,11 @@ pr-review/
 │   ├── migrate/main.go       — goose migration runner
 │   ├── checkout/main.go      — checkout a PR head sha, print the path
 │   └── opencode/main.go      — one-shot prompt against a running opencode
+├── .opencode/
+│   ├── agents/pr-reviewer.md — the review agent, git-tracked markdown
+│   └── tools/report.ts       — custom tool the agent calls to submit a review
 ├── internal/
-│   ├── github/               — read-only GitHub API client, auth via `gh auth token`
+│   ├── github/              — read-only GitHub API client, auth via `gh auth token`
 │   ├── checkout/             — per-repo clone + detached checkout at a sha
 │   ├── opencode/             — HTTP client for `opencode serve` on :4420
 │   ├── reviewer/             — checkout → session → prompt → parse → store
@@ -157,6 +160,33 @@ always fine, it was being starved.
 
 `finish(err)` closes out any stage still marked `running`, so a failure
 anywhere can't leave a stage spinning forever in the UI.
+
+## Structured output via a custom tool, not `format.json_schema`
+
+The reviewer used to pass `format: {type: json_schema}` on the prompt and read
+`msg.Info.Structured`. That worked, but opencode persists `format` on the user
+message and then cannot deserialise its own stored value on read — any
+`json_schema` value, including a minimal three-line one, makes
+`GET /session/{id}/message` return 400. The review succeeded and the session
+became permanently unopenable in the web UI and via `opencode attach`.
+
+Replaced with `.opencode/tools/report.ts`, a custom tool the agent calls once
+as its final action. The filename is the tool name. Its Zod args are the
+schema — that is where enforcement lives now, so nothing was given up by
+dropping `json_schema`. `reviewer.go` reads the call's `state.input` off the
+returned `ToolPart` (`MessageResponse.ToolInput`). No `format` is ever sent,
+so review sessions read back cleanly and are fully browsable.
+
+`opencode.PromptRequest` still has a `Format` field because the endpoint
+accepts one. **Do not use it.** It writes sessions that cannot be read back.
+
+A custom tool is also strictly better than a schema here: the tool call shows
+up as an ordinary part in the transcript, so what the agent submitted is
+visible in the session rather than hidden in message metadata.
+
+**The tool is loaded at server startup.** Editing `.opencode/tools/*.ts`
+requires restarting `opencode serve`; a running server will not pick it up,
+and the review fails with "agent never called the report tool".
 
 ## Continuing a review in opencode
 
