@@ -3,6 +3,7 @@ import { usePRDetail, usePrefetch, resolved } from "../queries"
 import { createReview } from "../review"
 import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
+import { SkeletonLines } from "./Skeleton"
 import { ReviewPanel } from "./ReviewPanel"
 import { ReviewPage } from "./ReviewPage"
 import type { ConcernTarget, RankedConcern, Tab } from "../types"
@@ -87,7 +88,7 @@ export function PRDetail(props: Props) {
               )}
             </Show>
             <Show when={detail.isPending}>
-              <span class="skeleton skeleton-title" />
+              <SkeletonLines />
             </Show>
           </div>
         </Show>

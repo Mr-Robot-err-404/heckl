@@ -1135,3 +1135,33 @@ button.topbar-brand:hover { color: var(--text); }
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
+
+.skeleton-lines { display: flex; flex-direction: column; gap: 9px; padding: 4px 0; }
+.skeleton-line { height: 11px; }
+.skeleton-gap { height: 8px; }
+
+.skeleton-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.skeleton-diff-file {
+  border: 1px solid var(--surface1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.skeleton-diff-head {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--surface1);
+  background: var(--mantle);
+}
+
+.skeleton-diff-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px;
+}

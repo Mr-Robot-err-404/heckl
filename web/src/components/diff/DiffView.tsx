@@ -1,6 +1,7 @@
-import { createEffect, onCleanup } from "solid-js"
+import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { CodeView, parsePatchFiles, type CodeViewItem } from "@pierre/diffs"
 import { useDiff, resolved } from "../../queries"
+import { SkeletonDiff } from "../Skeleton"
 import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
 import type { ConcernTarget } from "../../types"
 
@@ -21,6 +22,7 @@ export function DiffView(props: Props) {
     () => props.prNumber,
   )
   const patchData = resolved(diff)
+  const [rendered, setRendered] = createSignal(false)
 
   const toggleCollapsed = (id: string) => {
     const item = view?.getItem(id)
@@ -31,6 +33,13 @@ export function DiffView(props: Props) {
       version: (item.version ?? 0) + 1,
     })
   }
+
+  createEffect(() => {
+    props.owner
+    props.repo
+    props.prNumber
+    setRendered(false)
+  })
 
   createEffect(() => {
     const patch = patchData()
@@ -65,6 +74,7 @@ export function DiffView(props: Props) {
     view.setup(host)
     view.setItems(items)
     view.render()
+    setRendered(true)
   })
 
   createEffect(() => {
@@ -100,6 +110,9 @@ export function DiffView(props: Props) {
       {diff.isError && (
         <div class="muted" style="padding:16px">{String(diff.error)}</div>
       )}
+      <Show when={!rendered() && !diff.isError}>
+        <SkeletonDiff />
+      </Show>
       <div ref={host} class="diffview-host" />
     </>
   )
