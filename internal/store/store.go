@@ -104,6 +104,24 @@ func (s *Store) ListRecentReviewSessions(ctx context.Context, q HistoryQuery) ([
 	return out, nil
 }
 
+func (s *Store) RepoReviewSummary(ctx context.Context, owner, repo string) (map[int]*RepoReviewSummary, error) {
+	rows, err := s.queries.ListRepoReviewSummary(ctx, ListRepoReviewSummaryParams{Owner: owner, Repo: repo})
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int]*RepoReviewSummary, len(rows))
+	for _, r := range rows {
+		out[int(r.PrNumber)] = &RepoReviewSummary{
+			PRNumber:     int(r.PrNumber),
+			Status:       r.Status,
+			CreatedAt:    r.CreatedAt,
+			ConcernCount: r.ConcernCount,
+			HighCount:    r.HighCount,
+		}
+	}
+	return out, nil
+}
+
 func (s *Store) recentRows(ctx context.Context, q HistoryQuery) ([]*ListRecentPRReviewSessionsRow, error) {
 	if q.Owner == "" || q.Repo == "" {
 		return s.queries.ListRecentPRReviewSessions(ctx, ListRecentPRReviewSessionsParams{

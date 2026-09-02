@@ -6,7 +6,14 @@ import (
 )
 
 type User struct {
-	Login string `json:"login"`
+	Login     string `json:"login"`
+	AvatarURL string `json:"avatar_url"`
+}
+
+type Review struct {
+	User        User   `json:"user"`
+	State       string `json:"state"`
+	SubmittedAt string `json:"submitted_at"`
 }
 
 type PRHead struct {
@@ -24,6 +31,8 @@ type PR struct {
 	User      User   `json:"user"`
 	Draft     bool   `json:"draft"`
 	Head      PRHead `json:"head"`
+
+	RequestedReviewers []User `json:"requested_reviewers"`
 }
 
 func (pr *PR) HeadSHA() string { return pr.Head.SHA }

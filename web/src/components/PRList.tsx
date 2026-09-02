@@ -2,6 +2,8 @@ import { For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
 import { usePRs } from "../queries"
 import { RepoHistory } from "./RepoHistory"
+import { PRStatus } from "./PRStatus"
+import { useActiveReviews } from "../activeReviews"
 
 type Props = {
   owner: string
@@ -20,6 +22,12 @@ function timeAgo(iso: string): string {
 export function PRList(props: Props) {
   const navigate = useNavigate()
   const prs = usePRs(() => props.owner, () => props.repo)
+  const { active } = useActiveReviews()
+
+  const isReviewing = (number: number) =>
+    active().some(
+      (r) => r.owner === props.owner && r.repo === props.repo && r.prNumber === number,
+    )
 
   return (
     <div class="repo-page">
@@ -56,6 +64,7 @@ export function PRList(props: Props) {
                     <span class="muted">{timeAgo(pr.UpdatedAt)}</span>
                   </div>
                 </div>
+                <PRStatus pr={pr} reviewing={isReviewing(pr.Number)} />
                 <div class="pr-row-arrow">→</div>
               </li>
             )}

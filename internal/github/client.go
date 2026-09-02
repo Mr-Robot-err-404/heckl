@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -12,6 +13,10 @@ const baseURL = "https://api.github.com"
 type Client struct {
 	token string
 	http  *http.Client
+
+	viewerOnce sync.Once
+	viewer     string
+	viewerErr  error
 }
 
 func New(token string) *Client {

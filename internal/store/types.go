@@ -31,6 +31,14 @@ type NewReviewSession struct {
 	DurationMS        int64
 }
 
+type RepoReviewSummary struct {
+	PRNumber     int    `json:"prNumber"`
+	Status       string `json:"status"`
+	CreatedAt    string `json:"createdAt"`
+	ConcernCount int64  `json:"concernCount"`
+	HighCount    int64  `json:"highCount"`
+}
+
 type HistoryQuery struct {
 	Owner  string
 	Repo   string

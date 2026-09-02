@@ -988,3 +988,112 @@ button.topbar-brand:hover { color: var(--text); }
 .review-rows.compact .review-row-top { gap: 8px; }
 
 .load-more { align-self: center; }
+
+/* ── PR row status cluster ── */
+.pr-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.reviewers {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reviewer {
+  position: relative;
+  display: inline-flex;
+  line-height: 0;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--subtext0);
+  object-fit: cover;
+}
+
+.reviewer.is-pending .avatar { opacity: 0.55; }
+
+.avatar-more {
+  background: var(--surface0);
+  font-size: 9px;
+}
+
+.reviewer-mark {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--base);
+  background: var(--green);
+  color: var(--base);
+  font-size: 8px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reviewer.is-changes .reviewer-mark { background: var(--red); }
+
+.reviewer-mark.is-viewer {
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+.agent-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1px solid var(--surface2);
+  background: var(--surface0);
+  color: var(--overlay2);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.bot-icon {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.agent-mark.has-high {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.agent-mark.is-error {
+  border-color: var(--red);
+  color: var(--red);
+  opacity: 0.7;
+}
+
+.agent-mark.is-running {
+  border-color: var(--yellow);
+  color: var(--yellow);
+  animation: agent-pulse 1.2s ease-in-out infinite;
+}
+
+.agent-count { font-size: 9px; }
+
+@keyframes agent-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+

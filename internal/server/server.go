@@ -124,6 +124,26 @@ type prResponse struct {
 	Draft     bool   `json:"Draft"`
 	CreatedAt string `json:"CreatedAt"`
 	UpdatedAt string `json:"UpdatedAt"`
+
+	RequestedReviewers []userResponse           `json:"requestedReviewers,omitempty"`
+	Approvals          []userResponse           `json:"approvals,omitempty"`
+	ChangesRequested   []userResponse           `json:"changesRequested,omitempty"`
+	ViewerApproved     bool                     `json:"viewerApproved"`
+	ViewerHasReviewed  bool                     `json:"viewerHasReviewed"`
+	Review             *store.RepoReviewSummary `json:"review,omitempty"`
+}
+
+type userResponse struct {
+	Login  string `json:"login"`
+	Avatar string `json:"avatar"`
+}
+
+func toUsers(in []github.User) []userResponse {
+	out := make([]userResponse, 0, len(in))
+	for _, u := range in {
+		out = append(out, userResponse{Login: u.Login, Avatar: u.AvatarURL})
+	}
+	return out
 }
 
 type prFileResponse struct {
@@ -165,9 +185,36 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Info("github: list prs", "owner", owner, "repo", repo, "count", len(remote), "duration_ms", time.Since(start).Milliseconds())
 
+	numbers := make([]int, 0, len(remote))
+	for _, pr := range remote {
+		numbers = append(numbers, pr.Number)
+	}
+
+	viewer, err := s.gh.Viewer()
+	if err != nil {
+		slog.Warn("github: viewer lookup failed", "err", err)
+	}
+	reviews := s.gh.ReviewsForPRs(owner, repo, numbers)
+
+	summaries, err := s.store.RepoReviewSummary(r.Context(), owner, repo)
+	if err != nil {
+		slog.Error("store: repo review summary failed", "owner", owner, "repo", repo, "err", err)
+		summaries = map[int]*store.RepoReviewSummary{}
+	}
+
 	out := make([]prResponse, 0, len(remote))
 	for _, pr := range remote {
-		out = append(out, toPRResponse(owner, repo, pr))
+		item := toPRResponse(owner, repo, pr)
+		item.RequestedReviewers = toUsers(pr.RequestedReviewers)
+
+		verdict := github.Verdict(reviews[pr.Number], viewer)
+		item.Approvals = toUsers(verdict.Approvals)
+		item.ChangesRequested = toUsers(verdict.ChangesRequested)
+		item.ViewerApproved = verdict.ViewerApproved
+		item.ViewerHasReviewed = verdict.ViewerHasReviewed
+		item.Review = summaries[pr.Number]
+
+		out = append(out, item)
 	}
 
 	jsonOK(w, out)

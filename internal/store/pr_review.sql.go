@@ -362,3 +362,62 @@ func (q *Queries) ListRecentPRReviewSessionsByRepo(ctx context.Context, arg List
 	}
 	return items, nil
 }
+
+const listRepoReviewSummary = `-- name: ListRepoReviewSummary :many
+SELECT
+    s.pr_number,
+    s.status,
+    s.created_at,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id) AS concern_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count
+FROM pr_review_sessions s
+WHERE s.owner = ? AND s.repo = ?
+  AND s.id = (
+      SELECT s2.id FROM pr_review_sessions s2
+      WHERE s2.owner = s.owner AND s2.repo = s.repo AND s2.pr_number = s.pr_number
+      ORDER BY s2.created_at DESC, s2.id DESC
+      LIMIT 1
+  )
+`
+
+type ListRepoReviewSummaryParams struct {
+	Owner string
+	Repo  string
+}
+
+type ListRepoReviewSummaryRow struct {
+	PrNumber     int64
+	Status       string
+	CreatedAt    string
+	ConcernCount int64
+	HighCount    int64
+}
+
+func (q *Queries) ListRepoReviewSummary(ctx context.Context, arg ListRepoReviewSummaryParams) ([]*ListRepoReviewSummaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRepoReviewSummary, arg.Owner, arg.Repo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ListRepoReviewSummaryRow
+	for rows.Next() {
+		var i ListRepoReviewSummaryRow
+		if err := rows.Scan(
+			&i.PrNumber,
+			&i.Status,
+			&i.CreatedAt,
+			&i.ConcernCount,
+			&i.HighCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

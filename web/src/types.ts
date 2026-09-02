@@ -5,6 +5,19 @@ export type Repo = {
   AddedAt: string
 }
 
+export type GitHubUser = {
+  login: string
+  avatar: string
+}
+
+export type PRReviewSummary = {
+  prNumber: number
+  status: "done" | "error"
+  createdAt: string
+  concernCount: number
+  highCount: number
+}
+
 export type PR = {
   Owner: string
   Repo: string
@@ -17,6 +30,12 @@ export type PR = {
   Draft: boolean
   CreatedAt: string
   UpdatedAt: string
+  requestedReviewers?: GitHubUser[]
+  approvals?: GitHubUser[]
+  changesRequested?: GitHubUser[]
+  viewerApproved: boolean
+  viewerHasReviewed: boolean
+  review?: PRReviewSummary
 }
 
 export type PRFile = {
