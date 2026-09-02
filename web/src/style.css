@@ -2,6 +2,7 @@
 
 :root {
   --base:     #282828;
+  --sunken:   #1d2021;
   --mantle:   #3c3836;
   --crust:    #504945;
   --surface0: #3c3836;
@@ -158,6 +159,7 @@ html, body, #root { height: 100%; }
 /* ── Content ── */
 .content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -170,17 +172,37 @@ html, body, #root { height: 100%; }
 }
 
 /* ── PR list ── */
+.repo-page {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  overflow: hidden;
+}
+
 .pr-list-page {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 32px 24px;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 24px 0 32px;
+}
+
+@media (max-width: 1100px) {
+  .repo-page {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+  .repo-history {
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--crust);
+  }
 }
 
 .pr-list-meta {
   font-size: 12px;
   color: var(--subtext0);
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  padding: 0 20px 12px;
   border-bottom: 1px solid var(--crust);
 }
 
@@ -194,7 +216,7 @@ html, body, #root { height: 100%; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--crust);
   cursor: pointer;
   gap: 16px;
@@ -733,3 +755,236 @@ button.review-concern-loc {
   word-break: break-all;
 }
 button.review-concern-loc:hover { text-decoration: underline; }
+
+/* ── Dashboard (history) ── */
+.dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.dashboard-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dashboard-head h1 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--subtext0);
+  margin: 0;
+}
+
+.badge.running {
+  background: var(--surface1);
+  color: var(--yellow);
+  border: 1px solid var(--surface2);
+}
+
+button.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+button.topbar-brand:hover { color: var(--text); }
+
+.brand-badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--yellow);
+  color: var(--base);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.review-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--surface0);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.review-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px 10px 12px;
+  border-bottom: 1px solid var(--surface0);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.08s ease, border-color 0.08s ease;
+}
+.review-row:last-child { border-bottom: none; }
+
+.review-row:hover {
+  background: var(--surface0);
+  border-left-color: var(--overlay1);
+}
+.review-row.is-done:hover { border-left-color: var(--green); }
+.review-row.is-error:hover { border-left-color: var(--red); }
+.review-row.is-running { border-left-color: var(--yellow); }
+.review-row.is-running:hover { border-left-color: var(--yellow); }
+
+.review-row-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.review-row-pr { white-space: nowrap; }
+
+.review-row-title {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.review-row.is-error .review-row-title { color: var(--red); }
+
+.review-row-meta {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.review-row-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  font-size: 11px;
+  padding-left: 2px;
+}
+
+.sev-list {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.sev-sep { color: var(--surface2); }
+
+.sev-list .sev {
+  letter-spacing: 0.03em;
+}
+.sev-list .sev-critical { color: var(--red); }
+.sev-list .sev-warning { color: var(--yellow); }
+.sev-list .sev-low { color: var(--blue); }
+.sev-list .sev.is-zero { color: var(--surface2); }
+
+.sev-none {
+  color: var(--overlay1);
+  font-style: italic;
+}
+
+.review-row-note {
+  color: var(--red);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.review-row.is-running .review-row-note { color: var(--yellow); }
+
+.pill {
+  font-size: 10px;
+  text-align: center;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--surface2);
+}
+.pill-done { color: var(--green); }
+.pill-error { color: var(--red); }
+.pill-running { color: var(--yellow); border-color: var(--yellow); }
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px 0 0;
+  font-size: 12px;
+}
+.pager button:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Repo history sidebar ── */
+.repo-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  background: var(--sunken);
+  border-left: 1px solid var(--crust);
+  padding: 24px 20px 20px;
+}
+
+.repo-history-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.repo-history-head h2 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--subtext0);
+  margin: 0;
+}
+
+.repo-history-empty {
+  flex: 1;
+  font-size: 12px;
+  padding: 12px 0;
+}
+
+.review-rows.compact {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: none;
+  border-radius: 0;
+}
+
+.review-rows.compact .review-row:hover { background: var(--surface0); }
+
+.repo-history .review-rows.compact {
+  margin: 0 -20px;
+}
+
+.review-rows.compact .review-row {
+  padding: 8px 20px 8px 18px;
+  font-size: 12px;
+}
+
+.review-rows.compact .review-row-top { gap: 8px; }
+
+.load-more { align-self: center; }

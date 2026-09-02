@@ -100,6 +100,23 @@ export function formatMs(ms: number) {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
+export function relativeTime(iso: string) {
+  const then = Date.parse(iso)
+  if (isNaN(then)) return ""
+  const seconds = Math.max(0, (Date.now() - then) / 1000)
+  if (seconds < 60) return "just now"
+  const units: [number, string][] = [
+    [60, "m"],
+    [3600, "h"],
+    [86400, "d"],
+  ]
+  for (let i = units.length - 1; i >= 0; i--) {
+    const [size, suffix] = units[i]
+    if (seconds >= size) return `${Math.floor(seconds / size)}${suffix} ago`
+  }
+  return "just now"
+}
+
 export function fileName(path: string) {
   const i = path.lastIndexOf("/")
   return i === -1 ? path : path.slice(i + 1)

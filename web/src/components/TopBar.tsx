@@ -1,8 +1,10 @@
 import { createEffect, createSignal, For, Show } from "solid-js"
 import { useNavigate, useParams } from "@tanstack/solid-router"
 import { useAddRepo, useOrgs, useRepos, usePRDetail } from "../queries"
+import { useActiveReviews } from "../activeReviews"
 
 export function TopBar() {
+  const activeReviews = useActiveReviews()
   const orgs = useOrgs()
   const repos = useRepos()
   const addRepo = useAddRepo()
@@ -77,7 +79,12 @@ export function TopBar() {
   return (
     <header class="topbar">
       <div class="topbar-left">
-        <span class="topbar-brand">pr review</span>
+        <button class="topbar-brand" onClick={() => navigate({ to: "/", search: { page: 0 } })}>
+          pr review
+          <Show when={activeReviews.count() > 0}>
+            <span class="brand-badge">{activeReviews.count()}</span>
+          </Show>
+        </button>
         <Show
           when={!adding()}
           fallback={

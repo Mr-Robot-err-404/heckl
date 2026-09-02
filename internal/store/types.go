@@ -31,10 +31,19 @@ type NewReviewSession struct {
 	DurationMS        int64
 }
 
+type HistoryQuery struct {
+	Owner  string
+	Repo   string
+	Limit  int
+	Offset int
+}
+
 type RecentReviewSession struct {
 	*ReviewSession
 	ConcernCount        int64  `json:"concernCount"`
 	HighCount           int64  `json:"highCount"`
+	MediumCount         int64  `json:"mediumCount"`
+	LowCount            int64  `json:"lowCount"`
 	OpencodeSessionPath string `json:"opencodeSessionPath,omitempty"`
 }
 

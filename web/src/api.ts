@@ -1,4 +1,4 @@
-import type { PR, PRDetail, Repo, Review } from "./types"
+import type { PR, PRDetail, Repo, Review, ReviewHistoryPage } from "./types"
 
 const BASE = "/api"
 
@@ -47,6 +47,36 @@ export const api = {
   diff: {
     get: (owner: string, repo: string, number: number) =>
       getText(`/diff/${owner}/${repo}/${number}`),
+  },
+  reviews: {
+    history: (opts: { limit: number; offset: number; owner?: string; repo?: string }) => {
+      const params = new URLSearchParams({
+        limit: String(opts.limit),
+        offset: String(opts.offset),
+      })
+      if (opts.owner && opts.repo) {
+        params.set("owner", opts.owner)
+        params.set("repo", opts.repo)
+      }
+      return get<ReviewHistoryPage>(`/reviews/history?${params}`)
+    },
+    stream: (on: {
+      snapshot: (active: Review[]) => void
+      review: (review: Review) => void
+      connected: (connected: boolean) => void
+    }) => {
+      const source = new EventSource(`${BASE}/reviews/stream`)
+      source.addEventListener("snapshot", (e) => {
+        on.connected(true)
+        on.snapshot((JSON.parse(e.data) as Review[] | null) ?? [])
+      })
+      source.addEventListener("review", (e) => {
+        on.connected(true)
+        on.review(JSON.parse(e.data) as Review)
+      })
+      source.addEventListener("error", () => on.connected(false))
+      return () => source.close()
+    },
   },
   review: {
     start: (owner: string, repo: string, number: number) =>

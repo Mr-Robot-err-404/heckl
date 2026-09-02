@@ -58,6 +58,14 @@ func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscriptio
 	return o.hub.Subscribe(key, seed)
 }
 
+func (o *Orchestrator) SubscribeAll() (*Subscription, []*Review, error) {
+	sub, err := o.hub.SubscribeAll()
+	if err != nil {
+		return nil, nil, err
+	}
+	return sub, o.runner.Active(), nil
+}
+
 func (o *Orchestrator) Unsubscribe(sub *Subscription) {
 	o.hub.Unsubscribe(sub)
 }
@@ -67,10 +75,6 @@ func (o *Orchestrator) SessionPath(opencodeSessionID string) string {
 		return ""
 	}
 	return o.hub.path(opencodeSessionID)
-}
-
-func (o *Orchestrator) Active() []*Review {
-	return o.runner.Active()
 }
 
 func toConcerns(in []*storeConcern) []Concern {

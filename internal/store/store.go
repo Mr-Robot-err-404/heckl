@@ -74,8 +74,8 @@ func (s *Store) CreateReviewSession(ctx context.Context, in NewReviewSession) (*
 	return toReviewSession(row), nil
 }
 
-func (s *Store) ListRecentReviewSessions(ctx context.Context, limit int) ([]*RecentReviewSession, error) {
-	rows, err := s.queries.ListRecentPRReviewSessions(ctx, int64(limit))
+func (s *Store) ListRecentReviewSessions(ctx context.Context, q HistoryQuery) ([]*RecentReviewSession, error) {
+	rows, err := s.recentRows(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,34 @@ func (s *Store) ListRecentReviewSessions(ctx context.Context, limit int) ([]*Rec
 			}),
 			ConcernCount: r.ConcernCount,
 			HighCount:    r.HighCount,
+			MediumCount:  r.MediumCount,
+			LowCount:     r.LowCount,
 		}
+	}
+	return out, nil
+}
+
+func (s *Store) recentRows(ctx context.Context, q HistoryQuery) ([]*ListRecentPRReviewSessionsRow, error) {
+	if q.Owner == "" || q.Repo == "" {
+		return s.queries.ListRecentPRReviewSessions(ctx, ListRecentPRReviewSessionsParams{
+			Limit:  int64(q.Limit),
+			Offset: int64(q.Offset),
+		})
+	}
+
+	scoped, err := s.queries.ListRecentPRReviewSessionsByRepo(ctx, ListRecentPRReviewSessionsByRepoParams{
+		Owner:  q.Owner,
+		Repo:   q.Repo,
+		Limit:  int64(q.Limit),
+		Offset: int64(q.Offset),
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*ListRecentPRReviewSessionsRow, len(scoped))
+	for i, r := range scoped {
+		row := ListRecentPRReviewSessionsRow(*r)
+		out[i] = &row
 	}
 	return out, nil
 }

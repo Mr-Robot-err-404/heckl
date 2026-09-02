@@ -211,11 +211,18 @@ const listRecentPRReviewSessions = `-- name: ListRecentPRReviewSessions :many
 SELECT
     s.id, s.owner, s.repo, s.pr_number, s.head_sha, s.opencode_session_id, s.summary, s.status, s.error, s.duration_ms, s.created_at,
     (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id) AS concern_count,
-    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'medium') AS medium_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'low') AS low_count
 FROM pr_review_sessions s
 ORDER BY s.created_at DESC, s.id DESC
-LIMIT ?
+LIMIT ? OFFSET ?
 `
+
+type ListRecentPRReviewSessionsParams struct {
+	Limit  int64
+	Offset int64
+}
 
 type ListRecentPRReviewSessionsRow struct {
 	ID                int64
@@ -231,10 +238,12 @@ type ListRecentPRReviewSessionsRow struct {
 	CreatedAt         string
 	ConcernCount      int64
 	HighCount         int64
+	MediumCount       int64
+	LowCount          int64
 }
 
-func (q *Queries) ListRecentPRReviewSessions(ctx context.Context, limit int64) ([]*ListRecentPRReviewSessionsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listRecentPRReviewSessions, limit)
+func (q *Queries) ListRecentPRReviewSessions(ctx context.Context, arg ListRecentPRReviewSessionsParams) ([]*ListRecentPRReviewSessionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRecentPRReviewSessions, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +265,90 @@ func (q *Queries) ListRecentPRReviewSessions(ctx context.Context, limit int64) (
 			&i.CreatedAt,
 			&i.ConcernCount,
 			&i.HighCount,
+			&i.MediumCount,
+			&i.LowCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRecentPRReviewSessionsByRepo = `-- name: ListRecentPRReviewSessionsByRepo :many
+SELECT
+    s.id, s.owner, s.repo, s.pr_number, s.head_sha, s.opencode_session_id, s.summary, s.status, s.error, s.duration_ms, s.created_at,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id) AS concern_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'medium') AS medium_count,
+    (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'low') AS low_count
+FROM pr_review_sessions s
+WHERE s.owner = ? AND s.repo = ?
+ORDER BY s.created_at DESC, s.id DESC
+LIMIT ? OFFSET ?
+`
+
+type ListRecentPRReviewSessionsByRepoParams struct {
+	Owner  string
+	Repo   string
+	Limit  int64
+	Offset int64
+}
+
+type ListRecentPRReviewSessionsByRepoRow struct {
+	ID                int64
+	Owner             string
+	Repo              string
+	PrNumber          int64
+	HeadSha           string
+	OpencodeSessionID string
+	Summary           string
+	Status            string
+	Error             string
+	DurationMs        int64
+	CreatedAt         string
+	ConcernCount      int64
+	HighCount         int64
+	MediumCount       int64
+	LowCount          int64
+}
+
+func (q *Queries) ListRecentPRReviewSessionsByRepo(ctx context.Context, arg ListRecentPRReviewSessionsByRepoParams) ([]*ListRecentPRReviewSessionsByRepoRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRecentPRReviewSessionsByRepo,
+		arg.Owner,
+		arg.Repo,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ListRecentPRReviewSessionsByRepoRow
+	for rows.Next() {
+		var i ListRecentPRReviewSessionsByRepoRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Repo,
+			&i.PrNumber,
+			&i.HeadSha,
+			&i.OpencodeSessionID,
+			&i.Summary,
+			&i.Status,
+			&i.Error,
+			&i.DurationMs,
+			&i.CreatedAt,
+			&i.ConcernCount,
+			&i.HighCount,
+			&i.MediumCount,
+			&i.LowCount,
 		); err != nil {
 			return nil, err
 		}

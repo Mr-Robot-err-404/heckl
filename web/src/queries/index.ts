@@ -41,6 +41,29 @@ export function useRemoveRepo() {
   }))
 }
 
+export const historyQueryKey = ["reviews", "history"]
+
+export const historyPageSize = 20
+
+export function useReviewHistory(page: () => number) {
+  return createQuery(() => ({
+    queryKey: [...historyQueryKey, page()],
+    queryFn: () => api.reviews.history({ limit: historyPageSize, offset: page() * historyPageSize }),
+  }))
+}
+
+export function useRepoReviewHistory(
+  owner: () => string,
+  repo: () => string,
+  limit: () => number,
+) {
+  return createQuery(() => ({
+    queryKey: [...historyQueryKey, owner(), repo(), limit()],
+    queryFn: () => api.reviews.history({ owner: owner(), repo: repo(), limit: limit(), offset: 0 }),
+    enabled: !!owner() && !!repo(),
+  }))
+}
+
 export function usePRs(owner: () => string, repo: () => string) {
   return createQuery(() => ({
     queryKey: ["prs", owner(), repo()],

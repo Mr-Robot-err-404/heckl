@@ -65,14 +65,14 @@ pr-review/
 | GET | /api/diff/{owner}/{repo}/{number} | proxy — fetches full unified diff from GitHub API (`Accept: application/vnd.github.diff`), streams raw patch text to client |
 | GET | /api/asset | authenticated proxy for GitHub-hosted images in PR bodies |
 | POST | /api/review/{owner}/{repo}/{number} | start a review — returns immediately, all progress arrives on the stream |
-| GET | /api/review/{owner}/{repo}/{number} | persisted review sessions + concerns for this PR |
-| GET | /api/review/{owner}/{repo}/{number}/live | current in-memory review, or null |
-| GET | /api/review/{owner}/{repo}/{number}/stream | SSE — `snapshot` on connect, then `review` on every state change |
+| GET | /api/review/{owner}/{repo}/{number}/stream | SSE for one PR — `snapshot` on connect, then `review` on every state change |
+| GET | /api/reviews/stream | SSE for every PR — `snapshot` is the in-flight list, then `review` per state change |
+| GET | /api/reviews/history | paged review history — `?limit&offset`, plus optional `?owner&repo` to scope to one repo. Returns `{sessions, hasMore}` |
 
 ## URL routes
 
 ```
-/                        — empty state
+/?page=N                 — review history (landing page)
 /$owner/$repo            — PR list
 /$owner/$repo/$pr        — PR detail (description + review tabs)
 ```
@@ -206,6 +206,38 @@ path; the client owns the host it can actually reach. No config either side.
 The link appears as soon as the `session` stage completes, not when the
 review finishes, so a running review can be watched live. This replaces any
 in-app pushback/follow-up flow — opencode already owns the transcript.
+
+## Review history and the global stream
+
+`/` is the landing page and shows review history, newest first, 20 per page.
+In-flight reviews are prepended to page 1 only — they are the newest thing
+there is, and "in progress" is meaningless on page 3.
+
+History and liveness come from different places, and that is inherent, not a
+wart: an in-flight review has no database row until it finishes. So the page
+merges two sources client-side — `/api/reviews/history` for stored rows and
+the global SSE stream for in-flight ones. A PR can legitimately appear twice
+(reviewed yesterday, being re-reviewed now); both rows are true.
+
+`Hub` fans out to two sets of subscribers: per-PR (`entries[key].subs`) and
+global (`global`). `Publish` reaches global subscribers **even when no per-PR
+watcher exists** — the old early-return would have silently starved them.
+
+`Subscription.pending` is a map keyed by PR, not a single slot. Coalescing by
+replacement is correct for one PR (latest state wins) but drops events when a
+subscriber watches all of them, so `Take()` returns every distinct PR's latest
+state rather than one review.
+
+`SubscribeAll` registers with the hub *before* snapshotting the runner. The
+reverse order can lose an event in the gap; this order can only duplicate one,
+and the client keys by PR so a duplicate is a no-op.
+
+No polling. The stream carries whole `Review` values rather than a "something
+changed" ping, so the same events drive the in-progress badge, the page-1 rows,
+and history invalidation on completion — one connection, three consumers.
+
+Paging avoids `COUNT(*)`: the handler asks for `limit+1` rows and reports
+`hasMore` from the overflow.
 
 ## Checkout, not worktrees
 

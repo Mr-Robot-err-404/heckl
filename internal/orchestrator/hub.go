@@ -4,33 +4,41 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
+const globalKey = "*"
+
 type Subscription struct {
 	ID  string
 	Key string
 
 	mu      sync.Mutex
-	pending *Review
+	pending map[string]*Review
 	signal  chan struct{}
 	closed  bool
 }
 
 func newSubscription(id, key string) *Subscription {
-	return &Subscription{ID: id, Key: key, signal: make(chan struct{}, 1)}
+	return &Subscription{
+		ID:      id,
+		Key:     key,
+		pending: make(map[string]*Review),
+		signal:  make(chan struct{}, 1),
+	}
 }
 
-func (s *Subscription) push(review *Review) {
+func (s *Subscription) push(key string, review *Review) {
 	s.mu.Lock()
 	if s.closed {
 		s.mu.Unlock()
 		return
 	}
-	s.pending = review
+	s.pending[key] = review
 	s.mu.Unlock()
 
 	select {
@@ -41,15 +49,19 @@ func (s *Subscription) push(review *Review) {
 
 func (s *Subscription) Ready() <-chan struct{} { return s.signal }
 
-func (s *Subscription) Take() (*Review, bool) {
+func (s *Subscription) Take() []*Review {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.pending == nil {
-		return nil, false
+	if len(s.pending) == 0 {
+		return nil
 	}
-	review := s.pending
-	s.pending = nil
-	return review, true
+	out := make([]*Review, 0, len(s.pending))
+	for _, review := range s.pending {
+		out = append(out, review)
+	}
+	clear(s.pending)
+	sort.Slice(out, func(i, j int) bool { return out[i].StartedAt.Before(out[j].StartedAt) })
+	return out
 }
 
 func (s *Subscription) close() {
@@ -75,6 +87,7 @@ type Hub struct {
 
 	mu      sync.Mutex
 	entries map[string]*hubEntry
+	global  map[string]*Subscription
 }
 
 func newHub(ctx context.Context, logger *slog.Logger, st ReviewStore, path SessionPath) *Hub {
@@ -84,25 +97,26 @@ func newHub(ctx context.Context, logger *slog.Logger, st ReviewStore, path Sessi
 		store:   st,
 		path:    path,
 		entries: make(map[string]*hubEntry),
+		global:  make(map[string]*Subscription),
 	}
 }
 
 func (h *Hub) Publish(key string, review *Review) {
 	h.mu.Lock()
-	entry, watched := h.entries[key]
-	if !watched {
-		h.mu.Unlock()
-		return
-	}
-	entry.review = review
-	subs := make([]*Subscription, 0, len(entry.subs))
-	for _, sub := range entry.subs {
+	subs := make([]*Subscription, 0, len(h.global))
+	for _, sub := range h.global {
 		subs = append(subs, sub)
+	}
+	if entry, watched := h.entries[key]; watched {
+		entry.review = review
+		for _, sub := range entry.subs {
+			subs = append(subs, sub)
+		}
 	}
 	h.mu.Unlock()
 
 	for _, sub := range subs {
-		sub.push(review)
+		sub.push(key, review)
 	}
 }
 
@@ -128,7 +142,28 @@ func (h *Hub) Subscribe(key string, seed *Review) (*Subscription, *Review, error
 	return sub, entry.review, nil
 }
 
+func (h *Hub) SubscribeAll() (*Subscription, error) {
+	id, err := newID()
+	if err != nil {
+		return nil, err
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	sub := newSubscription(id, globalKey)
+	h.global[id] = sub
+
+	h.logger.Info("orchestrator: global subscriber added", "sub_id", id, "subscribers", len(h.global))
+	return sub, nil
+}
+
 func (h *Hub) Unsubscribe(sub *Subscription) {
+	if sub.Key == globalKey {
+		h.unsubscribeGlobal(sub)
+		return
+	}
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -146,6 +181,18 @@ func (h *Hub) Unsubscribe(sub *Subscription) {
 		delete(h.entries, sub.Key)
 	}
 	h.logger.Info("orchestrator: subscriber removed", "pr", sub.Key, "sub_id", sub.ID, "subscribers", len(entry.subs))
+}
+
+func (h *Hub) unsubscribeGlobal(sub *Subscription) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if _, ok := h.global[sub.ID]; !ok {
+		return
+	}
+	delete(h.global, sub.ID)
+	sub.close()
+	h.logger.Info("orchestrator: global subscriber removed", "sub_id", sub.ID, "subscribers", len(h.global))
 }
 
 func (h *Hub) watching(key string) bool {

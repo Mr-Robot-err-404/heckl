@@ -72,6 +72,29 @@ export type ConcernTarget = {
   nonce: number
 }
 
+export type ReviewHistoryRow = {
+  id: number
+  owner: string
+  repo: string
+  prNumber: number
+  headSha: string
+  summary: string
+  status: "done" | "error"
+  error?: string
+  durationMs: number
+  createdAt: string
+  concernCount: number
+  highCount: number
+  mediumCount: number
+  lowCount: number
+  opencodeSessionPath?: string
+}
+
+export type ReviewHistoryPage = {
+  sessions: ReviewHistoryRow[]
+  hasMore: boolean
+}
+
 export type Review = {
   id: string
   owner: string

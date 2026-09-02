@@ -1,24 +1,32 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/solid-router"
 import { PRListPage } from "./routes/PRListPage"
 import { PRDetailPage } from "./routes/PRDetailPage"
+import { DashboardPage } from "./routes/DashboardPage"
 import { TopBar } from "./components/TopBar"
+import { ActiveReviewsProvider } from "./activeReviews"
 import type { Tab } from "./types"
 
 const rootRoute = createRootRoute({
   component: () => (
-    <>
-      <TopBar />
-      <div class="content">
-        <Outlet />
+    <ActiveReviewsProvider>
+      <div class="layout">
+        <TopBar />
+        <div class="content">
+          <Outlet />
+        </div>
       </div>
-    </>
+    </ActiveReviewsProvider>
   ),
 })
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: () => <div class="empty">select a repo to begin</div>,
+  validateSearch: (search: Record<string, unknown>): { page: number } => {
+    const page = Number(search.page)
+    return { page: Number.isInteger(page) && page > 0 ? page : 0 }
+  },
+  component: DashboardPage,
 })
 
 const repoRoute = createRoute({
