@@ -57,9 +57,9 @@ func (q *Queries) CreateConcern(ctx context.Context, arg CreateConcernParams) (*
 }
 
 const createPRReviewSession = `-- name: CreatePRReviewSession :one
-INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, agents, status, error, duration_ms, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, owner, repo, pr_number, head_sha, opencode_session_id, summary, agents, status, error, duration_ms, created_at
+INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at
 `
 
 type CreatePRReviewSessionParams struct {
@@ -69,7 +69,6 @@ type CreatePRReviewSessionParams struct {
 	HeadSha           string
 	OpencodeSessionID string
 	Summary           string
-	Agents            string
 	Status            string
 	Error             string
 	DurationMs        int64
@@ -84,7 +83,6 @@ func (q *Queries) CreatePRReviewSession(ctx context.Context, arg CreatePRReviewS
 		arg.HeadSha,
 		arg.OpencodeSessionID,
 		arg.Summary,
-		arg.Agents,
 		arg.Status,
 		arg.Error,
 		arg.DurationMs,
@@ -99,7 +97,6 @@ func (q *Queries) CreatePRReviewSession(ctx context.Context, arg CreatePRReviewS
 		&i.HeadSha,
 		&i.OpencodeSessionID,
 		&i.Summary,
-		&i.Agents,
 		&i.Status,
 		&i.Error,
 		&i.DurationMs,
@@ -108,8 +105,22 @@ func (q *Queries) CreatePRReviewSession(ctx context.Context, arg CreatePRReviewS
 	return &i, err
 }
 
+const deleteConcernsBySessionAgent = `-- name: DeleteConcernsBySessionAgent :exec
+DELETE FROM concerns WHERE session_id = ? AND agent = ?
+`
+
+type DeleteConcernsBySessionAgentParams struct {
+	SessionID int64
+	Agent     string
+}
+
+func (q *Queries) DeleteConcernsBySessionAgent(ctx context.Context, arg DeleteConcernsBySessionAgentParams) error {
+	_, err := q.db.ExecContext(ctx, deleteConcernsBySessionAgent, arg.SessionID, arg.Agent)
+	return err
+}
+
 const getPRReviewSession = `-- name: GetPRReviewSession :one
-SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, agents, status, error, duration_ms, created_at FROM pr_review_sessions WHERE id = ?
+SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at FROM pr_review_sessions WHERE id = ?
 `
 
 func (q *Queries) GetPRReviewSession(ctx context.Context, id int64) (*PrReviewSession, error) {
@@ -123,7 +134,6 @@ func (q *Queries) GetPRReviewSession(ctx context.Context, id int64) (*PrReviewSe
 		&i.HeadSha,
 		&i.OpencodeSessionID,
 		&i.Summary,
-		&i.Agents,
 		&i.Status,
 		&i.Error,
 		&i.DurationMs,
@@ -171,7 +181,7 @@ func (q *Queries) ListConcernsBySession(ctx context.Context, sessionID int64) ([
 }
 
 const listPRReviewSessionsByPR = `-- name: ListPRReviewSessionsByPR :many
-SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, agents, status, error, duration_ms, created_at FROM pr_review_sessions WHERE owner = ? AND repo = ? AND pr_number = ? ORDER BY created_at DESC
+SELECT id, owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at FROM pr_review_sessions WHERE owner = ? AND repo = ? AND pr_number = ? ORDER BY created_at DESC
 `
 
 type ListPRReviewSessionsByPRParams struct {
@@ -197,7 +207,6 @@ func (q *Queries) ListPRReviewSessionsByPR(ctx context.Context, arg ListPRReview
 			&i.HeadSha,
 			&i.OpencodeSessionID,
 			&i.Summary,
-			&i.Agents,
 			&i.Status,
 			&i.Error,
 			&i.DurationMs,
@@ -218,7 +227,7 @@ func (q *Queries) ListPRReviewSessionsByPR(ctx context.Context, arg ListPRReview
 
 const listRecentPRReviewSessions = `-- name: ListRecentPRReviewSessions :many
 SELECT
-    s.id, s.owner, s.repo, s.pr_number, s.head_sha, s.opencode_session_id, s.summary, s.agents, s.status, s.error, s.duration_ms, s.created_at,
+    s.id, s.owner, s.repo, s.pr_number, s.head_sha, s.opencode_session_id, s.summary, s.status, s.error, s.duration_ms, s.created_at,
     (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id) AS concern_count,
     (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count,
     (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'medium') AS medium_count,
@@ -241,7 +250,6 @@ type ListRecentPRReviewSessionsRow struct {
 	HeadSha           string
 	OpencodeSessionID string
 	Summary           string
-	Agents            string
 	Status            string
 	Error             string
 	DurationMs        int64
@@ -269,7 +277,6 @@ func (q *Queries) ListRecentPRReviewSessions(ctx context.Context, arg ListRecent
 			&i.HeadSha,
 			&i.OpencodeSessionID,
 			&i.Summary,
-			&i.Agents,
 			&i.Status,
 			&i.Error,
 			&i.DurationMs,
@@ -294,7 +301,7 @@ func (q *Queries) ListRecentPRReviewSessions(ctx context.Context, arg ListRecent
 
 const listRecentPRReviewSessionsByRepo = `-- name: ListRecentPRReviewSessionsByRepo :many
 SELECT
-    s.id, s.owner, s.repo, s.pr_number, s.head_sha, s.opencode_session_id, s.summary, s.agents, s.status, s.error, s.duration_ms, s.created_at,
+    s.id, s.owner, s.repo, s.pr_number, s.head_sha, s.opencode_session_id, s.summary, s.status, s.error, s.duration_ms, s.created_at,
     (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id) AS concern_count,
     (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'high') AS high_count,
     (SELECT COUNT(*) FROM concerns c WHERE c.session_id = s.id AND c.severity = 'medium') AS medium_count,
@@ -320,7 +327,6 @@ type ListRecentPRReviewSessionsByRepoRow struct {
 	HeadSha           string
 	OpencodeSessionID string
 	Summary           string
-	Agents            string
 	Status            string
 	Error             string
 	DurationMs        int64
@@ -353,7 +359,6 @@ func (q *Queries) ListRecentPRReviewSessionsByRepo(ctx context.Context, arg List
 			&i.HeadSha,
 			&i.OpencodeSessionID,
 			&i.Summary,
-			&i.Agents,
 			&i.Status,
 			&i.Error,
 			&i.DurationMs,
@@ -433,4 +438,105 @@ func (q *Queries) ListRepoReviewSummary(ctx context.Context, arg ListRepoReviewS
 		return nil, err
 	}
 	return items, nil
+}
+
+const listReviewAgentsBySession = `-- name: ListReviewAgentsBySession :many
+SELECT id, session_id, name, status, error, summary, opencode_session_id, duration_ms, created_at FROM review_agents WHERE session_id = ? ORDER BY id ASC
+`
+
+func (q *Queries) ListReviewAgentsBySession(ctx context.Context, sessionID int64) ([]*ReviewAgent, error) {
+	rows, err := q.db.QueryContext(ctx, listReviewAgentsBySession, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ReviewAgent
+	for rows.Next() {
+		var i ReviewAgent
+		if err := rows.Scan(
+			&i.ID,
+			&i.SessionID,
+			&i.Name,
+			&i.Status,
+			&i.Error,
+			&i.Summary,
+			&i.OpencodeSessionID,
+			&i.DurationMs,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updatePRReviewSessionSummary = `-- name: UpdatePRReviewSessionSummary :exec
+UPDATE pr_review_sessions SET summary = ? WHERE id = ?
+`
+
+type UpdatePRReviewSessionSummaryParams struct {
+	Summary string
+	ID      int64
+}
+
+func (q *Queries) UpdatePRReviewSessionSummary(ctx context.Context, arg UpdatePRReviewSessionSummaryParams) error {
+	_, err := q.db.ExecContext(ctx, updatePRReviewSessionSummary, arg.Summary, arg.ID)
+	return err
+}
+
+const upsertReviewAgent = `-- name: UpsertReviewAgent :one
+INSERT INTO review_agents (session_id, name, status, error, summary, opencode_session_id, duration_ms, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(session_id, name) DO UPDATE SET
+    status = excluded.status,
+    error = excluded.error,
+    summary = excluded.summary,
+    opencode_session_id = excluded.opencode_session_id,
+    duration_ms = excluded.duration_ms,
+    created_at = excluded.created_at
+RETURNING id, session_id, name, status, error, summary, opencode_session_id, duration_ms, created_at
+`
+
+type UpsertReviewAgentParams struct {
+	SessionID         int64
+	Name              string
+	Status            string
+	Error             string
+	Summary           string
+	OpencodeSessionID string
+	DurationMs        int64
+	CreatedAt         string
+}
+
+func (q *Queries) UpsertReviewAgent(ctx context.Context, arg UpsertReviewAgentParams) (*ReviewAgent, error) {
+	row := q.db.QueryRowContext(ctx, upsertReviewAgent,
+		arg.SessionID,
+		arg.Name,
+		arg.Status,
+		arg.Error,
+		arg.Summary,
+		arg.OpencodeSessionID,
+		arg.DurationMs,
+		arg.CreatedAt,
+	)
+	var i ReviewAgent
+	err := row.Scan(
+		&i.ID,
+		&i.SessionID,
+		&i.Name,
+		&i.Status,
+		&i.Error,
+		&i.Summary,
+		&i.OpencodeSessionID,
+		&i.DurationMs,
+		&i.CreatedAt,
+	)
+	return &i, err
 }

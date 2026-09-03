@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/orchestrator"
+	"github.com/harrylawton/pr-review/internal/reviewer"
 	"github.com/harrylawton/pr-review/internal/store"
 )
 
@@ -40,6 +42,37 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(review)
+}
+
+func (s *Server) handleRerunAgent(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	agent := r.PathValue("agent")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
+		return
+	}
+
+	review, err := s.orchestrator.Rerun(owner, repo, number, agent)
+	if errors.Is(err, orchestrator.ErrNoReview) {
+		jsonError(w, err.Error(), http.StatusConflict)
+		return
+	}
+	if err != nil {
+		slog.Error("agent rerun failed", "owner", owner, "repo", repo, "pr", number, "agent", agent, "err", err)
+		jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	slog.Info("agent rerun started", "owner", owner, "repo", repo, "pr", number, "agent", agent, "review_id", review.ID)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(review)
+}
+
+func (s *Server) handleListAgents(w http.ResponseWriter, r *http.Request) {
+	jsonOK(w, reviewer.AgentOrder())
 }
 
 func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {

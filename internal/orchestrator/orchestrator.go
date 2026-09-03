@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/reviewer"
@@ -22,6 +24,7 @@ type PRSource interface {
 type ReviewStore interface {
 	ListReviewSessions(ctx context.Context, owner, repo string, prNumber int) ([]*store.ReviewSession, error)
 	ListConcerns(ctx context.Context, sessionID int64) ([]*store.ReviewConcern, error)
+	ListSessionAgents(ctx context.Context, sessionID int64) ([]store.SessionAgent, error)
 	CreateReviewSession(ctx context.Context, in store.NewReviewSession) (*store.ReviewSession, error)
 }
 
@@ -44,7 +47,33 @@ func New(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewe
 }
 
 func (o *Orchestrator) Start(owner, repo string, prNumber int, agents []string) (*Review, error) {
-	return o.runner.Start(owner, repo, prNumber, agents)
+	return o.runner.Start(StartRequest{Owner: owner, Repo: repo, PRNumber: prNumber, Agents: agents})
+}
+
+var ErrNoReview = errors.New("no stored review to re-run against")
+
+func (o *Orchestrator) Rerun(owner, repo string, prNumber int, agent string) (*Review, error) {
+	if !slices.Contains(reviewer.AgentOrder(), agent) {
+		return nil, fmt.Errorf("unknown agent %q", agent)
+	}
+
+	key := PRKey(owner, repo, prNumber)
+	base := firstReviewWithSession(
+		func() *Review { return o.runner.InFlight(key) },
+		func() *Review { return o.hub.current(key) },
+		func() *Review { return o.hub.hydrate(owner, repo, prNumber) },
+	)
+	if base == nil {
+		return nil, ErrNoReview
+	}
+
+	return o.runner.Start(StartRequest{
+		Owner:    owner,
+		Repo:     repo,
+		PRNumber: prNumber,
+		Agents:   []string{agent},
+		Base:     base,
+	})
 }
 
 func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscription, *Review, error) {
@@ -75,6 +104,15 @@ func (o *Orchestrator) SessionPath(opencodeSessionID string) string {
 		return ""
 	}
 	return o.hub.path(opencodeSessionID)
+}
+
+func firstReviewWithSession(sources ...func() *Review) *Review {
+	for _, source := range sources {
+		if review := source(); review != nil && review.SessionID != 0 {
+			return review
+		}
+	}
+	return nil
 }
 
 func toConcerns(in []*storeConcern) []Concern {

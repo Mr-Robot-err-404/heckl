@@ -13,7 +13,6 @@ type ReviewSession struct {
 	HeadSHA           string `json:"headSha"`
 	OpencodeSessionID string `json:"-"`
 	Summary           string `json:"summary"`
-	Agents            string `json:"agents"`
 	Status            string `json:"status"`
 	Error             string `json:"error,omitempty"`
 	DurationMS        int64  `json:"durationMs"`
@@ -27,10 +26,19 @@ type NewReviewSession struct {
 	HeadSHA           string
 	OpencodeSessionID string
 	Summary           string
-	Agents            string
 	Status            string
 	Error             string
 	DurationMS        int64
+}
+
+type SessionAgent struct {
+	SessionID         int64  `json:"-"`
+	Name              string `json:"name"`
+	Status            string `json:"status"`
+	Error             string `json:"error,omitempty"`
+	Summary           string `json:"summary,omitempty"`
+	OpencodeSessionID string `json:"-"`
+	DurationMS        int64  `json:"durationMs"`
 }
 
 type RepoReviewSummary struct {

@@ -29,7 +29,6 @@ type PrReviewSession struct {
 	HeadSha           string
 	OpencodeSessionID string
 	Summary           string
-	Agents            string
 	Status            string
 	Error             string
 	DurationMs        int64
@@ -41,4 +40,16 @@ type Repo struct {
 	Owner   string
 	Name    string
 	AddedAt string
+}
+
+type ReviewAgent struct {
+	ID                int64
+	SessionID         int64
+	Name              string
+	Status            string
+	Error             string
+	Summary           string
+	OpencodeSessionID string
+	DurationMs        int64
+	CreatedAt         string
 }

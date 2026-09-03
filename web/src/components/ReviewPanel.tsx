@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js"
 import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review"
 import type { RankedConcern } from "../types"
+import { AgentPicker } from "./AgentPicker"
 
 type Props = {
   state: ReviewState
@@ -21,6 +22,7 @@ const stageLabels: Record<string, string> = {
 export function ReviewPanel(props: Props) {
   const s = () => props.state
   const activeStage = () => s().review()?.stages.find((stage) => stage.status === "running")
+  const failedAgents = () => (s().review()?.agents ?? []).filter((a) => a.status === "error")
 
   return (
     <aside class="review-panel">
@@ -30,6 +32,8 @@ export function ReviewPanel(props: Props) {
           {!s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"}
         </button>
       </div>
+
+      <AgentPicker state={s()} />
 
       <Show when={s().error()}>
         <div class="review-error">{s().error()}</div>
@@ -51,6 +55,9 @@ export function ReviewPanel(props: Props) {
           </span>
           <span class="review-stage-time">{formatMs(s().elapsed())}</span>
         </div>
+      </Show>
+
+      <Show when={(s().review()?.agents ?? []).length > 0}>
         <ul class="agent-progress">
           <For each={s().review()?.agents ?? []}>
             {(agent) => (
@@ -58,7 +65,10 @@ export function ReviewPanel(props: Props) {
                 <span class="review-stage-dot" />
                 <span class="agent-progress-name">{agentLabel(agent.name)}</span>
                 <span class="review-stage-detail">
-                  {stageLabels[agent.stages.find((st) => st.status === "running")?.name ?? ""] ?? ""}
+                  {agent.status === "error"
+                    ? "failed"
+                    : (stageLabels[agent.stages.find((st) => st.status === "running")?.name ?? ""] ??
+                      "")}
                 </span>
                 <Show when={agent.opencodeSessionPath}>
                   <a
@@ -70,10 +80,25 @@ export function ReviewPanel(props: Props) {
                     ↗
                   </a>
                 </Show>
+                <button
+                  class="agent-rerun"
+                  disabled={s().busy() || !s().review()?.sessionId}
+                  onClick={() => s().rerun(agent.name)}
+                >
+                  ↻
+                </button>
               </li>
             )}
           </For>
         </ul>
+      </Show>
+
+      <Show when={failedAgents().length > 0}>
+        <div class="review-error">
+          {failedAgents()
+            .map((a) => `${agentLabel(a.name)} failed`)
+            .join(" · ")}
+        </div>
       </Show>
 
       <Show when={s().synced() && !s().busy() && !s().review()}>

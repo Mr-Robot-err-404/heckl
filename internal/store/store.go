@@ -63,7 +63,6 @@ func (s *Store) CreateReviewSession(ctx context.Context, in NewReviewSession) (*
 		HeadSha:           in.HeadSHA,
 		OpencodeSessionID: in.OpencodeSessionID,
 		Summary:           in.Summary,
-		Agents:            in.Agents,
 		Status:            status,
 		Error:             in.Error,
 		DurationMs:        in.DurationMS,
@@ -202,6 +201,58 @@ func (s *Store) CreateConcern(ctx context.Context, c NewConcern) (*ReviewConcern
 	return toConcern(row), nil
 }
 
+func (s *Store) SaveSessionAgent(ctx context.Context, a SessionAgent) error {
+	status := a.Status
+	if status == "" {
+		status = ReviewStatusDone
+	}
+	_, err := s.queries.UpsertReviewAgent(ctx, UpsertReviewAgentParams{
+		SessionID:         a.SessionID,
+		Name:              a.Name,
+		Status:            status,
+		Error:             a.Error,
+		Summary:           a.Summary,
+		OpencodeSessionID: a.OpencodeSessionID,
+		DurationMs:        a.DurationMS,
+		CreatedAt:         time.Now().UTC().Format(time.RFC3339),
+	})
+	return err
+}
+
+func (s *Store) ListSessionAgents(ctx context.Context, sessionID int64) ([]SessionAgent, error) {
+	rows, err := s.queries.ListReviewAgentsBySession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SessionAgent, len(rows))
+	for i, r := range rows {
+		out[i] = SessionAgent{
+			SessionID:         r.SessionID,
+			Name:              r.Name,
+			Status:            r.Status,
+			Error:             r.Error,
+			Summary:           r.Summary,
+			OpencodeSessionID: r.OpencodeSessionID,
+			DurationMS:        r.DurationMs,
+		}
+	}
+	return out, nil
+}
+
+func (s *Store) SetReviewSessionSummary(ctx context.Context, sessionID int64, summary string) error {
+	return s.queries.UpdatePRReviewSessionSummary(ctx, UpdatePRReviewSessionSummaryParams{
+		Summary: summary,
+		ID:      sessionID,
+	})
+}
+
+func (s *Store) DeleteConcernsByAgent(ctx context.Context, sessionID int64, agent string) error {
+	return s.queries.DeleteConcernsBySessionAgent(ctx, DeleteConcernsBySessionAgentParams{
+		SessionID: sessionID,
+		Agent:     agent,
+	})
+}
+
 func (s *Store) ListConcerns(ctx context.Context, sessionID int64) ([]*ReviewConcern, error) {
 	rows, err := s.queries.ListConcernsBySession(ctx, sessionID)
 	if err != nil {
@@ -223,7 +274,6 @@ func toReviewSession(r *PrReviewSession) *ReviewSession {
 		HeadSHA:           r.HeadSha,
 		OpencodeSessionID: r.OpencodeSessionID,
 		Summary:           r.Summary,
-		Agents:            r.Agents,
 		Status:            r.Status,
 		Error:             r.Error,
 		DurationMS:        r.DurationMs,

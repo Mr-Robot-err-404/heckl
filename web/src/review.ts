@@ -12,12 +12,33 @@ export type ReviewState = {
   now: Accessor<number>
   elapsed: Accessor<number>
   concerns: Accessor<RankedConcern[]>
+  available: Accessor<string[]>
+  selected: Accessor<string[]>
+  toggleAgent: (name: string) => void
+  isSelected: (name: string) => boolean
   start: (agents?: string[]) => Promise<void>
+  rerun: (agent: string) => Promise<void>
 }
 
 const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 }
 
-export const agentOrder = ["pr-reviewer", "pr-skeptic"]
+const [knownAgents, setKnownAgents] = createSignal<string[]>([])
+let agentsRequested = false
+
+function loadAgents() {
+  if (agentsRequested) return
+  agentsRequested = true
+  api.agents
+    .list()
+    .then((names) => setKnownAgents(names ?? []))
+    .catch(() => {
+      agentsRequested = false
+    })
+}
+
+export function agentOrder() {
+  return knownAgents()
+}
 
 export const agentLabels: Record<string, string> = {
   "pr-reviewer": "core review",
@@ -29,8 +50,9 @@ export function agentLabel(name: string) {
 }
 
 function agentRank(name: string) {
-  const i = agentOrder.indexOf(name)
-  return i === -1 ? agentOrder.length : i
+  const order = knownAgents()
+  const i = order.indexOf(name)
+  return i === -1 ? order.length : i
 }
 
 export function createReview(
@@ -44,6 +66,14 @@ export function createReview(
   const [starting, setStarting] = createSignal(false)
   const [error, setError] = createSignal("")
   const [now, setNow] = createSignal(Date.now())
+  const [deselected, setDeselected] = createSignal<string[]>([])
+
+  loadAgents()
+
+  const selected = () => knownAgents().filter((name) => !deselected().includes(name))
+  const isSelected = (name: string) => !deselected().includes(name)
+  const toggleAgent = (name: string) =>
+    setDeselected((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]))
 
   createEffect(() => {
     const o = owner()
@@ -70,7 +100,8 @@ export function createReview(
     return status === "pending" || status === "running"
   }
   const busy = () => starting() || inFlight()
-  const canRun = () => synced() && connected() && !busy()
+  const canRun = () =>
+    synced() && connected() && !busy() && (knownAgents().length === 0 || selected().length > 0)
 
   createEffect(() => {
     if (!busy()) return
@@ -94,7 +125,7 @@ export function createReview(
       )
       .map((c, i) => ({ ...c, rank: i + 1 }))
 
-  const start = async (agents: string[] = [...agentOrder]) => {
+  const start = async (agents: string[] = selected()) => {
     setError("")
     setStarting(true)
     try {
@@ -105,7 +136,34 @@ export function createReview(
     }
   }
 
-  return { review, synced, connected, busy, canRun, error, now, elapsed, concerns, start }
+  const rerun = async (agent: string) => {
+    setError("")
+    setStarting(true)
+    try {
+      await api.review.rerunAgent(owner(), repo(), prNumber(), agent)
+    } catch (e) {
+      setStarting(false)
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  return {
+    review,
+    synced,
+    connected,
+    busy,
+    canRun,
+    error,
+    now,
+    elapsed,
+    concerns,
+    available: knownAgents,
+    selected,
+    toggleAgent,
+    isSelected,
+    start,
+    rerun,
+  }
 }
 
 const opencodePort = "4420"

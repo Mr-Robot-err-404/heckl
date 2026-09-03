@@ -1,6 +1,13 @@
 package orchestrator
 
-import "time"
+import (
+	"slices"
+	"sort"
+	"time"
+
+	"github.com/harrylawton/pr-review/internal/reviewer"
+	"github.com/harrylawton/pr-review/internal/store"
+)
 
 type Status string
 
@@ -38,6 +45,9 @@ type Agent struct {
 	Name                string  `json:"name"`
 	Status              Status  `json:"status"`
 	Stages              []Stage `json:"stages"`
+	Error               string  `json:"error,omitempty"`
+	Summary             string  `json:"summary,omitempty"`
+	DurationMS          int64   `json:"durationMs"`
 	OpencodeSessionID   string  `json:"-"`
 	OpencodeSessionPath string  `json:"opencodeSessionPath,omitempty"`
 }
@@ -99,6 +109,61 @@ func newReview(id, owner, repo string, prNumber int, agents []string) *Review {
 		Concerns:  []Concern{},
 		StartedAt: time.Now().UTC(),
 	}
+}
+
+func (r *Review) seedFrom(base *Review, rerunning []string) {
+	r.HeadSHA = base.HeadSHA
+	r.SessionID = base.SessionID
+	r.Summary = base.Summary
+
+	r.Concerns = []Concern{}
+	for _, c := range base.Concerns {
+		if slices.Contains(rerunning, c.Agent) {
+			continue
+		}
+		r.Concerns = append(r.Concerns, c)
+	}
+
+	kept := make([]Agent, 0, len(base.Agents))
+	for _, a := range base.Agents {
+		if slices.Contains(rerunning, a.Name) {
+			continue
+		}
+		a.Stages = append([]Stage{}, a.Stages...)
+		kept = append(kept, a)
+	}
+	r.Agents = sortAgents(append(kept, r.Agents...))
+}
+
+func sortAgents(agents []Agent) []Agent {
+	order := reviewer.AgentOrder()
+	rank := func(name string) int {
+		if i := slices.Index(order, name); i != -1 {
+			return i
+		}
+		return len(order)
+	}
+	sort.SliceStable(agents, func(i, j int) bool { return rank(agents[i].Name) < rank(agents[j].Name) })
+	return agents
+}
+
+func (r *Review) mergeStoredAgents(stored []store.SessionAgent, path SessionPath) {
+	for _, s := range stored {
+		a := r.agent(s.Name)
+		if a == nil {
+			r.Agents = append(r.Agents, Agent{Name: s.Name, Stages: []Stage{}})
+			a = &r.Agents[len(r.Agents)-1]
+		}
+		a.Status = Status(s.Status)
+		a.Error = s.Error
+		a.Summary = s.Summary
+		a.DurationMS = s.DurationMS
+		if s.OpencodeSessionID != "" {
+			a.OpencodeSessionID = s.OpencodeSessionID
+			a.OpencodeSessionPath = path(s.OpencodeSessionID)
+		}
+	}
+	r.Agents = sortAgents(r.Agents)
 }
 
 func (r *Review) clone() *Review {
@@ -168,6 +233,7 @@ func (r *Review) endStage(agentName, name, detail string, err error) {
 		s.Error = err.Error()
 		if a := r.agent(agentName); a != nil {
 			a.Status = StatusError
+			a.Error = err.Error()
 		}
 		return
 	}

@@ -71,6 +71,9 @@ export type ReviewAgent = {
   name: string
   status: ReviewStatus
   stages: ReviewStage[]
+  error?: string
+  summary?: string
+  durationMs: number
   opencodeSessionPath?: string
 }
 

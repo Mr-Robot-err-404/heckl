@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS pr_review_sessions (
     head_sha              TEXT NOT NULL,
     opencode_session_id   TEXT NOT NULL,
     summary               TEXT NOT NULL DEFAULT '',
-    agents                TEXT NOT NULL DEFAULT '',
     status                TEXT NOT NULL DEFAULT 'done' CHECK(status IN ('done', 'error')),
     error                 TEXT NOT NULL DEFAULT '',
     duration_ms           INTEGER NOT NULL DEFAULT 0,
@@ -31,6 +30,22 @@ CREATE TABLE IF NOT EXISTS concerns (
 
 CREATE INDEX IF NOT EXISTS idx_concerns_session_id ON concerns(session_id);
 
+CREATE TABLE IF NOT EXISTS review_agents (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id            INTEGER NOT NULL REFERENCES pr_review_sessions(id) ON DELETE CASCADE,
+    name                  TEXT NOT NULL,
+    status                TEXT NOT NULL DEFAULT 'done' CHECK(status IN ('done', 'error')),
+    error                 TEXT NOT NULL DEFAULT '',
+    summary               TEXT NOT NULL DEFAULT '',
+    opencode_session_id   TEXT NOT NULL DEFAULT '',
+    duration_ms           INTEGER NOT NULL DEFAULT 0,
+    created_at            TEXT NOT NULL,
+    UNIQUE(session_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_review_agents_session_id ON review_agents(session_id);
+
 -- +goose Down
+DROP TABLE review_agents;
 DROP TABLE concerns;
 DROP TABLE pr_review_sessions;

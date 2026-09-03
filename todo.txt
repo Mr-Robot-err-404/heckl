@@ -34,10 +34,22 @@ Agent integration
 [x] SSE stage progress
 [x] Continue a review in opencode (needs `tailscale serve --https=4420` remotely)
 [x] Sibling agents — pr-skeptic, per-agent stages, shared checkout
-[ ] Agent selection UI on the run button
 [ ] More siblings
-[ ] Per-agent summaries — currently only the first agent's is kept
 [x] Partial success — a failed agent no longer kills the review
-[ ] Rerun a single agent against an existing review
+[x] Surface partial failure — per-agent status, error and lanes now survive
+    completion and reload
+[x] Rerun a single agent — merges into the existing session, any agent, any
+    prior outcome
+[x] Agent selection UI — toggle chips, all on by default, /api/agents is the
+    single source of names
+[ ] Per-agent summaries — stored per agent now, but only the highest-ranked
+    non-empty one is shown as the review synopsis
+[ ] Scope sessions to the checkout — POST /session?directory=<checkout>.
+    Sessions currently inherit the serve cwd, so a read resolves against
+    pr-review's own tree, not the PR
+[ ] Restore read for pr-reviewer once sessions are scoped — the diff alone is
+    often not enough context
+[ ] Per-agent file selection — pick which files of the diff an agent sees
+[ ] Agent selection isn't persisted — toggles reset on reload/navigation
 [ ] Review latency — single-shot prompt, model free to wander. Re-measure first;
     old 60-100s figure was recorded while reviews ran as the wrong agent.

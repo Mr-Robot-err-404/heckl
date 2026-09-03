@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -196,6 +195,15 @@ func (h *Hub) unsubscribeGlobal(sub *Subscription) {
 	h.logger.Debug("orchestrator: global subscriber removed", "sub_id", sub.ID, "subscribers", len(h.global))
 }
 
+func (h *Hub) current(key string) *Review {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if entry, ok := h.entries[key]; ok {
+		return entry.review
+	}
+	return nil
+}
+
 func (h *Hub) watching(key string) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -203,14 +211,24 @@ func (h *Hub) watching(key string) bool {
 	return ok
 }
 
-func storedAgents(csv string, status Status) []Agent {
-	out := []Agent{}
-	for _, name := range strings.Split(csv, ",") {
-		name = strings.TrimSpace(name)
-		if name == "" {
-			continue
-		}
-		out = append(out, Agent{Name: name, Status: status, Stages: []Stage{}})
+func (h *Hub) storedAgents(sessionID int64) []Agent {
+	rows, err := h.store.ListSessionAgents(h.ctx, sessionID)
+	if err != nil {
+		h.logger.Error("orchestrator: hydrate agents", "session_id", sessionID, "err", err)
+		return []Agent{}
+	}
+	out := make([]Agent, 0, len(rows))
+	for _, a := range rows {
+		out = append(out, Agent{
+			Name:                a.Name,
+			Status:              Status(a.Status),
+			Error:               a.Error,
+			Summary:             a.Summary,
+			DurationMS:          a.DurationMS,
+			Stages:              []Stage{},
+			OpencodeSessionID:   a.OpencodeSessionID,
+			OpencodeSessionPath: h.path(a.OpencodeSessionID),
+		})
 	}
 	return out
 }
@@ -261,7 +279,7 @@ func (h *Hub) hydrate(owner, repo string, prNumber int) *Review {
 		HeadSHA:   sess.HeadSHA,
 		Status:    status,
 		Stages:    []Stage{},
-		Agents:    storedAgents(sess.Agents, status),
+		Agents:    h.storedAgents(sess.ID),
 		SessionID: sess.ID,
 		Summary:   sess.Summary,
 		Error:     sess.Error,

@@ -78,9 +78,14 @@ export const api = {
       return () => source.close()
     },
   },
+  agents: {
+    list: () => get<string[]>("/agents"),
+  },
   review: {
     start: (owner: string, repo: string, number: number, agents: string[]) =>
       post<Review>(`/review/${owner}/${repo}/${number}`, { agents }),
+    rerunAgent: (owner: string, repo: string, number: number, agent: string) =>
+      post<Review>(`/review/${owner}/${repo}/${number}/agent/${agent}`, {}),
     stream: (
       owner: string,
       repo: string,

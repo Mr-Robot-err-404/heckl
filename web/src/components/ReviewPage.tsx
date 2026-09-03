@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js"
 import { agentLabel, formatMs, opencodeUrl, type ReviewState } from "../review"
+import { AgentPicker } from "./AgentPicker"
 import type { RankedConcern, ReviewAgent, ReviewStage } from "../types"
 
 type Props = {
@@ -21,11 +22,20 @@ export function ReviewPage(props: Props) {
 
   const agents = (): ReviewAgent[] => s().review()?.agents ?? []
 
-  const grouped = () =>
-    agents().map((agent) => ({
+  const grouped = () => {
+    const known = agents()
+    const orphaned = s()
+      .concerns()
+      .map((c) => c.agent)
+      .filter((name, i, all) => all.indexOf(name) === i)
+      .filter((name) => !known.some((a) => a.name === name))
+      .map((name): ReviewAgent => ({ name, status: "done", stages: [], durationMs: 0 }))
+
+    return [...known, ...orphaned].map((agent) => ({
       agent,
       concerns: s().concerns().filter((c) => c.agent === agent.name),
     }))
+  }
 
   return (
     <div class="review-page">
@@ -45,6 +55,7 @@ export function ReviewPage(props: Props) {
           </Show>
         </div>
         <div class="review-page-actions">
+          <AgentPicker state={s()} />
           <Show when={s().review()?.opencodeSessionPath}>
             <a
               class="review-session-link"
@@ -83,12 +94,18 @@ export function ReviewPage(props: Props) {
             {(stage) => <StageRow stage={stage} now={s().now()} />}
           </For>
         </div>
+      </Show>
+
+      <Show when={s().review() && agents().length > 0}>
         <div class="agent-lanes">
           <For each={agents()}>
             {(agent) => (
               <div class={`agent-lane is-${agent.status}`}>
                 <div class="agent-lane-head">
                   <span class="agent-lane-name">{agentLabel(agent.name)}</span>
+                  <Show when={agent.status === "done" && agent.durationMs > 0}>
+                    <span class="review-stage-time">{formatMs(agent.durationMs)}</span>
+                  </Show>
                   <Show when={agent.opencodeSessionPath}>
                     <a
                       class="review-session-link"
@@ -96,13 +113,23 @@ export function ReviewPage(props: Props) {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      watch ↗
+                      {agent.status === "running" ? "watch ↗" : "session ↗"}
                     </a>
                   </Show>
+                  <button
+                    class="agent-rerun"
+                    disabled={s().busy() || !s().review()?.sessionId}
+                    onClick={() => s().rerun(agent.name)}
+                  >
+                    re-run
+                  </button>
                 </div>
                 <For each={agent.stages}>
                   {(stage) => <StageRow stage={stage} now={s().now()} />}
                 </For>
+                <Show when={agent.error}>
+                  <div class="review-error">{agent.error}</div>
+                </Show>
               </div>
             )}
           </For>
@@ -138,14 +165,19 @@ export function ReviewPage(props: Props) {
                 </Show>
               </h3>
               <Show
-                when={group.concerns.length > 0}
-                fallback={<p class="review-clear">nothing worth flagging</p>}
+                when={group.agent.status !== "error"}
+                fallback={<p class="review-failed">this agent failed — no findings recorded</p>}
               >
-                <For each={group.concerns}>
-                  {(concern) => (
-                    <ConcernCard concern={concern} onFocus={() => props.onFocusConcern(concern)} />
-                  )}
-                </For>
+                <Show
+                  when={group.concerns.length > 0}
+                  fallback={<p class="review-clear">nothing worth flagging</p>}
+                >
+                  <For each={group.concerns}>
+                    {(concern) => (
+                      <ConcernCard concern={concern} onFocus={() => props.onFocusConcern(concern)} />
+                    )}
+                  </For>
+                </Show>
               </Show>
             </section>
           )}
@@ -167,6 +199,9 @@ function StageRow(props: { stage: ReviewStage; now: number }) {
       <span class="review-stage-name">{stageLabels[props.stage.name] ?? props.stage.name}</span>
       <Show when={props.stage.detail}>
         <span class="review-stage-detail">{props.stage.detail}</span>
+      </Show>
+      <Show when={props.stage.status === "error"}>
+        <span class="review-stage-failed">failed</span>
       </Show>
       <Show when={props.stage.status === "done" && props.stage.durationMs > 0}>
         <span class="review-stage-time">{formatMs(props.stage.durationMs)}</span>

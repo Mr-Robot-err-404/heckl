@@ -1,7 +1,10 @@
 -- name: CreatePRReviewSession :one
-INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, agents, status, error, duration_ms, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO pr_review_sessions (owner, repo, pr_number, head_sha, opencode_session_id, summary, status, error, duration_ms, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
+
+-- name: UpdatePRReviewSessionSummary :exec
+UPDATE pr_review_sessions SET summary = ? WHERE id = ?;
 
 -- name: ListRecentPRReviewSessions :many
 SELECT
@@ -55,3 +58,21 @@ RETURNING *;
 
 -- name: ListConcernsBySession :many
 SELECT * FROM concerns WHERE session_id = ? ORDER BY id ASC;
+
+-- name: DeleteConcernsBySessionAgent :exec
+DELETE FROM concerns WHERE session_id = ? AND agent = ?;
+
+-- name: UpsertReviewAgent :one
+INSERT INTO review_agents (session_id, name, status, error, summary, opencode_session_id, duration_ms, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(session_id, name) DO UPDATE SET
+    status = excluded.status,
+    error = excluded.error,
+    summary = excluded.summary,
+    opencode_session_id = excluded.opencode_session_id,
+    duration_ms = excluded.duration_ms,
+    created_at = excluded.created_at
+RETURNING *;
+
+-- name: ListReviewAgentsBySession :many
+SELECT * FROM review_agents WHERE session_id = ? ORDER BY id ASC;

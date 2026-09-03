@@ -59,9 +59,17 @@ func (r *Runner) InFlight(key string) *Review {
 	return nil
 }
 
-func (r *Runner) Start(owner, repo string, prNumber int, agents []string) (*Review, error) {
-	key := PRKey(owner, repo, prNumber)
-	agents = normaliseAgents(agents)
+type StartRequest struct {
+	Owner    string
+	Repo     string
+	PRNumber int
+	Agents   []string
+	Base     *Review
+}
+
+func (r *Runner) Start(req StartRequest) (*Review, error) {
+	key := PRKey(req.Owner, req.Repo, req.PRNumber)
+	agents := normaliseAgents(req.Agents)
 
 	r.mu.Lock()
 	if existing, running := r.inFlight[key]; running {
@@ -76,15 +84,19 @@ func (r *Runner) Start(owner, repo string, prNumber int, agents []string) (*Revi
 		return nil, err
 	}
 
-	review := newReview(id, owner, repo, prNumber, agents)
+	review := newReview(id, req.Owner, req.Repo, req.PRNumber, agents)
+	if req.Base != nil {
+		review.seedFrom(req.Base, agents)
+	}
 	review.Status = StatusRunning
 	review.startStage("", StageFetch)
 	r.inFlight[key] = review
 	snapshot := review.clone()
+	sessionID := review.SessionID
 	r.mu.Unlock()
 
 	r.publish(key, snapshot)
-	go r.run(key, owner, repo, prNumber, agents)
+	go r.run(key, req.Owner, req.Repo, req.PRNumber, agents, sessionID)
 
 	return snapshot, nil
 }
@@ -106,7 +118,7 @@ func normaliseAgents(selected []string) []string {
 	return out
 }
 
-func (r *Runner) run(key, owner, repo string, prNumber int, agents []string) {
+func (r *Runner) run(key, owner, repo string, prNumber int, agents []string, sessionID int64) {
 	log := r.logger.With("owner", owner, "repo", repo, "pr", prNumber)
 	defer r.release(key)
 
@@ -143,7 +155,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string) {
 	defer handle.Release()
 	r.update(key, func(rv *Review) { rv.endStage("", StageCheckout, shortSHA(headSHA), nil) })
 
-	sess, concerns, err := r.reviewer.Review(r.ctx, reviewer.ReviewRequest{
+	out, err := r.reviewer.Review(r.ctx, reviewer.ReviewRequest{
 		Owner:        owner,
 		Repo:         repo,
 		PRNumber:     prNumber,
@@ -153,6 +165,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string) {
 		Diff:         string(diff),
 		CheckoutPath: handle.Path,
 		Agents:       agents,
+		SessionID:    sessionID,
 		StartedAt:    t,
 		Progress:     r.progressFor(key),
 	})
@@ -162,9 +175,10 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string) {
 			rv.finish(err)
 			return
 		}
-		rv.SessionID = sess.ID
-		rv.Summary = sess.Summary
-		rv.Concerns = toConcerns(concerns)
+		rv.SessionID = out.Session.ID
+		rv.Summary = out.Session.Summary
+		rv.Concerns = toConcerns(out.Concerns)
+		rv.mergeStoredAgents(out.Agents, r.path)
 		rv.finish(nil)
 	})
 
@@ -173,7 +187,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string) {
 		log.Error("orchestrator: review failed", "err", err)
 		return
 	}
-	log.Info("orchestrator: review complete", "concerns", len(concerns), "duration_ms", time.Since(t).Milliseconds())
+	log.Info("orchestrator: review complete", "concerns", len(out.Concerns), "duration_ms", time.Since(t).Milliseconds())
 }
 
 func (r *Runner) fetch(owner, repo string, prNumber int) (*github.PR, []byte, error) {
@@ -234,6 +248,10 @@ func (r *Runner) persistFailure(key string, cause error) {
 	}
 	review := r.InFlight(key)
 	if review == nil {
+		return
+	}
+	if review.SessionID != 0 {
+		r.logger.Warn("orchestrator: re-run failed, keeping stored review", "pr", key, "session_id", review.SessionID, "err", cause)
 		return
 	}
 	_, err := r.store.CreateReviewSession(r.ctx, store.NewReviewSession{

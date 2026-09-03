@@ -119,7 +119,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 	s.mux.HandleFunc("GET /api/reviews/history", s.handleReviewHistory)
 	s.mux.HandleFunc("GET /api/reviews/stream", s.handleReviewsStream)
+	s.mux.HandleFunc("GET /api/agents", s.handleListAgents)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}", s.handleReview)
+	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}/agent/{agent}", s.handleRerunAgent)
 	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}/stream", s.handleReviewStream)
 }
 

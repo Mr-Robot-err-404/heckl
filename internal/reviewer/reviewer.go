@@ -76,6 +76,7 @@ type ReviewRequest struct {
 	Diff         string
 	CheckoutPath string
 	Agents       []string
+	SessionID    int64
 	StartedAt    time.Time
 	Progress     Progress
 }
@@ -104,13 +105,20 @@ type reviewOutput struct {
 }
 
 type agentResult struct {
-	agent     string
-	sessionID string
-	out       reviewOutput
-	err       error
+	agent      string
+	sessionID  string
+	out        reviewOutput
+	durationMS int64
+	err        error
 }
 
-func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.ReviewSession, []*store.ReviewConcern, error) {
+type Result struct {
+	Session  *store.ReviewSession
+	Concerns []*store.ReviewConcern
+	Agents   []store.SessionAgent
+}
+
+func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*Result, error) {
 	log := slog.With("owner", req.Owner, "repo", req.Repo, "pr", req.PRNumber)
 	emit := req.Progress
 	if emit == nil {
@@ -134,8 +142,8 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	sortByAgentRank(results)
 
 	succeeded, failed := partition(results)
-	if len(succeeded) == 0 {
-		return nil, nil, firstError(failed)
+	if len(succeeded) == 0 && req.SessionID == 0 {
+		return nil, firstError(failed)
 	}
 	for _, res := range failed {
 		log.Warn("reviewer: agent failed, continuing", "agent", res.agent, "err", res.err)
@@ -151,25 +159,27 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 	}
 
 	emit(ProgressEvent{Stage: StageStore})
-	session, stored, err := r.persist(ctx, req, succeeded, concerns)
+	out, err := r.persist(ctx, req, results, concerns)
 	if err != nil {
 		emit(ProgressEvent{Stage: StageStore, Done: true, Err: err})
-		return nil, nil, err
+		return nil, err
 	}
 	emit(ProgressEvent{Stage: StageStore, Done: true})
 
-	log.Info("reviewer: review complete", "agents", len(succeeded), "failed", len(failed), "concerns", len(stored))
-	return session, stored, nil
+	log.Info("reviewer: review complete", "agents", len(succeeded), "failed", len(failed), "concerns", len(out.Concerns))
+	return out, nil
 }
 
 func (r *Reviewer) runAgent(req ReviewRequest, name string, emit Progress, parent *slog.Logger) agentResult {
 	log := parent.With("agent", name)
 	res := agentResult{agent: name}
+	began := time.Now()
 
 	fail := func(stage string, err error) agentResult {
 		emit(ProgressEvent{Agent: name, Stage: stage, Done: true, Err: err})
 		log.Error("reviewer: "+stage+" failed", "err", err)
 		res.err = err
+		res.durationMS = time.Since(began).Milliseconds()
 		return res
 	}
 
@@ -223,6 +233,7 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, emit Progress, paren
 	emit(ProgressEvent{Agent: name, Stage: StageParse, Done: true, Detail: concernCount(len(res.out.Concerns))})
 	log.Info("reviewer: parsed concerns", "count", len(res.out.Concerns))
 
+	res.durationMS = time.Since(began).Milliseconds()
 	return res
 }
 
@@ -231,25 +242,31 @@ func (r *Reviewer) persist(
 	req ReviewRequest,
 	results []agentResult,
 	concerns []Concern,
-) (*store.ReviewSession, []*store.ReviewConcern, error) {
-	session, err := r.store.CreateReviewSession(ctx, store.NewReviewSession{
-		Owner:             req.Owner,
-		Repo:              req.Repo,
-		PRNumber:          req.PRNumber,
-		HeadSHA:           req.HeadSHA,
-		OpencodeSessionID: primarySessionID(results),
-		Summary:           primarySummary(results),
-		Agents:            strings.Join(agentNames(results), ","),
-		Status:            store.ReviewStatusDone,
-		DurationMS:        req.elapsedMS(),
-	})
+) (*Result, error) {
+	session, err := r.session(ctx, req, results)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reviewer: store session: %w", err)
+		return nil, err
 	}
 
-	out := make([]*store.ReviewConcern, 0, len(concerns))
+	for _, res := range results {
+		if err := r.store.DeleteConcernsByAgent(ctx, session.ID, res.agent); err != nil {
+			return nil, fmt.Errorf("reviewer: clear concerns (%s): %w", res.agent, err)
+		}
+		if err := r.store.SaveSessionAgent(ctx, store.SessionAgent{
+			SessionID:         session.ID,
+			Name:              res.agent,
+			Status:            agentStatus(res),
+			Error:             errText(res.err),
+			Summary:           strings.TrimSpace(res.out.Summary),
+			OpencodeSessionID: res.sessionID,
+			DurationMS:        res.durationMS,
+		}); err != nil {
+			return nil, fmt.Errorf("reviewer: store agent (%s): %w", res.agent, err)
+		}
+	}
+
 	for _, c := range concerns {
-		stored, err := r.store.CreateConcern(ctx, store.NewConcern{
+		if _, err := r.store.CreateConcern(ctx, store.NewConcern{
 			SessionID: session.ID,
 			Agent:     c.Agent,
 			File:      c.File,
@@ -258,13 +275,80 @@ func (r *Reviewer) persist(
 			Severity:  c.Severity,
 			Title:     c.Title,
 			Body:      c.Body,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("reviewer: store concern: %w", err)
+		}); err != nil {
+			return nil, fmt.Errorf("reviewer: store concern: %w", err)
 		}
-		out = append(out, stored)
 	}
-	return session, out, nil
+
+	agents, err := r.store.ListSessionAgents(ctx, session.ID)
+	if err != nil {
+		return nil, fmt.Errorf("reviewer: read session agents: %w", err)
+	}
+	summary := summaryOf(agents)
+	if summary != session.Summary {
+		if err := r.store.SetReviewSessionSummary(ctx, session.ID, summary); err != nil {
+			return nil, fmt.Errorf("reviewer: update summary: %w", err)
+		}
+		session.Summary = summary
+	}
+
+	stored, err := r.store.ListConcerns(ctx, session.ID)
+	if err != nil {
+		return nil, fmt.Errorf("reviewer: read session concerns: %w", err)
+	}
+	return &Result{Session: session, Concerns: stored, Agents: agents}, nil
+}
+
+func (r *Reviewer) session(ctx context.Context, req ReviewRequest, results []agentResult) (*store.ReviewSession, error) {
+	if req.SessionID != 0 {
+		session, err := r.store.GetReviewSession(ctx, req.SessionID)
+		if err != nil {
+			return nil, fmt.Errorf("reviewer: load session %d: %w", req.SessionID, err)
+		}
+		return session, nil
+	}
+	session, err := r.store.CreateReviewSession(ctx, store.NewReviewSession{
+		Owner:             req.Owner,
+		Repo:              req.Repo,
+		PRNumber:          req.PRNumber,
+		HeadSHA:           req.HeadSHA,
+		OpencodeSessionID: primarySessionID(results),
+		Status:            store.ReviewStatusDone,
+		DurationMS:        req.elapsedMS(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("reviewer: store session: %w", err)
+	}
+	return session, nil
+}
+
+func agentStatus(res agentResult) string {
+	if res.err != nil {
+		return store.ReviewStatusError
+	}
+	return store.ReviewStatusDone
+}
+
+func errText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
+func summaryOf(agents []store.SessionAgent) string {
+	best := ""
+	rank := len(agentOrder) + 1
+	for _, a := range agents {
+		s := strings.TrimSpace(a.Summary)
+		if s == "" {
+			continue
+		}
+		if agentRank(a.Name) < rank {
+			best, rank = s, agentRank(a.Name)
+		}
+	}
+	return best
 }
 
 func sortByAgentRank(results []agentResult) {
@@ -293,23 +377,6 @@ func firstError(results []agentResult) error {
 		}
 	}
 	return nil
-}
-
-func agentNames(results []agentResult) []string {
-	names := make([]string, 0, len(results))
-	for _, res := range results {
-		names = append(names, res.agent)
-	}
-	return names
-}
-
-func primarySummary(results []agentResult) string {
-	for _, res := range results {
-		if s := strings.TrimSpace(res.out.Summary); s != "" {
-			return s
-		}
-	}
-	return ""
 }
 
 func primarySessionID(results []agentResult) string {
