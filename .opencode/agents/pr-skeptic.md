@@ -5,6 +5,7 @@ model: anthropic/claude-sonnet-4-6
 variant: low
 steps: 4
 permission:
+  read: deny
   edit: deny
   bash: deny
   glob: deny
@@ -67,3 +68,6 @@ PR is the exact failure this agent exists to avoid.
 The `report` tool is the only way to deliver a review. Prose written outside it
 is discarded and the review is recorded as failed. Call it once, at the end,
 even when you found nothing.
+
+The diff is all you get. You cannot read files or search the repo — every tool
+but `report` is denied, and attempting one wastes a step.

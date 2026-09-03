@@ -133,28 +133,32 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*store.Review
 
 	sortByAgentRank(results)
 
-	if err := firstError(results); err != nil {
-		return nil, nil, err
+	succeeded, failed := partition(results)
+	if len(succeeded) == 0 {
+		return nil, nil, firstError(failed)
+	}
+	for _, res := range failed {
+		log.Warn("reviewer: agent failed, continuing", "agent", res.agent, "err", res.err)
 	}
 
 	index := parseDiffIndex(req.Diff)
 	var concerns []Concern
-	for i := range results {
-		for _, c := range results[i].out.Concerns {
-			c.Agent = results[i].agent
+	for i := range succeeded {
+		for _, c := range succeeded[i].out.Concerns {
+			c.Agent = succeeded[i].agent
 			concerns = append(concerns, index.resolve(c))
 		}
 	}
 
 	emit(ProgressEvent{Stage: StageStore})
-	session, stored, err := r.persist(ctx, req, results, concerns)
+	session, stored, err := r.persist(ctx, req, succeeded, concerns)
 	if err != nil {
 		emit(ProgressEvent{Stage: StageStore, Done: true, Err: err})
 		return nil, nil, err
 	}
 	emit(ProgressEvent{Stage: StageStore, Done: true})
 
-	log.Info("reviewer: review complete", "agents", len(agents), "concerns", len(stored))
+	log.Info("reviewer: review complete", "agents", len(succeeded), "failed", len(failed), "concerns", len(stored))
 	return session, stored, nil
 }
 
@@ -194,16 +198,19 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, emit Progress, paren
 	if err != nil {
 		return fail(StagePrompt, fmt.Errorf("reviewer: prompt (%s): %w", name, err))
 	}
-	if msg.Info.HasError() {
-		return fail(StagePrompt, fmt.Errorf("reviewer: model error (%s): %s", name, string(msg.Info.Error)))
-	}
 	msgs, err := r.oc.Messages(sess.ID)
 	if err != nil {
 		return fail(StagePrompt, fmt.Errorf("reviewer: read session messages (%s): %w", name, err))
 	}
 	reported, ok := opencode.ToolInput(msgs, reportTool)
 	if !ok {
+		if msg.Info.HasError() {
+			return fail(StagePrompt, fmt.Errorf("reviewer: model error (%s): %s", name, string(msg.Info.Error)))
+		}
 		return fail(StagePrompt, fmt.Errorf("reviewer: %s never called the %s tool", name, reportTool))
+	}
+	if msg.Info.HasError() {
+		log.Warn("reviewer: model error after report delivered", "err", string(msg.Info.Error))
 	}
 	emit(ProgressEvent{Agent: name, Stage: StagePrompt, Done: true})
 	log.Info("reviewer: model responded", "duration_ms", time.Since(t).Milliseconds())
@@ -266,6 +273,17 @@ func sortByAgentRank(results []agentResult) {
 			results[j], results[j-1] = results[j-1], results[j]
 		}
 	}
+}
+
+func partition(results []agentResult) (succeeded, failed []agentResult) {
+	for _, res := range results {
+		if res.err != nil {
+			failed = append(failed, res)
+			continue
+		}
+		succeeded = append(succeeded, res)
+	}
+	return succeeded, failed
 }
 
 func firstError(results []agentResult) error {

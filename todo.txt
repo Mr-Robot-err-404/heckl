@@ -37,6 +37,7 @@ Agent integration
 [ ] Agent selection UI on the run button
 [ ] More siblings
 [ ] Per-agent summaries — currently only the first agent's is kept
-[ ] Partial success — one failing agent currently fails the whole review
+[x] Partial success — a failed agent no longer kills the review
+[ ] Rerun a single agent against an existing review
 [ ] Review latency — single-shot prompt, model free to wander. Re-measure first;
     old 60-100s figure was recorded while reviews ran as the wrong agent.
