@@ -1,4 +1,13 @@
-import type { PR, PRDetail, Repo, Review, ReviewHistoryPage, ReviewerThread } from "./types"
+import type {
+  AgentConfig,
+  AgentConfigPage,
+  PR,
+  PRDetail,
+  Repo,
+  Review,
+  ReviewHistoryPage,
+  ReviewerThread,
+} from "./types"
 
 const BASE = "/api"
 
@@ -11,6 +20,16 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(BASE + path, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`${res.status} ${path}`)
+  return res.json()
+}
+
+async function put<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(BASE + path, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   })
@@ -82,6 +101,8 @@ export const api = {
   },
   agents: {
     list: () => get<string[]>("/agents"),
+    config: () => get<AgentConfigPage>("/agents/config"),
+    save: (configs: AgentConfig[]) => put<AgentConfigPage>("/agents/config", configs),
   },
   review: {
     start: (owner: string, repo: string, number: number, agents: string[]) =>

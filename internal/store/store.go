@@ -51,6 +51,33 @@ func (s *Store) DeleteRepo(ctx context.Context, owner, name string) error {
 	return s.queries.DeleteRepo(ctx, DeleteRepoParams{Owner: owner, Name: name})
 }
 
+func (s *Store) ListAgentConfigs(ctx context.Context) (map[string]AgentConfig, error) {
+	rows, err := s.queries.ListAgents(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]AgentConfig, len(rows))
+	for _, r := range rows {
+		out[r.Name] = AgentConfig{Name: r.Name, Model: r.Model, Prompt: r.Prompt}
+	}
+	return out, nil
+}
+
+func (s *Store) SaveAgentConfigs(ctx context.Context, configs []AgentConfig) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	for _, c := range configs {
+		if _, err := s.queries.UpsertAgent(ctx, UpsertAgentParams{
+			Name:      c.Name,
+			Model:     c.Model,
+			Prompt:    c.Prompt,
+			UpdatedAt: now,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Store) CreateReviewSession(ctx context.Context, in NewReviewSession) (*ReviewSession, error) {
 	status := in.Status
 	if status == "" {

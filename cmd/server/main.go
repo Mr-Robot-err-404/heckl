@@ -57,7 +57,7 @@ func main() {
 	sessionPath := func(id string) string { return opencode.SessionPath(projectDir, id) }
 	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev, db, sessionPath)
 
-	srv := server.New(gh, db, orc)
+	srv := server.New(gh, db, oc, orc)
 
 	dist, err := fs.Sub(static, "dist")
 	if err != nil {

@@ -130,11 +130,16 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*Result, erro
 		agents = []string{AgentReviewer}
 	}
 
+	configs, err := r.store.ListAgentConfigs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("reviewer: load agent config: %w", err)
+	}
+
 	results := make([]agentResult, len(agents))
 	var wg sync.WaitGroup
 	for i, name := range agents {
 		wg.Go(func() {
-			results[i] = r.runAgent(req, name, emit, log)
+			results[i] = r.runAgent(req, name, configs[name], emit, log)
 		})
 	}
 	wg.Wait()
@@ -170,7 +175,7 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*Result, erro
 	return out, nil
 }
 
-func (r *Reviewer) runAgent(req ReviewRequest, name string, emit Progress, parent *slog.Logger) agentResult {
+func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfig, emit Progress, parent *slog.Logger) agentResult {
 	log := parent.With("agent", name)
 	res := agentResult{agent: name}
 	began := time.Now()
@@ -202,8 +207,10 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, emit Progress, paren
 	emit(ProgressEvent{Agent: name, Stage: StagePrompt})
 	t = time.Now()
 	msg, err := r.oc.Prompt(sess.ID, opencode.PromptRequest{
-		Agent: name,
-		Parts: []opencode.Part{{Type: "text", Text: prompt}},
+		Agent:  name,
+		Model:  opencode.ParseModel(cfg.Model),
+		System: strings.TrimSpace(cfg.Prompt),
+		Parts:  []opencode.Part{{Type: "text", Text: prompt}},
 	})
 	if err != nil {
 		return fail(StagePrompt, fmt.Errorf("reviewer: prompt (%s): %w", name, err))

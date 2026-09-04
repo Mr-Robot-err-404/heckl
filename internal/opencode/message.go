@@ -1,6 +1,9 @@
 package opencode
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strings"
+)
 
 type ModelRef struct {
 	ProviderID string `json:"providerID"`
@@ -63,8 +66,17 @@ func (m Message) HasError() bool {
 type PromptRequest struct {
 	Agent  string        `json:"agent,omitempty"`
 	Model  *ModelRef     `json:"model,omitempty"`
+	System string        `json:"system,omitempty"`
 	Parts  []Part        `json:"parts"`
 	Format *OutputFormat `json:"format,omitempty"`
+}
+
+func ParseModel(ref string) *ModelRef {
+	provider, model, ok := strings.Cut(strings.TrimSpace(ref), "/")
+	if !ok || provider == "" || model == "" {
+		return nil
+	}
+	return &ModelRef{ProviderID: provider, ModelID: model}
 }
 
 func TextPrompt(text string) PromptRequest {

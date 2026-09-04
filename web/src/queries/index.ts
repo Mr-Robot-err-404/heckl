@@ -34,6 +34,24 @@ export function useReposByOwner(owner: () => string) {
   }))
 }
 
+export const agentConfigKey = ["agents", "config"]
+
+export function useAgentConfig() {
+  return createQuery(() => ({
+    queryKey: agentConfigKey,
+    queryFn: api.agents.config,
+    staleTime: Infinity,
+  }))
+}
+
+export function useSaveAgentConfig() {
+  const client = useQueryClient()
+  return createMutation(() => ({
+    mutationFn: api.agents.save,
+    onSuccess: (page) => client.setQueryData(agentConfigKey, page),
+  }))
+}
+
 export function useAddRepo() {
   const client = useQueryClient()
   return createMutation(() => ({

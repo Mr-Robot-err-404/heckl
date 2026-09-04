@@ -155,3 +155,21 @@ export type Review = {
   startedAt: string
   endedAt?: string
 }
+
+export type AgentConfig = {
+  name: string
+  model: string
+  prompt: string
+  defaultModel: string
+}
+
+export type ModelOption = {
+  ref: string
+  name: string
+  provider: string
+}
+
+export type AgentConfigPage = {
+  agents: AgentConfig[]
+  models: ModelOption[]
+}

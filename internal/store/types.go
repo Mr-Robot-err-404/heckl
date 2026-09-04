@@ -41,6 +41,12 @@ type SessionAgent struct {
 	DurationMS        int64  `json:"durationMs"`
 }
 
+type AgentConfig struct {
+	Name   string `json:"name"`
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+}
+
 type RepoReviewSummary struct {
 	PRNumber     int    `json:"prNumber"`
 	Status       string `json:"status"`

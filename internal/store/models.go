@@ -8,6 +8,13 @@ import (
 	"database/sql"
 )
 
+type Agent struct {
+	Name      string
+	Model     string
+	Prompt    string
+	UpdatedAt string
+}
+
 type Concern struct {
 	ID        int64
 	SessionID int64

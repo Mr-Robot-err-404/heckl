@@ -75,6 +75,76 @@ func (s *Server) handleListAgents(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, reviewer.AgentOrder())
 }
 
+func (s *Server) handleAgentConfig(w http.ResponseWriter, r *http.Request) {
+	configs, err := s.agentConfigs(r.Context())
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	models, err := s.oc.Models()
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	jsonOK(w, map[string]any{"agents": configs, "models": models})
+}
+
+func (s *Server) handleSaveAgentConfig(w http.ResponseWriter, r *http.Request) {
+	var body []store.AgentConfig
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonError(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+
+	known := make(map[string]bool, len(reviewer.AgentOrder()))
+	for _, name := range reviewer.AgentOrder() {
+		known[name] = true
+	}
+	for _, c := range body {
+		if !known[c.Name] {
+			jsonError(w, "unknown agent: "+c.Name, http.StatusBadRequest)
+			return
+		}
+	}
+
+	if err := s.store.SaveAgentConfigs(r.Context(), body); err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.handleAgentConfig(w, r)
+}
+
+type agentConfigResponse struct {
+	store.AgentConfig
+	DefaultModel string `json:"defaultModel"`
+}
+
+func (s *Server) agentConfigs(ctx context.Context) ([]agentConfigResponse, error) {
+	stored, err := s.store.ListAgentConfigs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	defaults := map[string]string{}
+	agents, err := s.oc.Agents()
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range agents {
+		defaults[a.Name] = a.Model.Ref()
+	}
+
+	names := reviewer.AgentOrder()
+	out := make([]agentConfigResponse, 0, len(names))
+	for _, name := range names {
+		cfg := stored[name]
+		cfg.Name = name
+		out = append(out, agentConfigResponse{AgentConfig: cfg, DefaultModel: defaults[name]})
+	}
+	return out, nil
+}
+
 func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
 	owner := r.PathValue("owner")
 	repo := r.PathValue("repo")

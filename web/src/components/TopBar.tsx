@@ -2,6 +2,8 @@ import { createEffect, createSignal, For, Show } from "solid-js"
 import { useNavigate, useParams } from "@tanstack/solid-router"
 import { useAddRepo, useOrgs, useRepos, usePRDetail, usePrefetch, resolved, historyPageSize } from "../queries"
 import { useActiveReviews } from "../activeReviews"
+import { AgentConfigModal } from "./AgentConfigModal"
+import { BotIcon } from "./icons"
 
 export function TopBar() {
   const activeReviews = useActiveReviews()
@@ -13,6 +15,7 @@ export function TopBar() {
   const [input, setInput] = createSignal("")
   const [error, setError] = createSignal<string | null>(null)
   const [adding, setAdding] = createSignal(false)
+  const [configOpen, setConfigOpen] = createSignal(false)
 
   const params = useParams({ strict: false })
   const selectedKey = () => {
@@ -146,19 +149,27 @@ export function TopBar() {
       <Show when={detailData()} keyed>
         {(d) => <span class="topbar-pr-title">{d.pr.Title}</span>}
       </Show>
-      <Show when={detailData()} keyed>
-        {(d) => {
-          const additions = d.files.reduce((n, f) => n + f.Additions, 0)
-          const deletions = d.files.reduce((n, f) => n + f.Deletions, 0)
-          return (
-            <div class="topbar-right">
-              <span class="additions">+{additions}</span>
-              <span class="deletions">-{deletions}</span>
-              <span class="muted">{d.files.length} files</span>
-              <span class="muted">{d.pr.Author}</span>
-            </div>
-          )
-        }}
+      <div class="topbar-right">
+        <Show when={detailData()} keyed>
+          {(d) => {
+            const additions = d.files.reduce((n, f) => n + f.Additions, 0)
+            const deletions = d.files.reduce((n, f) => n + f.Deletions, 0)
+            return (
+              <>
+                <span class="additions">+{additions}</span>
+                <span class="deletions">-{deletions}</span>
+                <span class="muted">{d.files.length} files</span>
+                <span class="muted">{d.pr.Author}</span>
+              </>
+            )
+          }}
+        </Show>
+        <button class="topbar-btn topbar-config" title="agent config" onClick={() => setConfigOpen(true)}>
+          <BotIcon />
+        </button>
+      </div>
+      <Show when={configOpen()}>
+        <AgentConfigModal onClose={() => setConfigOpen(false)} />
       </Show>
     </header>
   )

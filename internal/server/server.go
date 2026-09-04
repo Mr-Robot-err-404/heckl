@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/github"
+	"github.com/harrylawton/pr-review/internal/opencode"
 	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/store"
 )
@@ -27,12 +28,13 @@ var allowedAssetProxyHosts = map[string]bool{
 type Server struct {
 	gh           *github.Client
 	store        *store.Store
+	oc           *opencode.Client
 	orchestrator *orchestrator.Orchestrator
 	mux          *http.ServeMux
 }
 
-func New(gh *github.Client, store *store.Store, orc *orchestrator.Orchestrator) *Server {
-	s := &Server{gh: gh, store: store, orchestrator: orc, mux: http.NewServeMux()}
+func New(gh *github.Client, store *store.Store, oc *opencode.Client, orc *orchestrator.Orchestrator) *Server {
+	s := &Server{gh: gh, store: store, oc: oc, orchestrator: orc, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -121,6 +123,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/reviews/history", s.handleReviewHistory)
 	s.mux.HandleFunc("GET /api/reviews/stream", s.handleReviewsStream)
 	s.mux.HandleFunc("GET /api/agents", s.handleListAgents)
+	s.mux.HandleFunc("GET /api/agents/config", s.handleAgentConfig)
+	s.mux.HandleFunc("PUT /api/agents/config", s.handleSaveAgentConfig)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}", s.handleReview)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}/agent/{agent}", s.handleRerunAgent)
 	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}/stream", s.handleReviewStream)
