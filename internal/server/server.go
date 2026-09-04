@@ -115,6 +115,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /api/repos/{owner}/{name}", s.handleDeleteRepo)
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}", s.handleListPRs)
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}/{number}", s.handleGetPR)
+	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}/{number}/comments", s.handlePRComments)
 	s.mux.HandleFunc("GET /api/diff/{owner}/{repo}/{number}", s.handleDiff)
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 	s.mux.HandleFunc("GET /api/reviews/history", s.handleReviewHistory)
@@ -149,6 +150,11 @@ type prResponse struct {
 type userResponse struct {
 	Login  string `json:"login"`
 	Avatar string `json:"avatar"`
+}
+
+type reviewerThreadResponse struct {
+	User  userResponse          `json:"user"`
+	Notes []github.ReviewerNote `json:"notes"`
 }
 
 func toUsers(in []github.User) []userResponse {
@@ -245,6 +251,61 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 
 		out = append(out, item)
 	}
+
+	jsonOK(w, out)
+}
+
+func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
+		return
+	}
+
+	start := time.Now()
+
+	var (
+		wg          sync.WaitGroup
+		reviews     []github.Review
+		reviewsErr  error
+		comments    []github.ReviewComment
+		commentsErr error
+		viewer      string
+	)
+	wg.Go(func() {
+		reviews, reviewsErr = s.gh.ListPRReviews(owner, repo, number)
+	})
+	wg.Go(func() {
+		comments, commentsErr = s.gh.ListPRReviewComments(owner, repo, number)
+	})
+	wg.Go(func() {
+		if login, err := s.gh.Viewer(); err == nil {
+			viewer = login
+		}
+	})
+	wg.Wait()
+
+	if commentsErr != nil {
+		slog.Error("github: list pr comments failed", "owner", owner, "repo", repo, "number", number, "err", commentsErr)
+		jsonError(w, commentsErr.Error(), http.StatusBadGateway)
+		return
+	}
+	if reviewsErr != nil {
+		slog.Warn("github: list pr reviews failed", "owner", owner, "repo", repo, "number", number, "err", reviewsErr)
+		reviews = nil
+	}
+
+	threads := github.GroupReviewerNotes(reviews, comments, viewer)
+	out := make([]reviewerThreadResponse, 0, len(threads))
+	for _, t := range threads {
+		out = append(out, reviewerThreadResponse{
+			User:  userResponse{Login: t.User.Login, Avatar: t.User.AvatarURL},
+			Notes: t.Notes,
+		})
+	}
+	slog.Debug("github: pr comments", "owner", owner, "repo", repo, "number", number, "reviewers", len(out), "duration_ms", time.Since(start).Milliseconds())
 
 	jsonOK(w, out)
 }

@@ -11,9 +11,25 @@ type User struct {
 }
 
 type Review struct {
+	ID          int64  `json:"id"`
 	User        User   `json:"user"`
 	State       string `json:"state"`
+	Body        string `json:"body"`
+	HTMLURL     string `json:"html_url"`
 	SubmittedAt string `json:"submitted_at"`
+}
+
+type ReviewComment struct {
+	ID           int64  `json:"id"`
+	User         User   `json:"user"`
+	Body         string `json:"body"`
+	Path         string `json:"path"`
+	Line         *int   `json:"line"`
+	OriginalLine *int   `json:"original_line"`
+	Side         string `json:"side"`
+	InReplyToID  int64  `json:"in_reply_to_id"`
+	HTMLURL      string `json:"html_url"`
+	CreatedAt    string `json:"created_at"`
 }
 
 type PRHead struct {

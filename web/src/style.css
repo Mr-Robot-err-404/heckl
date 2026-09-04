@@ -553,6 +553,87 @@ html, body, #root { height: 100%; }
 .agent-rerun:hover:not(:disabled) { color: var(--text); border-color: var(--overlay0); }
 .agent-rerun:disabled { color: var(--surface2); cursor: default; }
 
+.reviewer-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--surface0);
+}
+
+.reviewer-comments-head { display: flex; align-items: center; gap: 8px; }
+
+.reviewer-thread { border-left: 2px solid var(--surface1); }
+.reviewer-thread.open { border-left-color: var(--overlay0); }
+
+.reviewer-thread-head {
+  font: inherit;
+  font-size: 12px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0 4px 8px;
+  background: none;
+  border: 0;
+  color: var(--subtext0);
+  cursor: pointer;
+  text-align: left;
+}
+.reviewer-thread-head:hover { color: var(--text); }
+
+.reviewer-caret { color: var(--overlay0); font-size: 10px; }
+.reviewer-avatar { width: 16px; height: 16px; border-radius: 50%; }
+.reviewer-login { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reviewer-count {
+  font-size: 11px;
+  color: var(--overlay0);
+  font-variant-numeric: tabular-nums;
+}
+
+.reviewer-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reviewer-note { display: flex; flex-direction: column; gap: 3px; }
+
+.reviewer-note-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+
+.reviewer-note-loc {
+  font: inherit;
+  font-size: 11px;
+  color: var(--overlay1);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  word-break: break-all;
+}
+.reviewer-note-loc.link { color: var(--blue); cursor: pointer; }
+.reviewer-note-loc.link:hover { text-decoration: underline; }
+
+.reviewer-note-time { margin-left: auto; color: var(--overlay0); }
+.reviewer-reply { color: var(--overlay0); }
+
+.reviewer-state { text-transform: lowercase; color: var(--overlay1); }
+.reviewer-state.is-approved { color: var(--green); }
+.reviewer-state.is-changes_requested { color: var(--red); }
+
+.reviewer-note-body { font-size: 12px; line-height: 1.6; color: var(--subtext0); }
+.reviewer-note-body .markdown > *:first-child { margin-top: 0; }
+.reviewer-note-body .markdown > *:last-child { margin-bottom: 0; }
+
 .review-concerns { display: flex; flex-direction: column; gap: 10px; }
 
 .review-concern {

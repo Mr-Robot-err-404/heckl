@@ -1,4 +1,4 @@
-import type { PR, PRDetail, Repo, Review, ReviewHistoryPage } from "./types"
+import type { PR, PRDetail, Repo, Review, ReviewHistoryPage, ReviewerThread } from "./types"
 
 const BASE = "/api"
 
@@ -43,6 +43,8 @@ export const api = {
     list: (owner: string, repo: string) => get<PR[]>(`/prs/${owner}/${repo}`),
     get: (owner: string, repo: string, number: number) =>
       get<PRDetail>(`/prs/${owner}/${repo}/${number}`),
+    comments: (owner: string, repo: string, number: number) =>
+      get<ReviewerThread[]>(`/prs/${owner}/${repo}/${number}/comments`),
   },
   diff: {
     get: (owner: string, repo: string, number: number) =>

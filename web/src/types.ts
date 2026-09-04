@@ -97,6 +97,24 @@ export type ConcernTarget = {
   nonce: number
 }
 
+export type ReviewerNote = {
+  id: number
+  body: string
+  state?: string
+  file?: string
+  line?: number
+  side?: "additions" | "deletions"
+  outdated?: boolean
+  reply?: boolean
+  url?: string
+  createdAt: string
+}
+
+export type ReviewerThread = {
+  user: GitHubUser
+  notes: ReviewerNote[]
+}
+
 export type ReviewHistoryRow = {
   id: number
   owner: string

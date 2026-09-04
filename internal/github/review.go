@@ -30,6 +30,12 @@ func (c *Client) ListPRReviews(owner, repo string, number int) ([]Review, error)
 	return reviews, err
 }
 
+func (c *Client) ListPRReviewComments(owner, repo string, number int) ([]ReviewComment, error) {
+	var comments []ReviewComment
+	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls/%d/comments?per_page=100", owner, repo, number), &comments)
+	return comments, err
+}
+
 func (c *Client) ReviewsForPRs(owner, repo string, numbers []int) map[int][]Review {
 	out := make(map[int][]Review, len(numbers))
 

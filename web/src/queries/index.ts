@@ -84,6 +84,13 @@ export function prDetailOptions(owner: string, repo: string, number: number) {
   }
 }
 
+export function prCommentsOptions(owner: string, repo: string, number: number) {
+  return {
+    queryKey: ["pr-comments", owner, repo, number],
+    queryFn: () => api.prs.comments(owner, repo, number),
+  }
+}
+
 export function diffOptions(owner: string, repo: string, number: number) {
   return {
     queryKey: ["diff", owner, repo, number],
@@ -125,6 +132,17 @@ export function usePRDetail(
 ) {
   return createQuery(() => ({
     ...prDetailOptions(owner(), repo(), number() ?? 0),
+    enabled: !!owner() && !!repo() && number() != null,
+  }))
+}
+
+export function usePRComments(
+  owner: () => string,
+  repo: () => string,
+  number: () => number | null,
+) {
+  return createQuery(() => ({
+    ...prCommentsOptions(owner(), repo(), number() ?? 0),
     enabled: !!owner() && !!repo() && number() != null,
   }))
 }

@@ -1,12 +1,16 @@
 import { For, Show } from "solid-js"
 import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review"
-import type { RankedConcern } from "../types"
+import type { RankedConcern, ReviewerNote, ReviewerThread } from "../types"
 import { AgentPicker } from "./AgentPicker"
+import { ReviewerComments } from "./ReviewerComments"
 
 type Props = {
   state: ReviewState
   activeRank?: number
+  threads: ReviewerThread[]
+  threadsPending: boolean
   onFocusConcern: (concern: RankedConcern) => void
+  onFocusNote: (note: ReviewerNote) => void
   onOpenReview: () => void
 }
 
@@ -141,6 +145,12 @@ export function ReviewPanel(props: Props) {
           continue in opencode ↗
         </a>
       </Show>
+
+      <ReviewerComments
+        threads={props.threads}
+        pending={props.threadsPending}
+        onFocusNote={props.onFocusNote}
+      />
     </aside>
   )
 }
