@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,8 +23,38 @@ type tmuxPick struct {
 
 type tmuxSessionResponse struct {
 	Session string   `json:"session"`
+	Attach  string   `json:"attach"`
 	Opened  []string `json:"opened"`
 	Skipped []string `json:"skipped,omitempty"`
+}
+
+func requestHost(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		return r.Host
+	}
+	return host
+}
+
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func (s *Server) attachCommand(r *http.Request, session string) string {
+	attach := fmt.Sprintf("tmux attach -t '%s'", session)
+
+	host := requestHost(r)
+	if isLoopback(host) {
+		return attach
+	}
+	if s.remoteHost != "" {
+		host = s.remoteHost
+	}
+	return fmt.Sprintf("ssh -t %s %q", host, attach)
 }
 
 func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +137,7 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 	slog.Info("tmux session created", "session", name, "windows", len(windows), "skipped", len(skipped))
 	jsonOK(w, tmuxSessionResponse{
 		Session: name,
+		Attach:  s.attachCommand(r, name),
 		Opened:  opened,
 		Skipped: skipped,
 	})

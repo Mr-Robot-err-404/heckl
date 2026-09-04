@@ -1,22 +1,14 @@
 import { For, Show } from "solid-js"
-import type { TmuxPick, TmuxSession } from "../types"
+import type { TmuxPick } from "../types"
 import { CloseIcon } from "./icons"
 
 type Props = {
   picks: TmuxPick[]
   busy: boolean
   error: string
-  result: TmuxSession | null
   onRemove: (file: string) => void
   onConfirm: () => void
   onClose: () => void
-}
-
-function attachCommand(session: string) {
-  const attach = `tmux attach -t '${session}'`
-  const host = location.hostname
-  if (host === "localhost" || host === "127.0.0.1") return attach
-  return `ssh -t ${host} "${attach}"`
 }
 
 export function TmuxModal(props: Props) {
@@ -30,21 +22,7 @@ export function TmuxModal(props: Props) {
           </button>
         </div>
 
-        <Show
-          when={!props.result}
-          fallback={
-            <div class="modal-body">
-              <p class="muted">{props.result!.opened.length} window(s) open</p>
-              <code class="tmux-attach">{attachCommand(props.result!.session)}</code>
-              <Show when={props.result!.skipped?.length}>
-                <p class="tmux-skipped">
-                  not in this commit: {props.result!.skipped!.join(", ")}
-                </p>
-              </Show>
-            </div>
-          }
-        >
-          <div class="modal-body">
+        <div class="modal-body">
             <Show when={props.error}>
               <div class="review-error">{props.error}</div>
             </Show>
@@ -85,7 +63,6 @@ export function TmuxModal(props: Props) {
               {props.busy ? "creating..." : "create session"}
             </button>
           </div>
-        </Show>
       </div>
     </div>
   )

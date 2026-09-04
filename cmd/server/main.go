@@ -57,7 +57,12 @@ func main() {
 	sessionPath := func(id string) string { return opencode.SessionPath(projectDir, id) }
 	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev, db, sessionPath)
 
-	srv := server.New(gh, db, oc, orc, co)
+	remoteHost := strings.TrimSpace(os.Getenv("REMOTE_HOST"))
+	if remoteHost != "" {
+		slog.Info("remote host override set — non-local clients will ssh here", "host", remoteHost)
+	}
+
+	srv := server.New(gh, db, oc, orc, co, remoteHost)
 
 	dist, err := fs.Sub(static, "dist")
 	if err != nil {

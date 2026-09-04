@@ -34,11 +34,12 @@ type Server struct {
 	orchestrator *orchestrator.Orchestrator
 	checkout     *checkout.Manager
 	tmux         *tmux.Tmux
+	remoteHost   string
 	mux          *http.ServeMux
 }
 
-func New(gh *github.Client, store *store.Store, oc *opencode.Client, orc *orchestrator.Orchestrator, co *checkout.Manager) *Server {
-	s := &Server{gh: gh, store: store, oc: oc, orchestrator: orc, checkout: co, tmux: tmux.Init(), mux: http.NewServeMux()}
+func New(gh *github.Client, store *store.Store, oc *opencode.Client, orc *orchestrator.Orchestrator, co *checkout.Manager, remoteHost string) *Server {
+	s := &Server{gh: gh, store: store, oc: oc, orchestrator: orc, checkout: co, tmux: tmux.Init(), remoteHost: remoteHost, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }

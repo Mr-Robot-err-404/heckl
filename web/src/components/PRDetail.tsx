@@ -1,5 +1,6 @@
-import { createEffect, createSignal, For, Show } from "solid-js"
+import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 import { createStore, produce } from "solid-js/store"
+import { copyText } from "../clipboard"
 import { usePRComments, usePRDetail, usePrefetch, resolved } from "../queries"
 import { createReview } from "../review"
 import { DiffView } from "./diff/DiffView"
@@ -9,7 +10,7 @@ import { ReviewPanel } from "./ReviewPanel"
 import { ReviewPage } from "./ReviewPage"
 import { TmuxModal } from "./TmuxModal"
 import { api } from "../api"
-import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick, TmuxSession } from "../types"
+import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick } from "../types"
 
 type Props = {
   owner: string
@@ -47,8 +48,16 @@ export function PRDetail(props: Props) {
   const [picks, setPicks] = createStore<{ items: TmuxPick[] }>({ items: [] })
   const [tmuxOpen, setTmuxOpen] = createSignal(false)
   const [tmuxBusy, setTmuxBusy] = createSignal(false)
-  const [tmuxResult, setTmuxResult] = createSignal<TmuxSession | null>(null)
   const [tmuxError, setTmuxError] = createSignal("")
+  const [toast, setToast] = createSignal("")
+
+  let toastTimer: ReturnType<typeof setTimeout> | undefined
+  const flash = (message: string) => {
+    clearTimeout(toastTimer)
+    setToast(message)
+    toastTimer = setTimeout(() => setToast(""), 1400)
+  }
+  onCleanup(() => clearTimeout(toastTimer))
 
   const pickLine = (file: string, line: number) => {
     const i = picks.items.findIndex((p) => p.file === file)
@@ -70,7 +79,6 @@ export function PRDetail(props: Props) {
   }
 
   const openTmuxModal = () => {
-    setTmuxResult(null)
     setTmuxError("")
     setTmuxOpen(true)
   }
@@ -86,8 +94,11 @@ export function PRDetail(props: Props) {
         props.prNumber,
         picks.items.map((p) => ({ ...p })),
       )
-      setTmuxResult(result)
+      const copied = await copyText(result.attach)
       setPicks("items", [])
+      setTmuxOpen(false)
+      const skipped = result.skipped?.length ? ` · ${result.skipped.length} skipped` : ""
+      flash(copied ? `copied to clipboard${skipped}` : `${result.attach}${skipped}`)
     } catch (e) {
       setTmuxError(String(e))
     } finally {
@@ -202,11 +213,14 @@ export function PRDetail(props: Props) {
           picks={picks.items}
           busy={tmuxBusy()}
           error={tmuxError()}
-          result={tmuxResult()}
           onRemove={removePick}
           onConfirm={confirmTmux}
           onClose={() => setTmuxOpen(false)}
         />
+      </Show>
+
+      <Show when={toast()}>
+        <div class="toast">{toast()}</div>
       </Show>
     </div>
   )

@@ -1133,22 +1133,22 @@ html, body, #root { height: 100%; }
 }
 .tmux-pick-remove:hover { color: var(--red); }
 
-.tmux-attach {
-  display: block;
-  padding: 6px 8px;
-  border-radius: 3px;
+.toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  padding: 8px 12px;
+  border-radius: 4px;
   background: var(--surface0);
-  border: 1px solid var(--surface1);
+  border: 1px solid var(--green);
   color: var(--text);
   font-size: 12px;
-  user-select: all;
+  max-width: 420px;
+  overflow-wrap: anywhere;
 }
 
-.tmux-skipped {
-  font-size: 11px;
-  color: var(--yellow);
-  line-height: 1.5;
-}
+
 .pr-tab.active .pr-tab-badge { background: var(--green); }
 
 /* review tab — full synopsis */

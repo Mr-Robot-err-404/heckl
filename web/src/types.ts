@@ -181,6 +181,7 @@ export type TmuxPick = {
 
 export type TmuxSession = {
   session: string
+  attach: string
   opened: string[]
   skipped?: string[]
 }
