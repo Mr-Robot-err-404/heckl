@@ -7,6 +7,8 @@ import type {
   Review,
   ReviewHistoryPage,
   ReviewerThread,
+  TmuxPick,
+  TmuxSession,
 } from "./types"
 
 const BASE = "/api"
@@ -107,6 +109,10 @@ export const api = {
     list: () => get<string[]>("/agents"),
     config: () => get<AgentConfigPage>("/agents/config"),
     save: (configs: AgentConfig[]) => put<AgentConfigPage>("/agents/config", configs),
+  },
+  tmux: {
+    open: (owner: string, repo: string, number: number, files: TmuxPick[]) =>
+      post<TmuxSession>(`/tmux/${owner}/${repo}/${number}`, { files }),
   },
   review: {
     start: (owner: string, repo: string, number: number, agents: string[]) =>

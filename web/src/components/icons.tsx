@@ -37,3 +37,25 @@ export function BotIcon() {
     </svg>
   )
 }
+
+export function NvimIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M2.28 4.03 4.6 1.71a.75.75 0 0 1 1.28.53v9.9l1.4-1.4V2.24a.75.75 0 0 1 1.28-.53l2.32 2.32c.33.33.51.77.51 1.24v5.46c0 .47-.18.91-.51 1.24l-2.32 2.32a.75.75 0 0 1-1.28-.53v-1.24l-1.4 1.4v1.34a.75.75 0 0 1-1.28.53L2.28 13.5a1.75 1.75 0 0 1-.51-1.24V5.27c0-.47.18-.91.51-1.24Zm1.06 1.06a.25.25 0 0 0-.07.18v6.99c0 .07.03.13.07.18l1.04 1.04V4.05L3.34 5.09Z"
+      />
+    </svg>
+  )
+}
+
+export function CheckIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M13.78 4.22a.75.75 0 0 1 0 1.06l-6.5 6.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.97 2.97 5.97-5.97a.75.75 0 0 1 1.06 0Z"
+      />
+    </svg>
+  )
+}

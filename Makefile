@@ -1,4 +1,4 @@
-.PHONY: server build-server up down down-to redo status reset build dev vet test checkout opencode generate
+.PHONY: server build-server up down down-to redo status reset build dev vet test checkout opencode tmux generate
 
 vet:
 	go build ./...
@@ -40,6 +40,9 @@ checkout:
 
 opencode:
 	go run ./cmd/opencode $(ARGS)
+
+tmux:
+	go run ./cmd/tmux $(ARGS)
 
 dev:
 	cd web && npm run dev

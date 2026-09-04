@@ -173,3 +173,14 @@ export type AgentConfigPage = {
   agents: AgentConfig[]
   models: ModelOption[]
 }
+
+export type TmuxPick = {
+  file: string
+  line?: number
+}
+
+export type TmuxSession = {
+  session: string
+  opened: string[]
+  skipped?: string[]
+}

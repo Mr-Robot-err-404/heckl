@@ -289,6 +289,8 @@ html, body, #root { height: 100%; }
 .modal-narrow { width: min(360px, 90vw); }
 .modal-narrow .modal-body { gap: 6px; }
 
+.tmux-modal .modal-body { gap: 10px; }
+
 .theme-option {
   font: inherit;
   font-size: 12px;
@@ -1040,6 +1042,112 @@ html, body, #root { height: 100%; }
   background: var(--overlay1);
   border-radius: 8px;
   padding: 1px 5px;
+}
+
+.tmux-btn {
+  margin-left: auto;
+  margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--subtext0);
+  background: var(--surface0);
+  border: 1px solid var(--surface1);
+}
+.tmux-btn:hover {
+  color: var(--text);
+  background: var(--surface1);
+  border-color: var(--overlay0);
+}
+
+.tmux-btn.picked {
+  color: var(--base);
+  background: var(--green);
+  border-color: var(--green);
+}
+.tmux-btn.picked:hover {
+  background: var(--green);
+  border-color: var(--green);
+  filter: brightness(1.1);
+}
+
+.tmux-btn-count {
+  font-size: 10px;
+  border-radius: 8px;
+  padding: 1px 5px;
+  color: var(--base);
+  background: var(--overlay1);
+}
+.tmux-btn.picked .tmux-btn-count {
+  color: var(--green);
+  background: var(--base);
+}
+
+.tmux-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tmux-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  background: var(--surface0);
+}
+
+.tmux-pick-file {
+  flex: 1;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.tmux-pick-line {
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+
+.tmux-pick-remove {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--overlay1);
+  cursor: pointer;
+}
+.tmux-pick-remove:hover { color: var(--red); }
+
+.tmux-attach {
+  display: block;
+  padding: 6px 8px;
+  border-radius: 3px;
+  background: var(--surface0);
+  border: 1px solid var(--surface1);
+  color: var(--text);
+  font-size: 12px;
+  user-select: all;
+}
+
+.tmux-skipped {
+  font-size: 11px;
+  color: var(--yellow);
+  line-height: 1.5;
 }
 .pr-tab.active .pr-tab-badge { background: var(--green); }
 

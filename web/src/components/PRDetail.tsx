@@ -1,4 +1,5 @@
 import { createEffect, createSignal, For, Show } from "solid-js"
+import { createStore, produce } from "solid-js/store"
 import { usePRComments, usePRDetail, usePrefetch, resolved } from "../queries"
 import { createReview } from "../review"
 import { DiffView } from "./diff/DiffView"
@@ -6,7 +7,9 @@ import { Markdown } from "./Markdown"
 import { SkeletonLines } from "./Skeleton"
 import { ReviewPanel } from "./ReviewPanel"
 import { ReviewPage } from "./ReviewPage"
-import type { ConcernTarget, RankedConcern, ReviewerNote, Tab } from "../types"
+import { TmuxModal } from "./TmuxModal"
+import { api } from "../api"
+import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick, TmuxSession } from "../types"
 
 type Props = {
   owner: string
@@ -40,6 +43,57 @@ export function PRDetail(props: Props) {
   const [filesMounted, setFilesMounted] = createSignal(false)
   const [focus, setFocus] = createSignal<ConcernTarget | null>(null)
   const prefetch = usePrefetch()
+
+  const [picks, setPicks] = createStore<{ items: TmuxPick[] }>({ items: [] })
+  const [tmuxOpen, setTmuxOpen] = createSignal(false)
+  const [tmuxBusy, setTmuxBusy] = createSignal(false)
+  const [tmuxResult, setTmuxResult] = createSignal<TmuxSession | null>(null)
+  const [tmuxError, setTmuxError] = createSignal("")
+
+  const pickLine = (file: string, line: number) => {
+    const i = picks.items.findIndex((p) => p.file === file)
+    setPicks(
+      produce((s) => {
+        if (i === -1) s.items.push({ file, line })
+        else s.items[i].line = line
+      }),
+    )
+  }
+
+  const removePick = (file: string) => {
+    setPicks(
+      produce((s) => {
+        const i = s.items.findIndex((p) => p.file === file)
+        if (i !== -1) s.items.splice(i, 1)
+      }),
+    )
+  }
+
+  const openTmuxModal = () => {
+    setTmuxResult(null)
+    setTmuxError("")
+    setTmuxOpen(true)
+  }
+
+  const confirmTmux = async () => {
+    if (picks.items.length === 0) return
+    setTmuxBusy(true)
+    setTmuxError("")
+    try {
+      const result = await api.tmux.open(
+        props.owner,
+        props.repo,
+        props.prNumber,
+        picks.items.map((p) => ({ ...p })),
+      )
+      setTmuxResult(result)
+      setPicks("items", [])
+    } catch (e) {
+      setTmuxError(String(e))
+    } finally {
+      setTmuxBusy(false)
+    }
+  }
 
   createEffect(() => {
     if (props.tab === "files") setFilesMounted(true)
@@ -84,6 +138,17 @@ export function PRDetail(props: Props) {
             </button>
           )}
         </For>
+
+        <button
+          class={`tmux-btn ${picks.items.length > 0 ? "picked" : ""}`}
+          title="open selected lines in nvim"
+          onClick={openTmuxModal}
+        >
+          tmux
+          <Show when={picks.items.length > 0}>
+            <span class="tmux-btn-count">{picks.items.length}</span>
+          </Show>
+        </button>
       </div>
 
       <div class="pr-tab-content">
@@ -111,6 +176,7 @@ export function PRDetail(props: Props) {
                   repo={props.repo}
                   prNumber={props.prNumber}
                   focus={focus()}
+                  onPickLine={pickLine}
                 />
               </div>
               <ReviewPanel
@@ -130,6 +196,18 @@ export function PRDetail(props: Props) {
           <ReviewPage state={review} onFocusConcern={focusConcern} />
         </Show>
       </div>
+
+      <Show when={tmuxOpen()}>
+        <TmuxModal
+          picks={picks.items}
+          busy={tmuxBusy()}
+          error={tmuxError()}
+          result={tmuxResult()}
+          onRemove={removePick}
+          onConfirm={confirmTmux}
+          onClose={() => setTmuxOpen(false)}
+        />
+      </Show>
     </div>
   )
 }

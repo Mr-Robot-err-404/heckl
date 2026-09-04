@@ -13,10 +13,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/harrylawton/pr-review/internal/checkout"
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/opencode"
 	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/harrylawton/pr-review/internal/tmux"
 )
 
 var allowedAssetProxyHosts = map[string]bool{
@@ -30,11 +32,13 @@ type Server struct {
 	store        *store.Store
 	oc           *opencode.Client
 	orchestrator *orchestrator.Orchestrator
+	checkout     *checkout.Manager
+	tmux         *tmux.Tmux
 	mux          *http.ServeMux
 }
 
-func New(gh *github.Client, store *store.Store, oc *opencode.Client, orc *orchestrator.Orchestrator) *Server {
-	s := &Server{gh: gh, store: store, oc: oc, orchestrator: orc, mux: http.NewServeMux()}
+func New(gh *github.Client, store *store.Store, oc *opencode.Client, orc *orchestrator.Orchestrator, co *checkout.Manager) *Server {
+	s := &Server{gh: gh, store: store, oc: oc, orchestrator: orc, checkout: co, tmux: tmux.Init(), mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -130,6 +134,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}", s.handleReview)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}/agent/{agent}", s.handleRerunAgent)
 	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}/stream", s.handleReviewStream)
+	s.mux.HandleFunc("POST /api/tmux/{owner}/{repo}/{number}", s.handleTmuxSession)
 }
 
 type prResponse struct {

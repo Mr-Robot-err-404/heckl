@@ -11,6 +11,7 @@ type Props = {
   repo: string
   prNumber: number
   focus: ConcernTarget | null
+  onPickLine?: (file: string, line: number, side: "additions" | "deletions") => void
 }
 
 export function DiffView(props: Props) {
@@ -67,6 +68,14 @@ export function DiffView(props: Props) {
       lineDiffType: "word-alt",
       stickyHeaders: true,
       enableLineSelection: true,
+      onSelectedLinesChange: (selection) => {
+        if (!selection) return
+        props.onPickLine?.(
+          selection.id,
+          selection.range.start,
+          selection.range.side ?? "additions",
+        )
+      },
       layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
       unsafeCSS: "[data-change-icon] { display: none; }",
       renderHeaderPrefix: (fileDiff, context: unknown) =>
@@ -89,10 +98,13 @@ export function DiffView(props: Props) {
       view.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 })
     }
 
-    view.setSelectedLines({
-      id: target.file,
-      range: { start: target.line, end: target.line, side: target.side },
-    })
+    view.setSelectedLines(
+      {
+        id: target.file,
+        range: { start: target.line, end: target.line, side: target.side },
+      },
+      { notify: false },
+    )
     view.scrollTo({
       type: "line",
       id: target.file,
