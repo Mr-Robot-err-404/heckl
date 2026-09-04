@@ -1,0 +1,6 @@
+tmux new-session -d -s <name> -c <workdir>
+tmux list-sessions -F '#{session_name}'
+tmux has-session -t <name>
+tmux send-keys -t <name> '<cmd>' Enter
+tmux kill-session -t <name>
+tmux capture-pane -t <name> -p
