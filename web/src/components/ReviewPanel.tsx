@@ -1,18 +1,18 @@
-import { For, Show } from "solid-js"
-import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review"
-import type { RankedConcern, ReviewerNote, ReviewerThread } from "../types"
-import { AgentPicker } from "./AgentPicker"
-import { ReviewerComments } from "./ReviewerComments"
+import { For, Show } from "solid-js";
+import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review";
+import type { RankedConcern, ReviewerNote, ReviewerThread } from "../types";
+import { AgentPicker } from "./AgentPicker";
+import { ReviewerComments } from "./ReviewerComments";
 
 type Props = {
-  state: ReviewState
-  activeRank?: number
-  threads: ReviewerThread[]
-  threadsPending: boolean
-  onFocusConcern: (concern: RankedConcern) => void
-  onFocusNote: (note: ReviewerNote) => void
-  onOpenReview: () => void
-}
+  state: ReviewState;
+  activeRank?: number;
+  threads: ReviewerThread[];
+  threadsPending: boolean;
+  onFocusConcern: (concern: RankedConcern) => void;
+  onFocusNote: (note: ReviewerNote) => void;
+  onOpenReview: () => void;
+};
 
 const stageLabels: Record<string, string> = {
   fetch: "fetching pr",
@@ -21,19 +21,28 @@ const stageLabels: Record<string, string> = {
   prompt: "reviewing",
   parse: "reading result",
   store: "saving",
-}
+};
 
 export function ReviewPanel(props: Props) {
-  const s = () => props.state
-  const activeStage = () => s().review()?.stages.find((stage) => stage.status === "running")
-  const failedAgents = () => (s().review()?.agents ?? []).filter((a) => a.status === "error")
+  const s = () => props.state;
+  const activeStage = () =>
+    s()
+      .review()
+      ?.stages.find((stage) => stage.status === "running");
+  const failedAgents = () => (s().review()?.agents ?? []).filter((a) => a.status === "error");
 
   return (
     <aside class="review-panel">
       <div class="review-panel-head">
         <span class="review-panel-title">agent review</span>
         <button class="review-run" onClick={() => s().start()} disabled={!s().canRun()}>
-          {!s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"}
+          {!s().synced()
+            ? "connecting..."
+            : s().busy()
+              ? "reviewing..."
+              : s().review()
+                ? "re-run"
+                : "run"}
         </button>
       </div>
 
@@ -71,8 +80,9 @@ export function ReviewPanel(props: Props) {
                 <span class="review-stage-detail">
                   {agent.status === "error"
                     ? "failed"
-                    : (stageLabels[agent.stages.find((st) => st.status === "running")?.name ?? ""] ??
-                      "")}
+                    : (stageLabels[
+                        agent.stages.find((st) => st.status === "running")?.name ?? ""
+                      ] ?? "")}
                 </span>
                 <Show when={agent.opencodeSessionPath}>
                   <a
@@ -130,9 +140,6 @@ export function ReviewPanel(props: Props) {
             </For>
           </ul>
         </Show>
-        <button class="review-open" onClick={props.onOpenReview}>
-          full review →
-        </button>
       </Show>
 
       <Show when={s().review()?.opencodeSessionPath}>
@@ -152,15 +159,11 @@ export function ReviewPanel(props: Props) {
         onFocusNote={props.onFocusNote}
       />
     </aside>
-  )
+  );
 }
 
-function ConcernRow(props: {
-  concern: RankedConcern
-  active: boolean
-  onFocus: () => void
-}) {
-  const locatable = () => props.concern.line != null && props.concern.side != null
+function ConcernRow(props: { concern: RankedConcern; active: boolean; onFocus: () => void }) {
+  const locatable = () => props.concern.line != null && props.concern.side != null;
 
   return (
     <li
@@ -176,5 +179,5 @@ function ConcernRow(props: {
         </Show>
       </span>
     </li>
-  )
+  );
 }
