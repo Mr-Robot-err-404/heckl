@@ -4,6 +4,7 @@ import { useDiff, resolved } from "../../queries"
 import { SkeletonDiff } from "../Skeleton"
 import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
 import type { ConcernTarget } from "../../types"
+import { theme } from "../../theme"
 
 type Props = {
   owner: string
@@ -43,6 +44,7 @@ export function DiffView(props: Props) {
 
   createEffect(() => {
     const patch = patchData()
+    const shiki = theme().shiki
     if (!patch) return
 
     const items: CodeViewItem[] = parsePatchFiles(
@@ -58,7 +60,7 @@ export function DiffView(props: Props) {
 
     view?.cleanUp()
     view = new CodeView({
-      theme: "gruvbox-dark-medium",
+      theme: shiki,
       hunkSeparators: "line-info",
       diffStyle: "unified",
       diffIndicators: "bars",

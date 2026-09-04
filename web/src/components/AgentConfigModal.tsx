@@ -3,6 +3,7 @@ import { createStore, unwrap } from "solid-js/store"
 import { agentLabel } from "../review"
 import { resolved, useAgentConfig, useSaveAgentConfig } from "../queries"
 import type { AgentConfig, ModelOption } from "../types"
+import { CloseIcon } from "./icons"
 
 export function AgentConfigModal(props: { onClose: () => void }) {
   const config = useAgentConfig()
@@ -38,8 +39,8 @@ export function AgentConfigModal(props: { onClose: () => void }) {
       <div class="modal" onClick={(e) => e.stopPropagation()}>
         <div class="modal-head">
           <span class="review-panel-title">agent config</span>
-          <button class="topbar-btn" onClick={props.onClose}>
-            close
+          <button class="modal-close" title="close" onClick={props.onClose}>
+            <CloseIcon />
           </button>
         </div>
 

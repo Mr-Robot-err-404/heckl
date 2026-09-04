@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "@tanstack/solid-router"
 import { useAddRepo, useOrgs, useRepos, usePRDetail, usePrefetch, resolved, historyPageSize } from "../queries"
 import { useActiveReviews } from "../activeReviews"
 import { AgentConfigModal } from "./AgentConfigModal"
-import { BotIcon } from "./icons"
+import { BotIcon, PaletteIcon } from "./icons"
+import { ThemeModal } from "./ThemeModal"
 
 export function TopBar() {
   const activeReviews = useActiveReviews()
@@ -16,6 +17,7 @@ export function TopBar() {
   const [error, setError] = createSignal<string | null>(null)
   const [adding, setAdding] = createSignal(false)
   const [configOpen, setConfigOpen] = createSignal(false)
+  const [themeOpen, setThemeOpen] = createSignal(false)
 
   const params = useParams({ strict: false })
   const selectedKey = () => {
@@ -164,12 +166,18 @@ export function TopBar() {
             )
           }}
         </Show>
+        <button class="topbar-btn topbar-config" title="theme" onClick={() => setThemeOpen(true)}>
+          <PaletteIcon />
+        </button>
         <button class="topbar-btn topbar-config" title="agent config" onClick={() => setConfigOpen(true)}>
           <BotIcon />
         </button>
       </div>
       <Show when={configOpen()}>
         <AgentConfigModal onClose={() => setConfigOpen(false)} />
+      </Show>
+      <Show when={themeOpen()}>
+        <ThemeModal onClose={() => setThemeOpen(false)} />
       </Show>
     </header>
   )

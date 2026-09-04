@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"time"
 
@@ -49,6 +50,24 @@ func (s *Store) ListOrgs(ctx context.Context) ([]string, error) {
 
 func (s *Store) DeleteRepo(ctx context.Context, owner, name string) error {
 	return s.queries.DeleteRepo(ctx, DeleteRepoParams{Owner: owner, Name: name})
+}
+
+func (s *Store) GetTheme(ctx context.Context) (string, error) {
+	name, err := s.queries.GetTheme(ctx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func (s *Store) SetTheme(ctx context.Context, name string) error {
+	return s.queries.SetTheme(ctx, SetThemeParams{
+		Name:      name,
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+	})
 }
 
 func (s *Store) ListAgentConfigs(ctx context.Context) (map[string]AgentConfig, error) {

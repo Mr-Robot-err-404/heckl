@@ -60,3 +60,9 @@ type ReviewAgent struct {
 	DurationMs        int64
 	CreatedAt         string
 }
+
+type Theme struct {
+	ID        int64
+	Name      string
+	UpdatedAt string
+}

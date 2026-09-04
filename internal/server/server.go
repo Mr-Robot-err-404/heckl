@@ -122,6 +122,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 	s.mux.HandleFunc("GET /api/reviews/history", s.handleReviewHistory)
 	s.mux.HandleFunc("GET /api/reviews/stream", s.handleReviewsStream)
+	s.mux.HandleFunc("GET /api/theme", s.handleGetTheme)
+	s.mux.HandleFunc("PUT /api/theme", s.handleSetTheme)
 	s.mux.HandleFunc("GET /api/agents", s.handleListAgents)
 	s.mux.HandleFunc("GET /api/agents/config", s.handleAgentConfig)
 	s.mux.HandleFunc("PUT /api/agents/config", s.handleSaveAgentConfig)

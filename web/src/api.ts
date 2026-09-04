@@ -99,6 +99,10 @@ export const api = {
       return () => source.close()
     },
   },
+  theme: {
+    get: () => get<{ theme: string; available: string[] }>("/theme"),
+    set: (theme: string) => put<{ theme: string }>("/theme", { theme }),
+  },
   agents: {
     list: () => get<string[]>("/agents"),
     config: () => get<AgentConfigPage>("/agents/config"),
