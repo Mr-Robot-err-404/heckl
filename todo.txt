@@ -20,6 +20,12 @@ Infra / misc
 -------------
 [x] Colour and clean server logs
 [ ] Cost controls — steps cap, swappable model config
+[ ] Reap worktrees — data/worktrees/{owner}/{repo}/{pr}-{sha} grows forever,
+    one full checkout per PR head reviewed. Needs a sweep: keep the last N per
+    repo, `os.RemoveAll` then `git worktree prune` (prune alone only drops
+    records, it does not delete directories). Must skip any tree with a live
+    tmux session — `tmux.HasSession` — or it reintroduces the exact bug
+    worktrees were added to fix.
 
 
 Agent integration
@@ -50,6 +56,11 @@ Agent integration
 [ ] Restore read for pr-reviewer once sessions are scoped — the diff alone is
     often not enough context
 [ ] Per-agent file selection — pick which files of the diff an agent sees
+[x] tmux review sessions — select lines in the diff, one `nvim +line file`
+    window per file in an isolated worktree
+[ ] Route buildCopyPathButton through clipboard.copyText — raw
+    navigator.clipboard is undefined over http on a non-localhost host, so the
+    diff header copy button silently does nothing over Tailscale
 [ ] Agent selection isn't persisted — toggles reset on reload/navigation
 [ ] Review latency — single-shot prompt, model free to wander. Re-measure first;
     old 60-100s figure was recorded while reviews ran as the wrong agent.

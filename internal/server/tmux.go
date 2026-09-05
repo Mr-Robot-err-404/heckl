@@ -93,13 +93,12 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handle, err := s.checkout.Acquire(r.Context(), owner, repo, number, pr.HeadSHA())
+	worktree, err := s.checkout.Worktree(r.Context(), owner, repo, number, pr.HeadSHA())
 	if err != nil {
 		slog.Error("tmux: checkout failed", "owner", owner, "repo", repo, "pr", number, "err", err)
 		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer handle.Release()
 
 	var windows []tmux.Window
 	var opened, skipped []string
@@ -109,7 +108,7 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 			skipped = append(skipped, p.File)
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(handle.Path, path)); err != nil {
+		if _, err := os.Stat(filepath.Join(worktree, path)); err != nil {
 			skipped = append(skipped, p.File)
 			continue
 		}
@@ -128,7 +127,7 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := s.tmux.CreateSession(r.Context(), name, handle.Path, windows); err != nil {
+	if err := s.tmux.CreateSession(r.Context(), name, worktree, windows); err != nil {
 		slog.Error("tmux: create session failed", "session", name, "err", err)
 		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return

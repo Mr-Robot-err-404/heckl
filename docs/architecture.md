@@ -228,17 +228,42 @@ and history invalidation on completion — one connection, three consumers.
 Paging avoids `COUNT(*)`: the handler asks for `limit+1` rows and reports
 `hasMore` from the overflow.
 
-## Checkout, not worktrees
+## Checkout — one worktree per (PR, head sha)
 
-One plain clone per repo at `data/repos/{owner}/{repo}`, created with
-`--filter=blob:none --no-checkout` so the first clone is cheap and blobs
-are fetched lazily for the shas actually reviewed.
+One clone per repo at `data/repos/{owner}/{repo}`, created with
+`--filter=blob:none --no-checkout` so the first clone is cheap and blobs are
+fetched lazily. It is an object store, not a working tree — nothing is ever
+checked out into it.
 
-`Acquire` takes a per-repo lock and returns a `Handle`; the caller holds it
-for the whole review and `Release()`s on defer. This serialises reviews of
-two PRs in the same repo — acceptable for a single user, and the tradeoff
-for deleting the entire worktree bookkeeping layer. Reviews are read-only,
-so there is nothing a worktree bought us.
+Working trees live at `data/worktrees/{owner}/{repo}/{pr}-{sha:12}`, one per
+PR head, created with `git worktree add --detach`.
+
+This replaced a single shared checkout per repo that every review
+force-checked-out. That was safe only while reviews were the sole consumer
+and the per-repo lock was held for the whole review. **tmux sessions broke
+that invariant**: the session outlives the request that created it, so a
+later `checkout --force` would swap the tree under open nvim buffers —
+silently, because nvim doesn't reread on disk change. Writing then put one
+PR's content into another PR's tree, and `--force` discarded any edits
+outright.
+
+Keying by sha rather than by PR is what makes it safe: a new push produces a
+new directory, so a session on the old sha is never disturbed. Re-reviewing
+the same sha reuses the same tree, which is correct — nothing changed.
+
+`Worktree()` holds the per-repo lock only while shared state is mutated —
+clone, fetch, worktree registry — and releases before returning. Reviews of
+different PRs in the same repo now run in parallel; previously they
+serialised.
+
+**The registry and the filesystem are reconciled before either is trusted.**
+`git worktree prune` runs before every `add`, because a directory removed
+without a prune leaves a record behind and every later `add` at that path
+fails with "missing but already registered". A directory that exists but
+whose `rev-parse HEAD` doesn't match the expected sha is torn down and
+rebuilt rather than reused.
+
+Worktrees are never reaped. See `todo.txt`.
 
 ## Verification
 

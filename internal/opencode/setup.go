@@ -2,6 +2,7 @@ package opencode
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"os/exec"
@@ -20,11 +21,13 @@ func Setup(baseURL, projectDir string) (*Client, error) {
 	}
 
 	c := New(baseURL)
-	if healthy, _, err := c.Health(); err == nil && healthy {
+	if healthy, version, err := c.Health(); err == nil && healthy {
+		slog.Info("opencode already running", "url", c.baseURL, "version", version)
 		return c, nil
 	}
 
-	if err := spawnServer(baseURL, projectDir); err != nil {
+	slog.Info("opencode not responding — spawning", "url", c.baseURL, "dir", projectDir)
+	if err := spawnServer(c.baseURL, projectDir); err != nil {
 		return nil, fmt.Errorf("opencode: setup: spawn server: %w", err)
 	}
 
@@ -32,6 +35,8 @@ func Setup(baseURL, projectDir string) (*Client, error) {
 		return nil, fmt.Errorf("opencode: setup: %w", err)
 	}
 
+	_, version, _ := c.Health()
+	slog.Info("opencode ready", "url", c.baseURL, "version", version)
 	return c, nil
 }
 
@@ -54,6 +59,7 @@ func spawnServer(baseURL, projectDir string) error {
 
 	cmd := exec.Command("opencode", "serve", "--port", port)
 	cmd.Dir = projectDir
+	cmd.Stderr = os.Stderr
 	return cmd.Start()
 }
 

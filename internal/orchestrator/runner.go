@@ -142,7 +142,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string, ses
 	log.Info("orchestrator: pr fetched", "head_sha", headSHA, "diff_bytes", len(diff), "duration_ms", time.Since(t).Milliseconds())
 
 	r.update(key, func(rv *Review) { rv.startStage("", StageCheckout) })
-	handle, err := r.reviewer.Checkout().Acquire(r.ctx, owner, repo, prNumber, headSHA)
+	worktree, err := r.reviewer.Checkout().Worktree(r.ctx, owner, repo, prNumber, headSHA)
 	if err != nil {
 		r.update(key, func(rv *Review) {
 			rv.endStage("", StageCheckout, "", err)
@@ -152,7 +152,6 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string, ses
 		log.Error("orchestrator: checkout failed", "err", err)
 		return
 	}
-	defer handle.Release()
 	r.update(key, func(rv *Review) { rv.endStage("", StageCheckout, shortSHA(headSHA), nil) })
 
 	out, err := r.reviewer.Review(r.ctx, reviewer.ReviewRequest{
@@ -163,7 +162,7 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string, ses
 		Title:        pr.Title,
 		Body:         pr.Body,
 		Diff:         string(diff),
-		CheckoutPath: handle.Path,
+		CheckoutPath: worktree,
 		Agents:       agents,
 		SessionID:    sessionID,
 		StartedAt:    t,

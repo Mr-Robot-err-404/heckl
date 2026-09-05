@@ -33,12 +33,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	handle, err := checkout.New(*stateDir).Acquire(context.Background(), owner, repo, prNumber, args[2])
+	worktree, err := checkout.New(*stateDir).Worktree(context.Background(), owner, repo, prNumber, args[2])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-	defer handle.Release()
 
-	fmt.Println(handle.Path)
+	fmt.Println(worktree)
 }

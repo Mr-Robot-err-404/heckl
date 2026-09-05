@@ -2,6 +2,7 @@ package opencode
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -63,11 +64,35 @@ func (c *Client) decode(method, path string, body, out any) error {
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
+const healthTimeout = 3 * time.Second
+
+// Health uses its own short deadline. The shared client's timeout is sized for
+// prompts, which legitimately run for minutes — applying that to a liveness
+// probe turns "opencode is still booting" into a five-minute silent stall.
 func (c *Client) Health() (healthy bool, version string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), healthTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/global/health", nil)
+	if err != nil {
+		return false, "", err
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return false, "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return false, "", fmt.Errorf("opencode: health returned %d", resp.StatusCode)
+	}
+
 	var res struct {
 		Healthy bool   `json:"healthy"`
 		Version string `json:"version"`
 	}
-	err = c.decode("GET", "/global/health", nil, &res)
-	return res.Healthy, res.Version, err
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return false, "", err
+	}
+	return res.Healthy, res.Version, nil
 }
