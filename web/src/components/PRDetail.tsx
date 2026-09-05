@@ -16,7 +16,7 @@ import { SkeletonLines } from "./Skeleton"
 import { ReviewPanel } from "./ReviewPanel"
 import { ReviewPage } from "./ReviewPage"
 import { TmuxModal } from "./TmuxModal"
-import { api } from "../api"
+import { api, errText } from "../api"
 import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick } from "../types"
 
 type Props = {
@@ -65,6 +65,12 @@ export function PRDetail(props: Props) {
   )
   const live = () => (tmuxSession.isSuccess ? (tmuxSession.data ?? null) : null)
 
+  const tmuxBadge = () => {
+    if (picks.items.length > 0) return { kind: "picked", count: picks.items.length }
+    if (live()) return { kind: "live", count: live()!.windows }
+    return { kind: "", count: 0 }
+  }
+
   const pickLine = (file: string, line: number, side: "additions" | "deletions") => {
     const pinned = side === "deletions" ? undefined : line
     const i = picks.items.findIndex((p) => p.file === file)
@@ -106,7 +112,7 @@ export function PRDetail(props: Props) {
         queryKey: tmuxSessionKey(props.owner, props.repo, props.prNumber),
       })
     } catch (e) {
-      setTmuxError(String(e))
+      setTmuxError(errText(e))
     } finally {
       setTmuxBusy(false)
     }
@@ -116,10 +122,8 @@ export function PRDetail(props: Props) {
     if (props.tab === "files") setFilesMounted(true)
   })
 
-  let nonce = 0
   const focusLine = (file: string, line: number, side: "additions" | "deletions", rank: number) => {
-    nonce += 1
-    setFocus({ file, line, side, rank, nonce })
+    setFocus({ file, line, side, rank })
     prefetch.diff(props.owner, props.repo, props.prNumber)
     props.onTabChange("files")
   }
@@ -157,13 +161,13 @@ export function PRDetail(props: Props) {
         </For>
 
         <button
-          class={`tmux-btn ${picks.items.length > 0 ? "picked" : live() ? "live" : ""}`}
+          class={`tmux-btn ${tmuxBadge().kind}`}
           title={live() ? "tmux session active" : "open selected lines in nvim"}
           onClick={openTmuxModal}
         >
           tmux
-          <Show when={picks.items.length > 0} fallback={<Show when={live()}><span class="tmux-btn-count">{live()!.windows}</span></Show>}>
-            <span class="tmux-btn-count">{picks.items.length}</span>
+          <Show when={tmuxBadge().count}>
+            <span class="tmux-btn-count">{tmuxBadge().count}</span>
           </Show>
         </button>
       </div>
@@ -194,6 +198,7 @@ export function PRDetail(props: Props) {
                   prNumber={props.prNumber}
                   focus={focus()}
                   onPickLine={pickLine}
+                  onUnpickLine={removePick}
                 />
               </div>
               <ReviewPanel
@@ -203,7 +208,6 @@ export function PRDetail(props: Props) {
                 threadsPending={comments.isPending}
                 onFocusConcern={focusConcern}
                 onFocusNote={focusNote}
-                onOpenReview={() => props.onTabChange("review")}
               />
             </div>
           </div>

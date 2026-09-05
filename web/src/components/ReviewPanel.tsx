@@ -11,7 +11,6 @@ type Props = {
   threadsPending: boolean;
   onFocusConcern: (concern: RankedConcern) => void;
   onFocusNote: (note: ReviewerNote) => void;
-  onOpenReview: () => void;
 };
 
 const stageLabels: Record<string, string> = {
@@ -170,7 +169,6 @@ function ConcernRow(props: { concern: RankedConcern; active: boolean; onFocus: (
       class={`concern-row sev-${props.concern.severity} ${props.active ? "active" : ""} ${locatable() ? "locatable" : ""}`}
       onClick={() => locatable() && props.onFocus()}
     >
-      <span class="concern-rank" />
       <span class="concern-row-title">{props.concern.title}</span>
       <span class="concern-row-file">
         {fileName(props.concern.file)}

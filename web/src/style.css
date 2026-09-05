@@ -380,12 +380,6 @@ html, body, #root { height: 100%; }
 
 .agent-config-prompt:focus { border-color: var(--green); }
 
-.topbar-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .repo-select {
   background: var(--surface0);
   border: 1px solid var(--surface2);
@@ -555,15 +549,6 @@ html, body, #root { height: 100%; }
   overflow: hidden;
 }
 
-.pr-detail-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .additions { color: var(--green); }
 .deletions { color: var(--red); }
 
@@ -604,8 +589,6 @@ html, body, #root { height: 100%; }
   overflow-y: auto;
   height: 100%;
 }
-
-.pr-body { font-size: 13px; color: var(--subtext1); line-height: 1.7; }
 
 .diffview-host { flex: 1; overflow: auto; height: 100%; }
 
@@ -791,14 +774,6 @@ html, body, #root { height: 100%; }
   font-variant-numeric: tabular-nums;
 }
 
-.review-summary {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--subtext1);
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--surface0);
-}
-
 .review-clear { font-size: 12px; color: var(--green); }
 .review-failed { font-size: 12px; color: var(--red); }
 .review-stage-failed { font-size: 11px; color: var(--red); }
@@ -913,8 +888,6 @@ html, body, #root { height: 100%; }
 .reviewer-note-body .markdown > *:first-child { margin-top: 0; }
 .reviewer-note-body .markdown > *:last-child { margin-bottom: 0; }
 
-.review-concerns { display: flex; flex-direction: column; gap: 10px; }
-
 .review-concern {
   border-left: 2px solid var(--surface2);
   padding-left: 10px;
@@ -975,19 +948,21 @@ html, body, #root { height: 100%; }
 
 .concern-row {
   display: grid;
-  grid-template-columns: 15px minmax(0, 1fr);
-  column-gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
   row-gap: 2px;
-  padding: 7px 6px;
+  padding: 7px 6px 7px 10px;
   margin: 0 -6px;
   border-radius: 3px;
+  border-left: 2px solid var(--overlay1);
   border-bottom: 1px solid var(--surface0);
 }
+.concern-row.sev-high { border-left-color: var(--red); }
+.concern-row.sev-medium { border-left-color: var(--yellow); }
+.concern-row.sev-low { border-left-color: var(--blue); }
 .concern-row:last-child { border-bottom: none; }
 
 
 .concern-row-title {
-  grid-column: 2;
   font-size: 12px;
   color: var(--text);
   line-height: 1.4;
@@ -1000,7 +975,6 @@ html, body, #root { height: 100%; }
 }
 
 .concern-row-file {
-  grid-column: 2;
   font-size: 10px;
   color: var(--overlay1);
   overflow-wrap: anywhere;
@@ -1276,20 +1250,7 @@ html, body, #root { height: 100%; }
 .review-findings .review-concern-title { font-size: 13px; }
 .review-findings .review-concern-body { font-size: 13px; line-height: 1.7; }
 
-/* concern severity mark + linking */
-
-.concern-rank {
-  grid-column: 1;
-  grid-row: 1;
-  width: 15px;
-  height: 15px;
-  border-radius: 3px;
-  background: var(--overlay1);
-  flex-shrink: 0;
-}
-.sev-high > .concern-rank { background: var(--red); }
-.sev-medium > .concern-rank { background: var(--yellow); }
-.sev-low > .concern-rank { background: var(--blue); }
+/* concern linking */
 
 .concern-row.locatable { cursor: pointer; }
 .concern-row.locatable:hover { background: var(--surface0); }
@@ -1298,7 +1259,6 @@ html, body, #root { height: 100%; }
 
 .concern-unpinned { color: var(--overlay0); }
 
-.review-concern-head { align-items: center; }
 .review-findings .review-concern-title { flex: 1; }
 
 button.review-concern-loc {

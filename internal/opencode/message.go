@@ -79,10 +79,6 @@ func ParseModel(ref string) *ModelRef {
 	return &ModelRef{ProviderID: provider, ModelID: model}
 }
 
-func TextPrompt(text string) PromptRequest {
-	return PromptRequest{Parts: []Part{{Type: "text", Text: text}}}
-}
-
 func (c *Client) Prompt(sessionID string, req PromptRequest) (*MessageResponse, error) {
 	var res MessageResponse
 	err := c.decode("POST", "/session/"+sessionID+"/message", req, &res)

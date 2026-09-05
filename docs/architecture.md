@@ -278,6 +278,23 @@ resolution, as `resolve.go` falling back to `fileLevel()` when it cannot locate
 a concern. Pointing confidently at the wrong line is worse than not pointing.
 A file deleted outright by the PR fails `os.Stat` and lands in `skipped`.
 
+**Line picking rides `onSelectedLinesChange`, and the semantics come from
+`@pierre/diffs`, not from us.** Three behaviours are load-bearing and all are
+confirmed in `InteractionManager.js`:
+
+- Selection starts on **pointerdown**, so a single click picks — no drag needed.
+- The pointerdown must land in the **line-number gutter**
+  (`requireNumberColumn: true`). Clicking the code body does nothing.
+- Clicking an already-selected single line **unselects** it and fires the
+  callback with `null`. That is the only un-pick gesture, and the callback
+  carries no file id, so `DiffView` tracks the last selected file itself and
+  reports it to `onUnpickLine`. Dropping the `null` — which is the obvious
+  defensive guard to write — makes picks permanent until reload.
+
+`setSelectedLines(..., { notify: false })` is what stops a side-panel concern
+click from registering as a pick; the flag is forwarded down to the interaction
+manager, so it genuinely suppresses the callback.
+
 Session names are `owner/repo/number`, sanitised — tmux forbids `.` and `:` in
 session names, and repo names routinely contain dots. Targets are addressed as
 `=name` because tmux target matching is otherwise prefix-based.

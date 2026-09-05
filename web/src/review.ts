@@ -1,5 +1,5 @@
 import { createEffect, createSignal, onCleanup, type Accessor } from "solid-js"
-import { api } from "./api"
+import { api, errText } from "./api"
 import type { RankedConcern, Review } from "./types"
 
 export type ReviewState = {
@@ -132,7 +132,7 @@ export function createReview(
       await api.review.start(owner(), repo(), prNumber(), agents)
     } catch (e) {
       setStarting(false)
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errText(e))
     }
   }
 
@@ -143,7 +143,7 @@ export function createReview(
       await api.review.rerunAgent(owner(), repo(), prNumber(), agent)
     } catch (e) {
       setStarting(false)
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errText(e))
     }
   }
 

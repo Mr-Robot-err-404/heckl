@@ -1,3 +1,4 @@
+import { copyText, COPIED_MS } from "../../clipboard"
 import { checkIcon, chevronIcon, clipboardIcon } from "./icons"
 
 type NamedFile = { name: string }
@@ -32,21 +33,23 @@ export function buildCopyPathButton(fileDiff: NamedFile) {
   button.type = "button"
   button.className = "diff-header-btn diff-copy-btn"
   button.setAttribute("aria-label", "copy file path")
-  const icon = clipboardIcon()
-  button.appendChild(icon)
+  button.appendChild(clipboardIcon())
 
-  button.addEventListener("click", (e) => {
+  button.addEventListener("click", async (e) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(fileDiff.name).then(() => {
-      button.replaceChild(checkIcon(), button.firstChild!)
-      button.classList.add("copied")
-      setTimeout(() => {
-        if (!button.isConnected) return
-        button.replaceChild(clipboardIcon(), button.firstChild!)
-        button.classList.remove("copied")
-      }, 1200)
-    })
+    if (!(await copyText(fileDiff.name))) return
+    showCopied(button)
   })
 
   return button
+}
+
+function showCopied(button: HTMLButtonElement) {
+  button.replaceChild(checkIcon(), button.firstChild!)
+  button.classList.add("copied")
+  setTimeout(() => {
+    if (!button.isConnected) return
+    button.replaceChild(clipboardIcon(), button.firstChild!)
+    button.classList.remove("copied")
+  }, COPIED_MS)
 }

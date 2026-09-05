@@ -94,7 +94,6 @@ export type ConcernTarget = {
   line: number
   side: "additions" | "deletions"
   rank: number
-  nonce: number
 }
 
 export type ReviewerNote = {

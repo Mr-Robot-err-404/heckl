@@ -34,11 +34,6 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 
 func target(session string) string { return "=" + session }
 
-func (tm *Tmux) HasServer(ctx context.Context) bool {
-	_, err := run(ctx, "list-sessions")
-	return err == nil
-}
-
 func (tm *Tmux) HasSession(ctx context.Context, name string) bool {
 	_, err := run(ctx, "has-session", "-t", target(name))
 	return err == nil

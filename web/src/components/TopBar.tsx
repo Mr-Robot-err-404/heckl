@@ -1,5 +1,6 @@
 import { createEffect, createSignal, For, Show } from "solid-js"
 import { useNavigate, useParams } from "@tanstack/solid-router"
+import { errText } from "../api"
 import { useAddRepo, useOrgs, useRepos, usePRDetail, usePrefetch, resolved, historyPageSize } from "../queries"
 import { useActiveReviews } from "../activeReviews"
 import { AgentConfigModal } from "./AgentConfigModal"
@@ -82,7 +83,7 @@ export function TopBar() {
         setInput(""); setError(null); setAdding(false)
         navigate({ to: "/$owner/$repo", params: { owner: repo.Owner, repo: repo.Name } })
       },
-      onError: (e) => setError(String(e)),
+      onError: (e) => setError(errText(e)),
     })
   }
 

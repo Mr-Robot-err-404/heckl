@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from "solid-js"
-import { copyText } from "../clipboard"
+import { copyText, COPIED_MS } from "../clipboard"
 import type { TmuxLiveSession, TmuxPick } from "../types"
 import { CheckIcon, ClipboardIcon, CloseIcon } from "./icons"
 
@@ -96,7 +96,7 @@ function CommandBlock(props: { command: string }) {
     if (!ok) return
     setCopied(true)
     clearTimeout(timer)
-    timer = setTimeout(() => setCopied(false), 1200)
+    timer = setTimeout(() => setCopied(false), COPIED_MS)
   }
 
   return (

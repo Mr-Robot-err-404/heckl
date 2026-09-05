@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/harrylawton/pr-review/internal/store"
@@ -67,11 +66,8 @@ type tmuxLiveResponse struct {
 }
 
 func (s *Server) handleGetTmuxSession(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -104,11 +100,8 @@ func (s *Server) handleGetTmuxSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
 

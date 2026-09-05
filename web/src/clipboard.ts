@@ -1,3 +1,5 @@
+export const COPIED_MS = 1200
+
 export async function copyText(text: string): Promise<boolean> {
   if (navigator.clipboard?.writeText) {
     try {

@@ -269,11 +269,8 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -324,11 +321,8 @@ func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetPR(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -446,11 +440,8 @@ func (s *Server) handleDeleteRepo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		http.Error(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -506,6 +497,17 @@ func (s *Server) handleAsset(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	io.Copy(w, resp.Body)
+}
+
+func prPath(w http.ResponseWriter, r *http.Request) (owner, repo string, number int, ok bool) {
+	owner = r.PathValue("owner")
+	repo = r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
+		return "", "", 0, false
+	}
+	return owner, repo, number, true
 }
 
 func jsonOK(w http.ResponseWriter, v any) {

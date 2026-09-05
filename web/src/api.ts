@@ -14,41 +14,49 @@ import type {
 
 const BASE = "/api"
 
+export function errText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
+async function request(path: string, method: string, body?: unknown): Promise<Response> {
+  const res = await fetch(BASE + path, {
+    method,
+    ...(body === undefined
+      ? {}
+      : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, path))
+  return res
+}
+
+async function errorMessage(res: Response, path: string): Promise<string> {
+  const text = await res.text().catch(() => "")
+  if (!text) return `${res.status} ${path}`
+  try {
+    const parsed = JSON.parse(text)
+    if (typeof parsed?.error === "string") return parsed.error
+  } catch {}
+  return text.trim()
+}
+
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(BASE + path)
-  if (!res.ok) throw new Error(`${res.status} ${path}`)
-  return res.json()
+  return (await request(path, "GET")).json()
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(BASE + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`${res.status} ${path}`)
-  return res.json()
+  return (await request(path, "POST", body)).json()
 }
 
 async function put<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(BASE + path, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`${res.status} ${path}`)
-  return res.json()
+  return (await request(path, "PUT", body)).json()
 }
 
 async function del(path: string): Promise<void> {
-  const res = await fetch(BASE + path, { method: "DELETE" })
-  if (!res.ok) throw new Error(`${res.status} ${path}`)
+  await request(path, "DELETE")
 }
 
 async function getText(path: string): Promise<string> {
-  const res = await fetch(BASE + path)
-  if (!res.ok) throw new Error(`${res.status} ${path}`)
-  return res.text()
+  return (await request(path, "GET")).text()
 }
 
 export const api = {

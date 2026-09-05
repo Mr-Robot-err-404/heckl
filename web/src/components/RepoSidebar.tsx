@@ -1,4 +1,5 @@
 import { createSignal, For } from "solid-js"
+import { errText } from "../api"
 import { useAddRepo, useRemoveRepo, useRepos } from "../queries"
 import type { Repo } from "../types"
 
@@ -22,7 +23,7 @@ export function RepoSidebar(props: Props) {
     }
     addRepo.mutate({ owner: parts[0], name: parts[1] }, {
       onSuccess: () => { setInput(""); setError(null) },
-      onError: (e) => setError(String(e)),
+      onError: (e) => setError(errText(e)),
     })
   }
 

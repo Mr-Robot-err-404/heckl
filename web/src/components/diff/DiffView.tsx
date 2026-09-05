@@ -12,11 +12,13 @@ type Props = {
   prNumber: number
   focus: ConcernTarget | null
   onPickLine?: (file: string, line: number, side: "additions" | "deletions") => void
+  onUnpickLine?: (file: string) => void
 }
 
 export function DiffView(props: Props) {
   let host!: HTMLDivElement
   let view: InstanceType<typeof CodeView> | null = null
+  let selectedFile: string | null = null
 
   const diff = useDiff(
     () => props.owner,
@@ -60,6 +62,7 @@ export function DiffView(props: Props) {
     )
 
     view?.cleanUp()
+    selectedFile = null
     view = new CodeView({
       theme: shiki,
       hunkSeparators: "line-info",
@@ -69,7 +72,12 @@ export function DiffView(props: Props) {
       stickyHeaders: true,
       enableLineSelection: true,
       onSelectedLinesChange: (selection) => {
-        if (!selection) return
+        if (!selection) {
+          if (selectedFile) props.onUnpickLine?.(selectedFile)
+          selectedFile = null
+          return
+        }
+        selectedFile = selection.id
         props.onPickLine?.(
           selection.id,
           selection.range.start,
@@ -105,6 +113,7 @@ export function DiffView(props: Props) {
       },
       { notify: false },
     )
+    selectedFile = target.file
     view.scrollTo({
       type: "line",
       id: target.file,

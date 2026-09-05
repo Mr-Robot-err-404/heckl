@@ -1,6 +1,7 @@
 import { createEffect, createSignal, For, Show } from "solid-js"
 import { createStore, unwrap } from "solid-js/store"
 import { agentLabel } from "../review"
+import { errText } from "../api"
 import { resolved, useAgentConfig, useSaveAgentConfig } from "../queries"
 import type { AgentConfig, ModelOption } from "../types"
 import { CloseIcon } from "./icons"
@@ -30,7 +31,7 @@ export function AgentConfigModal(props: { onClose: () => void }) {
     setError("")
     save.mutate(unwrap(draft.agents), {
       onSuccess: () => props.onClose(),
-      onError: (e) => setError(String(e)),
+      onError: (e) => setError(errText(e)),
     })
   }
 

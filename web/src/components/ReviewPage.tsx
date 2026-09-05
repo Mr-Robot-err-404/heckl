@@ -219,7 +219,6 @@ function ConcernCard(props: { concern: RankedConcern; onFocus: () => void }) {
   return (
     <article class={`review-concern sev-${props.concern.severity}`}>
       <div class="review-concern-head">
-        <span class="concern-rank" />
         <span class="review-concern-title">{props.concern.title}</span>
         <span class="review-concern-sev">{props.concern.severity}</span>
       </div>

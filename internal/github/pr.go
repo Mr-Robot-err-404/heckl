@@ -69,12 +69,6 @@ func (c *Client) ListRepoPRs(owner, repo string) ([]PR, error) {
 	return prs, err
 }
 
-func (c *Client) ListAssignedPRs() ([]PR, error) {
-	var prs []PR
-	err := c.decode("/search/issues?q=is:pr+is:open+assignee:@me&per_page=100", &prs)
-	return prs, err
-}
-
 func (c *Client) GetPR(owner, repo string, number int) (*PR, error) {
 	var pr PR
 	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls/%d", owner, repo, number), &pr)

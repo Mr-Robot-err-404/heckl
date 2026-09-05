@@ -58,9 +58,9 @@ Agent integration
 [ ] Per-agent file selection — pick which files of the diff an agent sees
 [x] tmux review sessions — select lines in the diff, one `nvim +line file`
     window per file in an isolated worktree
-[ ] Route buildCopyPathButton through clipboard.copyText — raw
-    navigator.clipboard is undefined over http on a non-localhost host, so the
-    diff header copy button silently does nothing over Tailscale
+[x] Route buildCopyPathButton through clipboard.copyText
+[ ] Surface `skipped` in the tmux modal — the API returns it, the client
+    discards it, so picking four files and getting three windows is unexplained
 [ ] Agent selection isn't persisted — toggles reset on reload/navigation
 [ ] Review latency — single-shot prompt, model free to wander. Re-measure first;
     old 60-100s figure was recorded while reviews ran as the wrong agent.

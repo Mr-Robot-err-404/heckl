@@ -73,7 +73,3 @@ func (c *Client) GetSession(id string) (*Session, error) {
 	err := c.decode("GET", "/session/"+id, nil, &s)
 	return &s, err
 }
-
-func (c *Client) DeleteSession(id string) error {
-	return c.decode("DELETE", "/session/"+id, nil, nil)
-}

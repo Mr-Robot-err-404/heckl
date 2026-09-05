@@ -18,11 +18,8 @@ import (
 const streamPingInterval = 5 * time.Second
 
 func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -45,14 +42,11 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRerunAgent(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	agent := r.PathValue("agent")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
+	agent := r.PathValue("agent")
 
 	review, err := s.orchestrator.Rerun(owner, repo, number, agent)
 	if errors.Is(err, orchestrator.ErrNoReview) {
@@ -146,11 +140,8 @@ func (s *Server) agentConfigs(ctx context.Context) ([]agentConfigResponse, error
 }
 
 func (s *Server) handleReviewStream(w http.ResponseWriter, r *http.Request) {
-	owner := r.PathValue("owner")
-	repo := r.PathValue("repo")
-	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil {
-		jsonError(w, "invalid pr number", http.StatusBadRequest)
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
 		return
 	}
 
