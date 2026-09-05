@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/harrylawton/pr-review/internal/store"
 	"github.com/harrylawton/pr-review/internal/tmux"
 )
 
@@ -55,6 +56,51 @@ func (s *Server) attachCommand(r *http.Request, session string) string {
 		host = s.remoteHost
 	}
 	return fmt.Sprintf("ssh -t %s %q", host, attach)
+}
+
+type tmuxLiveResponse struct {
+	Session  string `json:"session"`
+	Attach   string `json:"attach"`
+	Windows  int    `json:"windows"`
+	Worktree string `json:"worktree"`
+	HeadSHA  string `json:"headSha"`
+}
+
+func (s *Server) handleGetTmuxSession(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil {
+		jsonError(w, "invalid pr number", http.StatusBadRequest)
+		return
+	}
+
+	row, err := s.store.GetTmuxSession(r.Context(), owner, repo, number)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if row == nil {
+		jsonOK(w, nil)
+		return
+	}
+
+	if !tmux.Installed() || !s.tmux.HasSession(r.Context(), row.Name) {
+		if err := s.store.DeleteTmuxSession(r.Context(), owner, repo, number); err != nil {
+			slog.Error("tmux: reap stale session row failed", "session", row.Name, "err", err)
+		}
+		slog.Info("tmux: reaped stale session row", "session", row.Name)
+		jsonOK(w, nil)
+		return
+	}
+
+	jsonOK(w, tmuxLiveResponse{
+		Session:  row.Name,
+		Attach:   s.attachCommand(r, row.Name),
+		Windows:  int(row.Windows),
+		Worktree: row.Worktree,
+		HeadSHA:  row.HeadSha,
+	})
 }
 
 func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
@@ -131,6 +177,18 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 		slog.Error("tmux: create session failed", "session", name, "err", err)
 		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if err := s.store.SaveTmuxSession(r.Context(), store.NewTmuxSession{
+		Owner:    owner,
+		Repo:     repo,
+		PRNumber: number,
+		Name:     name,
+		Worktree: worktree,
+		HeadSHA:  pr.HeadSHA(),
+		Windows:  len(windows),
+	}); err != nil {
+		slog.Error("tmux: persist session failed", "session", name, "err", err)
 	}
 
 	slog.Info("tmux session created", "session", name, "windows", len(windows), "skipped", len(skipped))

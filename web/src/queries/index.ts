@@ -165,6 +165,22 @@ export function usePRComments(
   }))
 }
 
+export const tmuxSessionKey = (owner: string, repo: string, number: number) =>
+  ["tmux", owner, repo, number] as const
+
+export function useTmuxSession(
+  owner: () => string,
+  repo: () => string,
+  number: () => number | null,
+) {
+  return createQuery(() => ({
+    queryKey: tmuxSessionKey(owner(), repo(), number() ?? 0),
+    queryFn: () => api.tmux.get(owner(), repo(), number()!),
+    enabled: !!owner() && !!repo() && number() != null,
+    staleTime: 0,
+  }))
+}
+
 export function useDiff(
   owner: () => string,
   repo: () => string,

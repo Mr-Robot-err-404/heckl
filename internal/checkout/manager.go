@@ -49,10 +49,6 @@ func (m *Manager) worktreePath(owner, repo string, prNumber int, headSHA string)
 	return filepath.Join(m.stateDir, "worktrees", owner, repo, fmt.Sprintf("%d-%s", prNumber, label))
 }
 
-// Worktree returns a working tree for the PR at headSHA, isolated from every
-// other checkout. The repo lock is held only while shared state is mutated —
-// the clone, the fetch, and the worktree registry — never for the caller's
-// use of the returned path.
 func (m *Manager) Worktree(ctx context.Context, owner, repo string, prNumber int, headSHA string) (string, error) {
 	if headSHA == "" {
 		return "", fmt.Errorf("checkout: %s/%s #%d: empty head sha", owner, repo, prNumber)
@@ -93,9 +89,6 @@ func (m *Manager) ensureClone(ctx context.Context, owner, repo, path string) err
 	return runGit(ctx, "", "clone", "--filter=blob:none", "--no-checkout", url, path)
 }
 
-// ensureWorktree makes the registry and the filesystem agree before trusting
-// either. A directory that exists but is not a worktree checked out at headSHA
-// is torn down and rebuilt rather than reused.
 func ensureWorktree(ctx context.Context, repoPath, dir, headSHA string) error {
 	if err := runGit(ctx, repoPath, "worktree", "prune"); err != nil {
 		return err

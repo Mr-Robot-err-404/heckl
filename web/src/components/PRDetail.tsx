@@ -1,7 +1,14 @@
-import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
+import { createEffect, createSignal, For, Show } from "solid-js"
 import { createStore, produce } from "solid-js/store"
-import { copyText } from "../clipboard"
-import { usePRComments, usePRDetail, usePrefetch, resolved } from "../queries"
+import { useQueryClient } from "@tanstack/solid-query"
+import {
+  usePRComments,
+  usePRDetail,
+  usePrefetch,
+  useTmuxSession,
+  resolved,
+  tmuxSessionKey,
+} from "../queries"
 import { createReview } from "../review"
 import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
@@ -44,27 +51,27 @@ export function PRDetail(props: Props) {
   const [filesMounted, setFilesMounted] = createSignal(false)
   const [focus, setFocus] = createSignal<ConcernTarget | null>(null)
   const prefetch = usePrefetch()
+  const queryClient = useQueryClient()
 
   const [picks, setPicks] = createStore<{ items: TmuxPick[] }>({ items: [] })
   const [tmuxOpen, setTmuxOpen] = createSignal(false)
   const [tmuxBusy, setTmuxBusy] = createSignal(false)
   const [tmuxError, setTmuxError] = createSignal("")
-  const [toast, setToast] = createSignal("")
 
-  let toastTimer: ReturnType<typeof setTimeout> | undefined
-  const flash = (message: string) => {
-    clearTimeout(toastTimer)
-    setToast(message)
-    toastTimer = setTimeout(() => setToast(""), 1400)
-  }
-  onCleanup(() => clearTimeout(toastTimer))
+  const tmuxSession = useTmuxSession(
+    () => props.owner,
+    () => props.repo,
+    () => props.prNumber,
+  )
+  const live = () => (tmuxSession.isSuccess ? (tmuxSession.data ?? null) : null)
 
-  const pickLine = (file: string, line: number) => {
+  const pickLine = (file: string, line: number, side: "additions" | "deletions") => {
+    const pinned = side === "deletions" ? undefined : line
     const i = picks.items.findIndex((p) => p.file === file)
     setPicks(
       produce((s) => {
-        if (i === -1) s.items.push({ file, line })
-        else s.items[i].line = line
+        if (i === -1) s.items.push({ file, line: pinned })
+        else s.items[i].line = pinned
       }),
     )
   }
@@ -88,17 +95,16 @@ export function PRDetail(props: Props) {
     setTmuxBusy(true)
     setTmuxError("")
     try {
-      const result = await api.tmux.open(
+      await api.tmux.open(
         props.owner,
         props.repo,
         props.prNumber,
         picks.items.map((p) => ({ ...p })),
       )
-      const copied = await copyText(result.attach)
       setPicks("items", [])
-      setTmuxOpen(false)
-      const skipped = result.skipped?.length ? ` · ${result.skipped.length} skipped` : ""
-      flash(copied ? `copied to clipboard${skipped}` : `${result.attach}${skipped}`)
+      await queryClient.invalidateQueries({
+        queryKey: tmuxSessionKey(props.owner, props.repo, props.prNumber),
+      })
     } catch (e) {
       setTmuxError(String(e))
     } finally {
@@ -151,12 +157,12 @@ export function PRDetail(props: Props) {
         </For>
 
         <button
-          class={`tmux-btn ${picks.items.length > 0 ? "picked" : ""}`}
-          title="open selected lines in nvim"
+          class={`tmux-btn ${picks.items.length > 0 ? "picked" : live() ? "live" : ""}`}
+          title={live() ? "tmux session active" : "open selected lines in nvim"}
           onClick={openTmuxModal}
         >
           tmux
-          <Show when={picks.items.length > 0}>
+          <Show when={picks.items.length > 0} fallback={<Show when={live()}><span class="tmux-btn-count">{live()!.windows}</span></Show>}>
             <span class="tmux-btn-count">{picks.items.length}</span>
           </Show>
         </button>
@@ -211,16 +217,13 @@ export function PRDetail(props: Props) {
       <Show when={tmuxOpen()}>
         <TmuxModal
           picks={picks.items}
+          live={live()}
           busy={tmuxBusy()}
           error={tmuxError()}
           onRemove={removePick}
           onConfirm={confirmTmux}
           onClose={() => setTmuxOpen(false)}
         />
-      </Show>
-
-      <Show when={toast()}>
-        <div class="toast">{toast()}</div>
       </Show>
     </div>
   )

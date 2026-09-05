@@ -185,3 +185,11 @@ export type TmuxSession = {
   opened: string[]
   skipped?: string[]
 }
+
+export type TmuxLiveSession = {
+  session: string
+  attach: string
+  windows: number
+  worktree: string
+  headSha: string
+}

@@ -4,10 +4,13 @@ export async function copyText(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text)
       return true
     } catch {
-      // fall through to the execCommand path
+      return copyViaTextarea(text)
     }
   }
+  return copyViaTextarea(text)
+}
 
+function copyViaTextarea(text: string): boolean {
   const area = document.createElement("textarea")
   area.value = text
   area.setAttribute("readonly", "")

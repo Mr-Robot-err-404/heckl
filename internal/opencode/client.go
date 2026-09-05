@@ -66,9 +66,6 @@ func (c *Client) decode(method, path string, body, out any) error {
 
 const healthTimeout = 3 * time.Second
 
-// Health uses its own short deadline. The shared client's timeout is sized for
-// prompts, which legitimately run for minutes — applying that to a liveness
-// probe turns "opencode is still booting" into a five-minute silent stall.
 func (c *Client) Health() (healthy bool, version string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), healthTimeout)
 	defer cancel()

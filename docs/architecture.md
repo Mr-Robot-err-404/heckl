@@ -265,6 +265,39 @@ rebuilt rather than reused.
 
 Worktrees are never reaped. See `todo.txt`.
 
+## tmux review sessions
+
+Clicking a line in the diff records a pick — one per file, a second click on
+the same file overwrites it. `POST /api/tmux/{owner}/{repo}/{number}` resolves
+the head sha, takes a worktree, and creates a detached tmux session with one
+`nvim +line file` window per pick.
+
+**Removed lines degrade to a file-level pick.** The worktree is at head, so a
+deleted line has no honest line number — the same reasoning, and the same
+resolution, as `resolve.go` falling back to `fileLevel()` when it cannot locate
+a concern. Pointing confidently at the wrong line is worse than not pointing.
+A file deleted outright by the PR fails `os.Stat` and lands in `skipped`.
+
+Session names are `owner/repo/number`, sanitised — tmux forbids `.` and `:` in
+session names, and repo names routinely contain dots. Targets are addressed as
+`=name` because tmux target matching is otherwise prefix-based.
+
+Commands are passed to tmux as argv, never as a shell string. The paths come
+from the API, and tmux 3.x executes multi-argument `shell-command` directly
+rather than via `/bin/sh`, so there is nothing to quote and nothing to inject.
+
+`tmux_sessions(owner, repo, pr_number, name, worktree, head_sha, windows)` maps
+a PR to its session — the one thing tmux cannot tell us. **tmux remains the
+authority on liveness.** `GET` verifies with `has-session` and deletes the row
+if it is gone, because a stale row means a blue button offering an attach
+command that fails.
+
+The attach command is built per request. `r.Host` is loopback exactly when the
+browser is on this machine, and otherwise is a name that already resolves here
+from wherever the browser is — so it answers both "local or remote" and "ssh to
+what" from one value. `REMOTE_HOST` overrides the target for the case where the
+HTTP name is not a valid SSH target; it never applies to a local request.
+
 ## Verification
 
 `make vet` is the check to run after any change. `make build` is for producing

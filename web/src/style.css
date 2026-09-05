@@ -1076,6 +1076,17 @@ html, body, #root { height: 100%; }
   filter: brightness(1.1);
 }
 
+.tmux-btn.live {
+  color: var(--base);
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.tmux-btn.live:hover {
+  background: var(--blue);
+  border-color: var(--blue);
+  filter: brightness(1.1);
+}
+
 .tmux-btn-count {
   font-size: 10px;
   border-radius: 8px;
@@ -1087,6 +1098,56 @@ html, body, #root { height: 100%; }
   color: var(--green);
   background: var(--base);
 }
+.tmux-btn.live .tmux-btn-count {
+  color: var(--blue);
+  background: var(--base);
+}
+
+.tmux-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tmux-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--overlay1);
+  font-weight: 600;
+  margin: 0;
+}
+
+.command-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--surface0);
+  border: 1px solid var(--surface1);
+}
+
+.command-block code {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+.command-copy {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--overlay1);
+  cursor: pointer;
+}
+.command-copy:hover { color: var(--text); background: var(--surface1); }
+.command-copy.copied { color: var(--green); }
 
 .tmux-pick-list {
   list-style: none;

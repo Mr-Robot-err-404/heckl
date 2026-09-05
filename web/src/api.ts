@@ -7,6 +7,7 @@ import type {
   Review,
   ReviewHistoryPage,
   ReviewerThread,
+  TmuxLiveSession,
   TmuxPick,
   TmuxSession,
 } from "./types"
@@ -111,6 +112,8 @@ export const api = {
     save: (configs: AgentConfig[]) => put<AgentConfigPage>("/agents/config", configs),
   },
   tmux: {
+    get: (owner: string, repo: string, number: number) =>
+      get<TmuxLiveSession | null>(`/tmux/${owner}/${repo}/${number}`),
     open: (owner: string, repo: string, number: number, files: TmuxPick[]) =>
       post<TmuxSession>(`/tmux/${owner}/${repo}/${number}`, { files }),
   },

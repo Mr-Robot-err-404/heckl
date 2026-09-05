@@ -66,3 +66,14 @@ type Theme struct {
 	Name      string
 	UpdatedAt string
 }
+
+type TmuxSession struct {
+	Owner     string
+	Repo      string
+	PrNumber  int64
+	Name      string
+	Worktree  string
+	HeadSha   string
+	Windows   int64
+	CreatedAt string
+}

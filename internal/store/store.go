@@ -97,6 +97,53 @@ func (s *Store) SaveAgentConfigs(ctx context.Context, configs []AgentConfig) err
 	return nil
 }
 
+type NewTmuxSession struct {
+	Owner    string
+	Repo     string
+	PRNumber int
+	Name     string
+	Worktree string
+	HeadSHA  string
+	Windows  int
+}
+
+func (s *Store) SaveTmuxSession(ctx context.Context, in NewTmuxSession) error {
+	_, err := s.queries.UpsertTmuxSession(ctx, UpsertTmuxSessionParams{
+		Owner:     in.Owner,
+		Repo:      in.Repo,
+		PrNumber:  int64(in.PRNumber),
+		Name:      in.Name,
+		Worktree:  in.Worktree,
+		HeadSha:   in.HeadSHA,
+		Windows:   int64(in.Windows),
+		CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	})
+	return err
+}
+
+func (s *Store) GetTmuxSession(ctx context.Context, owner, repo string, prNumber int) (*TmuxSession, error) {
+	row, err := s.queries.GetTmuxSession(ctx, GetTmuxSessionParams{
+		Owner:    owner,
+		Repo:     repo,
+		PrNumber: int64(prNumber),
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return row, nil
+}
+
+func (s *Store) DeleteTmuxSession(ctx context.Context, owner, repo string, prNumber int) error {
+	return s.queries.DeleteTmuxSession(ctx, DeleteTmuxSessionParams{
+		Owner:    owner,
+		Repo:     repo,
+		PrNumber: int64(prNumber),
+	})
+}
+
 func (s *Store) CreateReviewSession(ctx context.Context, in NewReviewSession) (*ReviewSession, error) {
 	status := in.Status
 	if status == "" {
