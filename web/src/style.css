@@ -463,12 +463,23 @@ html, body, #root { height: 100%; }
   .repo-page {
     flex-direction: column;
     height: auto;
+    min-height: 100%;
     overflow: visible;
   }
+  .pr-list-page {
+    flex: 0 0 auto;
+    overflow-y: visible;
+  }
   .repo-history {
+    flex: 0 0 auto;
     height: auto;
+    min-height: 0;
     border-left: none;
     border-top: 1px solid var(--crust);
+  }
+  .repo-history .review-rows.compact {
+    flex: 0 0 auto;
+    overflow-y: visible;
   }
 }
 
@@ -779,32 +790,76 @@ html, body, #root { height: 100%; }
 .review-failed { font-size: 12px; color: var(--red); }
 .review-stage-failed { font-size: 11px; color: var(--red); }
 
-.agent-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.agent-picker { display: flex; flex-direction: column; gap: 6px; }
 
-.agent-chip {
+.agent-picker-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--overlay0);
+}
+
+.agent-picker-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 6px;
+}
+
+.agent-option {
   font: inherit;
-  font-size: 11px;
-  padding: 2px 9px;
-  border-radius: 999px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 10px;
+  text-align: left;
+  border-radius: 4px;
   cursor: pointer;
   border: 1px solid var(--surface1);
   background: var(--surface0);
-  color: var(--subtext0);
+  color: var(--text);
 }
-.agent-chip.off { color: var(--overlay0); background: transparent; border-style: dashed; }
-.agent-chip:hover:not(:disabled) { border-color: var(--overlay0); color: var(--text); }
-.agent-chip:disabled { cursor: default; opacity: 0.6; }
+
+.agent-option-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--surface2);
+  color: var(--base);
+}
+.agent-option-mark .bot-icon { width: 10px; height: 10px; }
+
+.agent-option-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.agent-option.on { border-color: var(--green); }
+.agent-option.on .agent-option-mark { background: var(--green); border-color: var(--green); }
+
+.agent-option.off { background: transparent; color: var(--overlay0); border-style: dashed; }
+.agent-option.off .agent-option-mark { border-color: var(--surface2); }
+
+.agent-option:hover:not(:disabled) { border-color: var(--overlay0); color: var(--text); }
+.agent-option.on:hover:not(:disabled) { border-color: var(--green); }
+.agent-option:disabled { cursor: default; opacity: 0.6; }
 
 .agent-rerun {
   font: inherit;
-  font-size: 11px;
-  padding: 1px 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
   border-radius: 3px;
   cursor: pointer;
   border: 1px solid var(--surface1);
   background: transparent;
   color: var(--overlay1);
 }
+.agent-rerun .bot-icon { width: 12px; height: 12px; }
 .agent-rerun:hover:not(:disabled) { color: var(--text); border-color: var(--overlay0); }
 .agent-rerun:disabled { color: var(--surface2); cursor: default; }
 
@@ -1754,7 +1809,11 @@ button.topbar-brand:hover { color: var(--text); }
   }
 
   .topbar-left { flex: 1 1 auto; min-width: 0; gap: 8px; }
-  .topbar-left .repo-select { min-width: 0; }
+  .topbar-left .repo-select {
+    min-width: 0;
+    max-width: 26vw;
+    text-overflow: ellipsis;
+  }
 
   .topbar-pr-title {
     position: static;
@@ -1796,6 +1855,21 @@ button.topbar-brand:hover { color: var(--text); }
 
   .pr-description { padding: 16px 12px; }
   .review-page { padding: 16px 12px 48px; }
+
+  .review-page-head { gap: 10px; }
+
+  .review-page-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .review-page-actions .review-run { min-height: 34px; padding: 6px 14px; }
+
+  .agent-picker-list { grid-template-columns: minmax(0, 1fr); }
+
+  .agent-rerun { padding: 6px; }
+  .agent-rerun .bot-icon { width: 14px; height: 14px; }
 
   .review-layout { flex-direction: column; }
 

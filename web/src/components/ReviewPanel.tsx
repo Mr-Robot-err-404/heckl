@@ -2,7 +2,7 @@ import { createSignal, For, Show } from "solid-js";
 import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review";
 import type { RankedConcern, ReviewerNote, ReviewerThread } from "../types";
 import { AgentPicker } from "./AgentPicker";
-import { ChevronIcon } from "./icons";
+import { ChevronIcon, RerunIcon } from "./icons";
 import { ReviewerComments } from "./ReviewerComments";
 
 type Props = {
@@ -105,10 +105,12 @@ export function ReviewPanel(props: Props) {
                 </Show>
                 <button
                   class="agent-rerun"
+                  title="re-run this agent"
+                  aria-label="re-run this agent"
                   disabled={s().busy() || !s().review()?.sessionId}
                   onClick={() => s().rerun(agent.name)}
                 >
-                  ↻
+                  <RerunIcon />
                 </button>
               </li>
             )}

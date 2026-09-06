@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js"
 import { agentLabel, formatMs, opencodeUrl, type ReviewState } from "../review"
 import { AgentPicker } from "./AgentPicker"
+import { RerunIcon } from "./icons"
 import type { RankedConcern, ReviewAgent, ReviewStage } from "../types"
 
 type Props = {
@@ -55,7 +56,6 @@ export function ReviewPage(props: Props) {
           </Show>
         </div>
         <div class="review-page-actions">
-          <AgentPicker state={s()} />
           <Show when={s().review()?.opencodeSessionPath}>
             <a
               class="review-session-link"
@@ -71,6 +71,8 @@ export function ReviewPage(props: Props) {
           </button>
         </div>
       </div>
+
+      <AgentPicker state={s()} />
 
       <Show when={s().error()}>
         <div class="review-error">{s().error()}</div>
@@ -118,10 +120,12 @@ export function ReviewPage(props: Props) {
                   </Show>
                   <button
                     class="agent-rerun"
+                    title="re-run this agent"
+                    aria-label="re-run this agent"
                     disabled={s().busy() || !s().review()?.sessionId}
                     onClick={() => s().rerun(agent.name)}
                   >
-                    re-run
+                    <RerunIcon />
                   </button>
                 </div>
                 <For each={agent.stages}>
