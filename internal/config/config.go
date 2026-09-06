@@ -113,6 +113,9 @@ func (c *Config) applyEnv() {
 	if v := strings.TrimSpace(os.Getenv("LOG_LEVEL")); v != "" {
 		c.Server.LogLevel = v
 	}
+	if v := strings.TrimSpace(os.Getenv("PR_REVIEW_ADDR")); v != "" {
+		c.Server.Addr = v
+	}
 }
 
 func (c *Config) normalise() error {
