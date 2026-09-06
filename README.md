@@ -30,8 +30,9 @@ off, which editor, and how to authenticate. Everything else — paths, port,
 opencode URL — has a default and a commented line in the config file. It is
 idempotent; re-running preserves anything you edited by hand.
 
-All user data lives in `~/.config/pr-review/`: config, database, token, and the
-`data/` directory of clones and worktrees. One directory to back up or delete.
+`~/.config/pr-review/` holds config and token. `~/.local/share/pr-review/`
+holds the database and the `data/` directory of clones and worktrees; only the
+former is worth backing up, and `$XDG_DATA_HOME` overrides the latter.
 
 ## GitHub auth
 

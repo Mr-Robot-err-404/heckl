@@ -136,9 +136,9 @@ hint. One list, two callers, so `doctor` and `serve` cannot disagree.
 TOML at `~/.config/pr-review/config.toml`, `PR_REVIEW_CONFIG` overrides.
 Generated from a commented template, so the file documents itself.
 
-- **Everything user-owned is under that one directory** — config, database,
-  worktrees, token. Ignoring the XDG config/data split buys one directory to
-  back up or move.
+- **Config and token live under `~/.config`, db and worktrees under
+  `~/.local/share`** (`$XDG_DATA_HOME`). A SQLite db and cloned repos are not
+  config; only the config directory is worth backing up.
 - **Setup only asks what it cannot work out** — tmux, editor, auth. Paths and
   ports have defaults and a commented line. Re-running preserves hand-edits.
 - **Config is process-level, the db is user-level.** Anything needed before

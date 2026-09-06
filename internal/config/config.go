@@ -49,8 +49,8 @@ func Defaults() Config {
 	return Config{
 		Server: Server{
 			Addr:     ":7331",
-			DataDir:  filepath.Join(Home(), "data"),
-			Database: filepath.Join(Home(), "pr-review.db"),
+			DataDir:  filepath.Join(DataHome(), "data"),
+			Database: filepath.Join(DataHome(), "pr-review.db"),
 			LogLevel: "info",
 		},
 		GitHub: GitHub{
@@ -152,6 +152,16 @@ func expand(path string) (string, error) {
 func Home() string {
 	if dir, err := os.UserConfigDir(); err == nil {
 		return filepath.Join(dir, "pr-review")
+	}
+	return ".pr-review"
+}
+
+func DataHome() string {
+	if dir := strings.TrimSpace(os.Getenv("XDG_DATA_HOME")); dir != "" {
+		return filepath.Join(dir, "pr-review")
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".local", "share", "pr-review")
 	}
 	return ".pr-review"
 }
