@@ -1015,7 +1015,12 @@ html, body, #root { height: 100%; }
   gap: 8px;
 }
 
-.review-concern-title { font-size: 12px; color: var(--text); font-weight: 600; }
+.review-concern-title {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
 
 .review-concern-sev {
   font-size: 10px;
@@ -1025,7 +1030,12 @@ html, body, #root { height: 100%; }
 }
 
 .review-concern-loc { font-size: 11px; color: var(--overlay1); word-break: break-all; }
-.review-concern-body { font-size: 12px; line-height: 1.6; color: var(--subtext0); }
+.review-concern-body {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--subtext0);
+  overflow-wrap: anywhere;
+}
 
 .review-error {
   font-size: 12px;
@@ -1917,7 +1927,8 @@ button.topbar-brand:hover { color: var(--text); }
   .pr-tab:first-child { padding-left: var(--gutter); }
 
   .pr-description { padding: 16px 12px; }
-  .review-page { padding: 16px 12px 48px; }
+  .review-page { padding: 16px var(--gutter) 48px; }
+  .review-stage-detail { overflow-wrap: anywhere; }
 
   .review-page-head { gap: 8px; }
 

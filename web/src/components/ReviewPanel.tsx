@@ -26,7 +26,6 @@ export function ReviewPanel(props: Props) {
     s()
       .review()
       ?.stages.find((stage) => stage.status === "running");
-  const failedAgents = () => (s().review()?.agents ?? []).filter((a) => a.status === "error");
 
   const isRerun = () => s().synced() && !s().busy() && !!s().review();
 
@@ -122,14 +121,6 @@ export function ReviewPanel(props: Props) {
             )}
           </For>
         </ul>
-      </Show>
-
-      <Show when={failedAgents().length > 0}>
-        <div class="review-error">
-          {failedAgents()
-            .map((a) => `${agentLabel(a.name)} failed`)
-            .join(" · ")}
-        </div>
       </Show>
 
       <Show when={s().synced() && !s().busy() && !s().review()}>
