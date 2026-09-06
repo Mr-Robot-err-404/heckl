@@ -40,7 +40,6 @@ export function ReviewPanel(props: Props) {
           class="panel-collapse"
           aria-expanded={!collapsed()}
           aria-label={collapsed() ? "expand agent review" : "collapse agent review"}
-          onClick={(e) => e.stopPropagation()}
         >
           <ChevronIcon />
         </button>

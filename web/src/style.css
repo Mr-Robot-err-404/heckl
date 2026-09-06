@@ -161,6 +161,7 @@
   --orange: #fe8019;
 
   --topbar-h: 48px;
+  --gutter: 12px;
 
   font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
   font-size: 13px;
@@ -196,7 +197,7 @@ html, body, #root { height: 100%; }
   border-bottom: 1px solid var(--crust);
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 var(--gutter);
   flex-shrink: 0;
   position: relative;
 }
@@ -486,7 +487,7 @@ html, body, #root { height: 100%; }
 .pr-list-meta {
   font-size: 12px;
   color: var(--subtext0);
-  padding: 0 20px 12px;
+  padding: 0 var(--gutter) 12px;
   border-bottom: 1px solid var(--crust);
 }
 
@@ -500,7 +501,7 @@ html, body, #root { height: 100%; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 14px var(--gutter);
   border-bottom: 1px solid var(--crust);
   cursor: pointer;
   gap: 16px;
@@ -566,7 +567,7 @@ html, body, #root { height: 100%; }
 .pr-tabs {
   display: flex;
   border-bottom: 1px solid var(--crust);
-  padding: 0 20px;
+  padding: 0 var(--gutter) 0 0;
   flex-shrink: 0;
   height: 36px;
   align-items: flex-end;
@@ -583,6 +584,7 @@ html, body, #root { height: 100%; }
   padding: 0 14px 8px;
   margin-bottom: -1px;
 }
+.pr-tab:first-child { padding-left: var(--gutter); }
 .pr-tab:hover { color: var(--text); }
 .pr-tab.active { color: var(--text); border-bottom-color: var(--green); }
 
@@ -712,7 +714,7 @@ html, body, #root { height: 100%; }
   border-left: 1px solid var(--surface1);
   background: var(--mantle);
   overflow-y: auto;
-  padding: 12px;
+  padding: var(--gutter);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1315,7 +1317,7 @@ html, body, #root { height: 100%; }
   max-width: 780px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 24px 64px;
+  padding: 24px var(--gutter) 64px;
   height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1395,7 +1397,7 @@ button.review-concern-loc:hover { text-decoration: underline; }
 .dashboard {
   max-width: 900px;
   margin: 0 auto;
-  padding: 24px 20px 40px;
+  padding: 24px var(--gutter) 40px;
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -1577,7 +1579,7 @@ button.topbar-brand:hover { color: var(--text); }
   min-height: 0;
   background: var(--sunken);
   border-left: 1px solid var(--crust);
-  padding: 24px 20px 20px;
+  padding: 24px var(--gutter) 20px;
 }
 
 .repo-history-head {
@@ -1612,11 +1614,11 @@ button.topbar-brand:hover { color: var(--text); }
 .review-rows.compact .review-row:hover { background: var(--surface0); }
 
 .repo-history .review-rows.compact {
-  margin: 0 -20px;
+  margin: 0 calc(-1 * var(--gutter));
 }
 
 .review-rows.compact .review-row {
-  padding: 8px 20px 8px 18px;
+  padding: 8px var(--gutter) 8px 10px;
   font-size: 12px;
 }
 
@@ -1910,8 +1912,9 @@ button.topbar-brand:hover { color: var(--text); }
   .repo-history .review-rows.compact { margin: 0 -12px; }
   .review-rows.compact .review-row { padding: 8px 12px; }
 
-  .pr-tabs { padding: 0 8px; }
+  .pr-tabs { padding: 0 var(--gutter) 0 0; }
   .pr-tab { padding: 0 10px 8px; }
+  .pr-tab:first-child { padding-left: var(--gutter); }
 
   .pr-description { padding: 16px 12px; }
   .review-page { padding: 16px 12px 48px; }

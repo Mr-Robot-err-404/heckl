@@ -27,7 +27,6 @@ export function ReviewerComments(props: Props) {
           class="panel-collapse"
           aria-expanded={!collapsed()}
           aria-label={collapsed() ? "expand other reviewers" : "collapse other reviewers"}
-          onClick={(e) => e.stopPropagation()}
         >
           <ChevronIcon />
         </button>
