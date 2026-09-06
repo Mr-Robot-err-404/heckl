@@ -58,8 +58,9 @@ func Defaults() Config {
 			UseGHCLI:  true,
 		},
 		OpenCode: OpenCode{
-			URL:   "http://127.0.0.1:4420",
-			Spawn: true,
+			URL:        "http://127.0.0.1:4420",
+			ProjectDir: DataHome(),
+			Spawn:      true,
 		},
 		Tmux: Tmux{
 			Enabled:    true,

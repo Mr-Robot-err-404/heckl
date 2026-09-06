@@ -46,10 +46,11 @@ use_gh_cli = {{ .GitHub.UseGHCLI }}
 # Where `opencode serve` listens. Must include an explicit port.
 url = "{{ .OpenCode.URL }}"
 
-# Directory holding .opencode/agents and .opencode/tools. Both are read once
-# at opencode startup, so editing them requires restarting opencode. Defaults
-# to wherever setup was run from; if that was not the heckl checkout,
-# correct it here - `heckl doctor` verifies the agent file exists.
+# Directory holding .opencode/agents and .opencode/tools. `heckl setup` writes
+# the bundled agents here, and never overwrites a file that already exists, so
+# anything you edit stays edited - including across upgrades. Delete a file and
+# re-run setup to get the shipped version back. Both directories are read once
+# at opencode startup, so editing them requires restarting opencode.
 project_dir = "{{ .OpenCode.ProjectDir }}"
 
 # Start `opencode serve` if nothing is answering on the URL above.

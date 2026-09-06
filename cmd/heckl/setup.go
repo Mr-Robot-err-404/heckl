@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Mr-Robot-err-404/heckl/internal/bundle"
 	"github.com/Mr-Robot-err-404/heckl/internal/config"
 	"github.com/Mr-Robot-err-404/heckl/internal/ghauth"
 	"github.com/Mr-Robot-err-404/heckl/internal/preflight"
@@ -43,6 +44,7 @@ func runSetup() {
 
 	setupAuth(ctx, cfg)
 	setupDatabase(ctx, cfg)
+	setupAgents(cfg)
 
 	fmt.Printf("%s\n", out.Paint(term.Bold, "checks"))
 	checks := preflight.Run(ctx, cfg)
@@ -175,6 +177,25 @@ func deviceLogin(ctx context.Context, cfg *config.Config) string {
 		fatal(err.Error())
 	}
 	return token
+}
+
+func setupAgents(cfg *config.Config) {
+	fmt.Printf("%s\n", out.Paint(term.Bold, "agents"))
+
+	res, err := bundle.Write(cfg.OpenCode.ProjectDir)
+	if err != nil {
+		fatal(err.Error())
+	}
+
+	dir := filepath.Join(cfg.OpenCode.ProjectDir, ".opencode")
+	if len(res.Written) > 0 {
+		fmt.Printf("%s wrote %d file(s) to %s\n", out.Paint(term.Green, "ok"), len(res.Written), out.Paint(term.Grey, dir))
+	}
+	if len(res.Kept) > 0 {
+		fmt.Printf("%s kept %d existing file(s) - your edits are never overwritten\n",
+			out.Paint(term.Green, "ok"), len(res.Kept))
+	}
+	fmt.Println()
 }
 
 func setupDatabase(ctx context.Context, cfg *config.Config) {

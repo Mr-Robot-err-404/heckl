@@ -8,12 +8,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/Mr-Robot-err-404/heckl/internal/bundle"
 )
 
 const startupPollInterval = 200 * time.Millisecond
 const startupTimeout = 15 * time.Second
-
-var requiredAgents = []string{"heckl.md"}
 
 type SetupOptions struct {
 	BaseURL    string
@@ -50,11 +50,15 @@ func Setup(opts SetupOptions) (*Client, error) {
 }
 
 func checkAgentFiles(projectDir string) error {
+	names, err := bundle.Agents()
+	if err != nil {
+		return err
+	}
 	dir := filepath.Join(projectDir, ".opencode", "agents")
-	for _, name := range requiredAgents {
+	for _, name := range names {
 		path := filepath.Join(dir, name)
 		if _, err := os.Stat(path); err != nil {
-			return fmt.Errorf("required agent file missing: %s: %w", path, err)
+			return fmt.Errorf("required agent file missing: %s - run `heckl setup`: %w", path, err)
 		}
 	}
 	return nil

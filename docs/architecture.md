@@ -1,4 +1,4 @@
-# PR Review - Architecture
+# Heckl - Architecture
 
 A personal PR review tool. Replaces the GitHub review UI with a fast, owned experience.
 
@@ -270,7 +270,7 @@ twice (reviewed yesterday, re-reviewed now); both rows are true.
 - `Subscription.pending` is a map keyed by PR, not a single slot. Coalescing by
   replacement drops events for a subscriber watching every PR, so `Take()`
   returns each PR's latest state.
-- `SubscribeAll` registers with the hub *before* snapshotting the runner. The
+- `SubscribeAll` registers with the hub _before_ snapshotting the runner. The
   reverse can lose an event; this order can only duplicate one, and the client
   keys by PR.
 

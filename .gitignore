@@ -8,6 +8,4 @@ web/dist/
 cmd/heckl/dist/
 data/
 
-.opencode/*
-!.opencode/agents/
-!.opencode/tools/
+.opencode/
