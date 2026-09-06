@@ -2,6 +2,11 @@ import { For } from "solid-js"
 import { setTheme, theme, themes } from "../theme"
 import { CloseIcon } from "./icons"
 
+const groups = [
+  { label: "dark", themes: themes.filter((t) => t.dark) },
+  { label: "light", themes: themes.filter((t) => !t.dark) },
+]
+
 export function ThemeModal(props: { onClose: () => void }) {
   return (
     <div class="modal-backdrop" onClick={props.onClose}>
@@ -14,15 +19,21 @@ export function ThemeModal(props: { onClose: () => void }) {
         </div>
 
         <div class="modal-body">
-          <For each={themes}>
-            {(t) => (
-              <button
-                class={`theme-option ${theme().id === t.id ? "active" : ""}`}
-                onClick={() => setTheme(t.id)}
-              >
-                <span class="theme-option-name">{t.label}</span>
-                <span class="muted">{t.dark ? "dark" : "light"}</span>
-              </button>
+          <For each={groups}>
+            {(group) => (
+              <div class="theme-group">
+                <span class="theme-group-label">{group.label}</span>
+                <For each={group.themes}>
+                  {(t) => (
+                    <button
+                      class={`theme-option ${theme().id === t.id ? "active" : ""}`}
+                      onClick={() => setTheme(t.id)}
+                    >
+                      {t.label}
+                    </button>
+                  )}
+                </For>
+              </div>
             )}
           </For>
         </div>
