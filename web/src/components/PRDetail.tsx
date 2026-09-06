@@ -17,6 +17,7 @@ import { ReviewPanel } from "./ReviewPanel"
 import { ReviewerComments } from "./ReviewerComments"
 import { ReviewPage } from "./ReviewPage"
 import { TmuxModal } from "./TmuxModal"
+import { useModal } from "../modal"
 import { api, errText } from "../api"
 import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick } from "../types"
 
@@ -55,7 +56,7 @@ export function PRDetail(props: Props) {
   const queryClient = useQueryClient()
 
   const [picks, setPicks] = createStore<{ items: TmuxPick[] }>({ items: [] })
-  const [tmuxOpen, setTmuxOpen] = createSignal(false)
+  const modal = useModal()
   const [tmuxBusy, setTmuxBusy] = createSignal(false)
   const [tmuxError, setTmuxError] = createSignal("")
 
@@ -94,7 +95,7 @@ export function PRDetail(props: Props) {
 
   const openTmuxModal = () => {
     setTmuxError("")
-    setTmuxOpen(true)
+    modal.open("tmux")
   }
 
   const confirmTmux = async () => {
@@ -223,7 +224,7 @@ export function PRDetail(props: Props) {
         </Show>
       </div>
 
-      <Show when={tmuxOpen()}>
+      <Show when={modal.isOpen("tmux")}>
         <TmuxModal
           picks={picks.items}
           live={live()}
@@ -231,7 +232,7 @@ export function PRDetail(props: Props) {
           error={tmuxError()}
           onRemove={removePick}
           onConfirm={confirmTmux}
-          onClose={() => setTmuxOpen(false)}
+          onClose={modal.close}
         />
       </Show>
     </div>

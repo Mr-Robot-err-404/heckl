@@ -5,9 +5,11 @@ import { PRDetailPage } from "./routes/PRDetailPage"
 import { DashboardPage } from "./routes/DashboardPage"
 import { TopBar } from "./components/TopBar"
 import { ActiveReviewsProvider } from "./activeReviews"
+import { validateModal } from "./modal"
 import type { Tab } from "./types"
 
 const rootRoute = createRootRoute({
+  validateSearch: validateModal,
   component: () => (
     <ActiveReviewsProvider>
       <div class="layout">

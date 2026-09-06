@@ -14,6 +14,7 @@ import { useActiveReviews } from "../activeReviews";
 import { AgentConfigModal } from "./AgentConfigModal";
 import { BotIcon, PaletteIcon } from "./icons";
 import { ThemeModal } from "./ThemeModal";
+import { useModal } from "../modal";
 
 export function TopBar() {
   const activeReviews = useActiveReviews();
@@ -25,8 +26,7 @@ export function TopBar() {
   const [input, setInput] = createSignal("");
   const [error, setError] = createSignal<string | null>(null);
   const [adding, setAdding] = createSignal(false);
-  const [configOpen, setConfigOpen] = createSignal(false);
-  const [themeOpen, setThemeOpen] = createSignal(false);
+  const modal = useModal();
 
   onMount(() => prefetch.agentConfig());
 
@@ -207,22 +207,22 @@ export function TopBar() {
             );
           }}
         </Show>
-        <button class="topbar-btn topbar-config" title="theme" onClick={() => setThemeOpen(true)}>
+        <button class="topbar-btn topbar-config" title="theme" onClick={() => modal.open("theme")}>
           <PaletteIcon />
         </button>
         <button
           class="topbar-btn topbar-config"
           title="agent config"
-          onClick={() => setConfigOpen(true)}
+          onClick={() => modal.open("agents")}
         >
           <BotIcon />
         </button>
       </div>
-      <Show when={configOpen()}>
-        <AgentConfigModal onClose={() => setConfigOpen(false)} />
+      <Show when={modal.isOpen("agents")}>
+        <AgentConfigModal onClose={modal.close} />
       </Show>
-      <Show when={themeOpen()}>
-        <ThemeModal onClose={() => setThemeOpen(false)} />
+      <Show when={modal.isOpen("theme")}>
+        <ThemeModal onClose={modal.close} />
       </Show>
     </header>
   );

@@ -59,7 +59,10 @@ export function useAddRepo() {
   return createMutation(() => ({
     mutationFn: ({ owner, name }: { owner: string; name: string }) =>
       api.repos.add(owner, name),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["repos"] }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["repos"] })
+      client.invalidateQueries({ queryKey: ["orgs"] })
+    },
   }))
 }
 
@@ -68,7 +71,10 @@ export function useRemoveRepo() {
   return createMutation(() => ({
     mutationFn: ({ owner, name }: { owner: string; name: string }) =>
       api.repos.remove(owner, name),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["repos"] }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["repos"] })
+      client.invalidateQueries({ queryKey: ["orgs"] })
+    },
   }))
 }
 
