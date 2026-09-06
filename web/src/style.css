@@ -191,7 +191,7 @@ html, body, #root { height: 100%; }
 
 /* ── Top bar ── */
 .topbar {
-  height: var(--topbar-h);
+  min-height: var(--topbar-h);
   background: var(--mantle);
   border-bottom: 1px solid var(--crust);
   display: flex;
@@ -545,7 +545,7 @@ html, body, #root { height: 100%; }
 .pr-detail {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--topbar-h));
+  height: 100%;
   overflow: hidden;
 }
 
@@ -714,6 +714,7 @@ html, body, #root { height: 100%; }
 }
 
 .review-panel-title {
+  margin-right: auto;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1727,3 +1728,97 @@ button.topbar-brand:hover { color: var(--text); }
 .agent-lane .review-error { margin-top: 4px; }
 
 .review-section-title { display: flex; align-items: baseline; gap: 10px; }
+
+/* ── Mobile ── */
+
+.panel-collapse {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  margin-right: 6px;
+  color: var(--overlay1);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.panel-collapse .bot-icon { width: 14px; height: 14px; }
+
+@media (max-width: 720px) {
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    row-gap: 6px;
+  }
+
+  .topbar-left { flex: 1 1 auto; min-width: 0; gap: 8px; }
+  .topbar-left .repo-select { min-width: 0; }
+
+  .topbar-pr-title {
+    position: static;
+    transform: none;
+    order: 3;
+    flex-basis: 100%;
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .topbar-right { gap: 8px; flex-shrink: 0; }
+  .topbar-right .muted { display: none; }
+
+  .repo-input-wrap { flex-wrap: wrap; gap: 6px; }
+  .repo-input { width: 100%; }
+
+  .modal { width: 94vw; max-height: 88vh; padding: 12px; }
+  .modal-narrow { width: 94vw; }
+
+  .dashboard { padding: 16px 12px 32px; }
+  .pr-list-meta { padding: 0 12px 10px; }
+  .pr-list-page { padding: 16px 0 24px; }
+
+  .pr-row { padding: 12px; gap: 8px; flex-wrap: wrap; }
+  .pr-row-main { flex-basis: 100%; }
+  .pr-row-title { white-space: normal; }
+  .pr-row-arrow { display: none; }
+
+  .review-row-top { flex-wrap: wrap; gap: 6px 8px; }
+  .review-row-title { flex-basis: 100%; white-space: normal; overflow: visible; }
+  .review-row-meta { margin-left: auto; }
+
+  .repo-history { padding: 16px 12px; }
+  .repo-history .review-rows.compact { margin: 0 -12px; }
+  .review-rows.compact .review-row { padding: 8px 12px; }
+
+  .pr-tabs { padding: 0 8px; }
+  .pr-tab { padding: 0 10px 8px; }
+
+  .pr-description { padding: 16px 12px; }
+  .review-page { padding: 16px 12px 48px; }
+
+  .review-layout { flex-direction: column; }
+
+  .review-panel {
+    order: -1;
+    width: 100%;
+    max-height: 40vh;
+    border-left: none;
+    border-bottom: 1px solid var(--surface1);
+    padding: 10px 12px;
+  }
+
+  .review-diff { flex: 1 1 auto; min-height: 0; }
+
+  .panel-collapse { display: inline-flex; }
+
+  .review-panel.collapsed {
+    max-height: none;
+    overflow: hidden;
+  }
+  .review-panel.collapsed > *:not(.review-panel-head) { display: none; }
+  .review-panel.collapsed .panel-collapse { transform: rotate(-90deg); }
+
+  .command-block code { word-break: break-all; }
+  .tmux-pick-file { word-break: break-all; }
+}

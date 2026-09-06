@@ -121,77 +121,60 @@ See `docs/diffs-references/recipe-vanilla.md` for FileDiff single-file usage.
 
 ## Startup, configuration and onboarding
 
-One binary, four subcommands: `setup`, `doctor`, `serve`, `migrate`. The old
-`cmd/server` and `cmd/migrate` are gone — a shipped tool that needs you to know
-which of two binaries to run has already failed at onboarding.
+One binary, four subcommands: `setup`, `doctor`, `serve`, `migrate`.
 
-**Nothing is implicit at startup.** `serve` loads the config, runs the same
-preflight checks as `doctor`, and refuses to start if a required one fails,
-printing the same annotated list with a fix for each line. It does **not**
-create the database and does **not** apply migrations — that stays an explicit
-act, as it always has. The difference is that the failure now names the command
-to run instead of surfacing as a SQL error three layers down.
+`serve` loads the config, runs the same preflight checks as `doctor`, and
+refuses to start if a required one fails. It never creates the database or
+applies migrations — that stays explicit; the failure just names the command
+to run. `setup` exits immediately if opencode is not on `PATH`.
 
-**opencode is asserted before anything else.** `setup` exits immediately if it
-is not on `PATH`, rather than collecting answers and reporting the failure at
-the end. It runs every review; a config written without it is a config for a
-tool that cannot do its one job.
-
-`internal/preflight` returns `[]Check` with an `OK`/`Warn`/`Fail` status, a
-detail, and a hint. Required dependencies fail; optional ones warn. It is one
-list consumed by two callers, so `doctor` and `serve` can never disagree about
-what a healthy install looks like.
+`internal/preflight` returns `[]Check` with `OK`/`Warn`/`Fail`, a detail and a
+hint. One list, two callers, so `doctor` and `serve` cannot disagree.
 
 ### Config
 
-TOML at `~/.config/pr-review/config.toml`, overridable with `PR_REVIEW_CONFIG`.
-The file is generated from a commented template, so the artefact on disk
-documents itself and there is no second copy of the docs to drift.
+TOML at `~/.config/pr-review/config.toml`, `PR_REVIEW_CONFIG` overrides.
+Generated from a commented template, so the file documents itself.
 
-**Everything user-owned lives under that one directory** — config, database,
-worktrees, token. Splitting across `~/.config` and `~/.local/share` is the
-correct XDG reading, and it is the wrong call here: it doubles the number of
-places to back up, delete or point at another disk, for a tool with a single
-user. One directory, one thing to move.
-
-**Setup only asks what it cannot work out.** tmux on or off, which editor, and
-how to authenticate. Paths, ports and the opencode URL all have workable
-defaults and a commented line in the file — asking about them makes onboarding
-longer without making it better informed, since a first-time user has no basis
-to answer. Re-running setup preserves hand-edits.
-
-**The split is process-level vs. user-level.** Anything the process needs before
-it can serve a request — listen address, database and data paths, opencode URL
-and project dir, tmux editor and window cap, GitHub auth — is config. Anything
-that is a live UI preference — theme, per-agent model and prompt overrides —
-stays in the database, reachable from the UI. Duplicating either across both
-would create two sources of truth with no arbitration.
-
-`opencode.project_dir` is load-bearing and cannot sensibly be defaulted: it is
-where `.opencode/agents` and `.opencode/tools` are read from at opencode
-startup, and it is also the directory whose base64 forms the session deep link.
-`setup` defaults it to the working directory and preflight verifies
-`pr-reviewer.md` actually exists under it.
-
-`REMOTE_HOST` and `LOG_LEVEL` still override their config equivalents, because
-both are things you want to flip for one run without editing a file.
+- **Everything user-owned is under that one directory** — config, database,
+  worktrees, token. Ignoring the XDG config/data split buys one directory to
+  back up or move.
+- **Setup only asks what it cannot work out** — tmux, editor, auth. Paths and
+  ports have defaults and a commented line. Re-running preserves hand-edits.
+- **Config is process-level, the db is user-level.** Anything needed before
+  serving a request is config; live UI preferences (theme, agent overrides)
+  stay in the db.
+- `opencode.project_dir` cannot be defaulted safely: it holds `.opencode/` and
+  its base64 forms the session deep link. Setup uses the cwd, preflight checks
+  `pr-reviewer.md` is really there.
+- `REMOTE_HOST` and `LOG_LEVEL` override their config equivalents.
 
 ### GitHub auth
 
-`gh auth token` is no longer the mechanism, only the last fallback. Resolution
-order is `GITHUB_TOKEN`, then `github.token_file` (0600), then `gh` if
-`use_gh_cli` is on. First hit wins, and the server logs which source it used —
-"which token is this even using" is otherwise unanswerable.
+`GITHUB_TOKEN`, then `github.token_file` (0600), then `gh auth token` if
+`use_gh_cli`. First hit wins; the server logs which source it used.
 
-The primary path is the OAuth device flow: `setup` prints a user code and a
-URL, polls, verifies the result against `GET /user`, and stores it. It needs an
-OAuth app client ID, which the user must create once. That is real friction and
-there is no way around it — GitHub has no device flow without a client ID — so
-`setup` states the exact steps rather than failing with a 401. Client IDs are
-public; treating one as a secret would be cargo-culting.
+The primary path is the OAuth device flow — `setup` prints a code, polls,
+verifies against `GET /user`, stores it. It needs an OAuth app client ID the
+user creates once; GitHub offers no device flow without one. Client IDs are
+public. The token is a separate file from the config because config is
+pasteable and a token is not.
 
-The token is a separate file from the config on purpose. Config is something
-you might paste into an issue; a token is not.
+## Responsive layout
+
+Desktop unchanged. One `@media (max-width: 720px)` block at the end of
+`style.css`; the existing 1100px breakpoint already stacks the PR list.
+
+- **`--topbar-h` is no longer load-bearing.** The topbar wraps on narrow
+  screens, so `.pr-detail`'s `calc(100vh - var(--topbar-h))` became a silent
+  mismeasure. It is `height: 100%` against `.content` now.
+- **The files tab stacks panel-first** — `.review-layout` goes column, the
+  panel takes `order: -1`, capped at `40vh` and scrolling internally, diff
+  takes the rest with `min-height: 0`. Both need definite heights because
+  `CodeView` measures its host.
+- The panel's collapse toggle is `display: none` above the breakpoint and
+  `.collapsed` only applies inside the media query, so a phone collapse cannot
+  survive into the desktop layout.
 
 ## Makefile
 
@@ -227,126 +210,96 @@ parse     — unmarshal structured output
 store     — review session + concerns
 ```
 
-The GitHub fetch used to run in the HTTP handler before `Start` was called,
-which meant the client sat on a dead POST for a second or two with nothing
-on the stream. That was the whole "client is blind" bug — the fan-out was
-always fine, it was being starved.
+The GitHub fetch used to run in the handler before `Start`, so the client sat
+on a dead POST with nothing on the stream — the fan-out was fine, it was being
+starved.
 
 `finish(err)` closes out any stage still marked `running`, so a failure
 anywhere can't leave a stage spinning forever in the UI.
 
 ## Structured output via a custom tool, not `format.json_schema`
 
-The reviewer used to pass `format: {type: json_schema}` on the prompt and read
-`msg.Info.Structured`. That worked, but opencode persists `format` on the user
-message and then cannot deserialise its own stored value on read — any
-`json_schema` value, including a minimal three-line one, makes
-`GET /session/{id}/message` return 400. The review succeeded and the session
-became permanently unopenable in the web UI and via `opencode attach`.
+The reviewer used to pass `format: {type: json_schema}` and read
+`msg.Info.Structured`. opencode persists `format` on the user message and then
+cannot deserialise its own stored value — any `json_schema`, however minimal,
+makes `GET /session/{id}/message` return 400 and the session permanently
+unopenable.
 
-Replaced with `.opencode/tools/report.ts`, a custom tool the agent calls once
-as its final action. The filename is the tool name. Its Zod args are the
-schema — that is where enforcement lives now, so nothing was given up by
-dropping `json_schema`. `reviewer.go` reads the call's `state.input` off the
-returned `ToolPart` (`MessageResponse.ToolInput`). No `format` is ever sent,
-so review sessions read back cleanly and are fully browsable.
+Replaced with `.opencode/tools/report.ts`, a tool the agent calls once as its
+final action. The filename is the tool name; its Zod args are the schema, so
+nothing was given up. `reviewer.go` reads `state.input` off the returned
+`ToolPart`. The call also shows up as an ordinary part in the transcript, so
+what the agent submitted is visible.
 
 `opencode.PromptRequest` still has a `Format` field because the endpoint
-accepts one. **Do not use it.** It writes sessions that cannot be read back.
-
-A custom tool is also strictly better than a schema here: the tool call shows
-up as an ordinary part in the transcript, so what the agent submitted is
-visible in the session rather than hidden in message metadata.
+accepts one. **Do not use it.**
 
 **The tool is loaded at server startup.** Editing `.opencode/tools/*.ts`
-requires restarting `opencode serve`; a running server will not pick it up,
-and the review fails with "agent never called the report tool".
+requires restarting `opencode serve`, or the review fails with "agent never
+called the report tool".
 
 ## Continuing a review in opencode
 
-Every review already stores its `opencode_session_id`. The web UI that
-`opencode serve` exposes on :4420 routes sessions at `/:dir/session/:id`,
-where `:dir` is base64url (no padding) of the session's working directory —
-`/home/schultz/toolbox/pr-review`, the `projectDir` the server was spawned
-from. `opencode.SessionPath` builds that path.
+Every review stores its `opencode_session_id`. opencode's web UI routes
+sessions at `/:dir/session/:id`, where `:dir` is base64url (no padding) of the
+session's working directory — the `projectDir` it was spawned from.
+`opencode.SessionPath` builds that path.
 
-The server emits only the **path**, never a full URL. The browser prepends
-its own `location.hostname` and port 4420 (`opencodeUrl` in `review.ts`).
-That's deliberate: the Go server reaches opencode on `127.0.0.1`, but the
-link has to resolve in a browser on the work laptop over Tailscale, where
-loopback is the wrong machine. Server owns the base64 of its own filesystem
-path; the client owns the host it can actually reach. No config either side.
+The server emits only the **path**. The browser prepends its own
+`location.hostname` and port 4420 (`opencodeUrl` in `review.ts`): the Go server
+reaches opencode on `127.0.0.1`, but the link has to resolve in a browser over
+Tailscale where loopback is the wrong machine. Server owns the base64 of its
+own path, client owns the host it can reach, no config either side.
 
-The link appears as soon as the `session` stage completes, not when the
-review finishes, so a running review can be watched live. This replaces any
-in-app pushback/follow-up flow — opencode already owns the transcript.
+The link appears when the `session` stage completes, not when the review
+finishes, so a running review can be watched live.
 
 ## Review history and the global stream
 
-`/` is the landing page and shows review history, newest first, 20 per page.
-In-flight reviews are prepended to page 1 only — they are the newest thing
-there is, and "in progress" is meaningless on page 3.
+`/` shows review history, newest first, 20 per page. In-flight reviews are
+prepended to page 1 only.
 
-History and liveness come from different places, and that is inherent, not a
-wart: an in-flight review has no database row until it finishes. So the page
-merges two sources client-side — `/api/reviews/history` for stored rows and
-the global SSE stream for in-flight ones. A PR can legitimately appear twice
-(reviewed yesterday, being re-reviewed now); both rows are true.
+History and liveness come from different places by necessity — an in-flight
+review has no db row until it finishes — so the page merges
+`/api/reviews/history` with the global SSE stream. A PR can legitimately appear
+twice (reviewed yesterday, re-reviewed now); both rows are true.
 
-`Hub` fans out to two sets of subscribers: per-PR (`entries[key].subs`) and
-global (`global`). `Publish` reaches global subscribers **even when no per-PR
-watcher exists** — the old early-return would have silently starved them.
+- `Hub` fans out to per-PR (`entries[key].subs`) and `global` subscribers.
+  **`Publish` must reach `global` even when no per-PR watcher exists** — the old
+  early-return starved them silently.
+- `Subscription.pending` is a map keyed by PR, not a single slot. Coalescing by
+  replacement drops events for a subscriber watching every PR, so `Take()`
+  returns each PR's latest state.
+- `SubscribeAll` registers with the hub *before* snapshotting the runner. The
+  reverse can lose an event; this order can only duplicate one, and the client
+  keys by PR.
 
-`Subscription.pending` is a map keyed by PR, not a single slot. Coalescing by
-replacement is correct for one PR (latest state wins) but drops events when a
-subscriber watches all of them, so `Take()` returns every distinct PR's latest
-state rather than one review.
+No polling. The stream carries whole `Review` values, so one connection drives
+the in-progress badge, the page-1 rows and history invalidation.
 
-`SubscribeAll` registers with the hub _before_ snapshotting the runner. The
-reverse order can lose an event in the gap; this order can only duplicate one,
-and the client keys by PR so a duplicate is a no-op.
-
-No polling. The stream carries whole `Review` values rather than a "something
-changed" ping, so the same events drive the in-progress badge, the page-1 rows,
-and history invalidation on completion — one connection, three consumers.
-
-Paging avoids `COUNT(*)`: the handler asks for `limit+1` rows and reports
-`hasMore` from the overflow.
+Paging avoids `COUNT(*)`: ask for `limit+1`, report `hasMore` from the overflow.
 
 ## Checkout — one worktree per (PR, head sha)
 
-One clone per repo at `data/repos/{owner}/{repo}`, created with
-`--filter=blob:none --no-checkout` so the first clone is cheap and blobs are
-fetched lazily. It is an object store, not a working tree — nothing is ever
-checked out into it.
+One clone per repo at `data/repos/{owner}/{repo}`, made with
+`--filter=blob:none --no-checkout`. It is an object store; nothing is ever
+checked out into it. Working trees live at
+`data/worktrees/{owner}/{repo}/{pr}-{sha:12}` via `git worktree add --detach`.
 
-Working trees live at `data/worktrees/{owner}/{repo}/{pr}-{sha:12}`, one per
-PR head, created with `git worktree add --detach`.
+This replaced a single shared checkout that every review force-checked-out —
+safe only while reviews were the sole consumer. A tmux session outlives its
+request, so a later `--force` swapped the tree under open nvim buffers,
+silently, and discarded edits. Keying by sha fixes it: a new push gets a new
+directory, so a session on the old sha is never disturbed.
 
-This replaced a single shared checkout per repo that every review
-force-checked-out. That was safe only while reviews were the sole consumer
-and the per-repo lock was held for the whole review. **tmux sessions broke
-that invariant**: the session outlives the request that created it, so a
-later `checkout --force` would swap the tree under open nvim buffers —
-silently, because nvim doesn't reread on disk change. Writing then put one
-PR's content into another PR's tree, and `--force` discarded any edits
-outright.
-
-Keying by sha rather than by PR is what makes it safe: a new push produces a
-new directory, so a session on the old sha is never disturbed. Re-reviewing
-the same sha reuses the same tree, which is correct — nothing changed.
-
-`Worktree()` holds the per-repo lock only while shared state is mutated —
-clone, fetch, worktree registry — and releases before returning. Reviews of
-different PRs in the same repo now run in parallel; previously they
-serialised.
+`Worktree()` holds the per-repo lock only for clone, fetch and registry
+mutation, then releases — reviews of different PRs in one repo run in parallel.
 
 **The registry and the filesystem are reconciled before either is trusted.**
-`git worktree prune` runs before every `add`, because a directory removed
-without a prune leaves a record behind and every later `add` at that path
-fails with "missing but already registered". A directory that exists but
-whose `rev-parse HEAD` doesn't match the expected sha is torn down and
-rebuilt rather than reused.
+`git worktree prune` runs before every `add`, or a directory removed without a
+prune leaves a record and every later `add` there fails with "missing but
+already registered". A tree whose `rev-parse HEAD` doesn't match the expected
+sha is torn down, not reused.
 
 Worktrees are never reaped. See `todo.txt`.
 
@@ -363,22 +316,16 @@ resolution, as `resolve.go` falling back to `fileLevel()` when it cannot locate
 a concern. Pointing confidently at the wrong line is worse than not pointing.
 A file deleted outright by the PR fails `os.Stat` and lands in `skipped`.
 
-**Line picking rides `onSelectedLinesChange`, and the semantics come from
-`@pierre/diffs`, not from us.** Three behaviours are load-bearing and all are
-confirmed in `InteractionManager.js`:
-
-- Selection starts on **pointerdown**, so a single click picks — no drag needed.
-- The pointerdown must land in the **line-number gutter**
-  (`requireNumberColumn: true`). Clicking the code body does nothing.
-- Clicking an already-selected single line **unselects** it and fires the
-  callback with `null`. That is the only un-pick gesture, and the callback
-  carries no file id, so `DiffView` tracks the last selected file itself and
-  reports it to `onUnpickLine`. Dropping the `null` — which is the obvious
-  defensive guard to write — makes picks permanent until reload.
+**Line picking semantics come from `@pierre/diffs`**, confirmed in
+`InteractionManager.js`: selection starts on pointerdown (a single click picks,
+no drag), the pointerdown must land in the line-number gutter
+(`requireNumberColumn: true`), and clicking an already-selected line unselects
+it and fires the callback with `null`. That `null` is the only un-pick gesture
+and carries no file id, so `DiffView` tracks the last selected file itself —
+guarding it away makes picks permanent until reload.
 
 `setSelectedLines(..., { notify: false })` is what stops a side-panel concern
-click from registering as a pick; the flag is forwarded down to the interaction
-manager, so it genuinely suppresses the callback.
+click from registering as a pick.
 
 Session names are `owner/repo/number`, sanitised — tmux forbids `.` and `:` in
 session names, and repo names routinely contain dots. Targets are addressed as

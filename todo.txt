@@ -11,6 +11,16 @@ PR Detail — Review (diff)
 [ ] File tree sidebar
 [ ] Concern lifecycle: open / resolved / dismissed / superseded
 
+Responsive
+-----------
+[x] Mobile breakpoint at 720px — lists full width, topbar wraps, files tab
+    stacks panel-above-diff with a collapse toggle
+[ ] Verify on a real phone. Untested on hardware: touch targets are still
+    desktop-sized, and diff line picking needs a tap in the line-number gutter,
+    which is ~20px wide
+[ ] Diff horizontal scroll on a phone — CodeView is wide and the host scrolls,
+    but a touch drag may fight the page scroll
+
 PR List
 --------
 [ ] Pagination past 100 PRs

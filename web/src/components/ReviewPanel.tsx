@@ -1,7 +1,8 @@
-import { For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review";
 import type { RankedConcern, ReviewerNote, ReviewerThread } from "../types";
 import { AgentPicker } from "./AgentPicker";
+import { ChevronIcon } from "./icons";
 import { ReviewerComments } from "./ReviewerComments";
 
 type Props = {
@@ -24,6 +25,7 @@ const stageLabels: Record<string, string> = {
 
 export function ReviewPanel(props: Props) {
   const s = () => props.state;
+  const [collapsed, setCollapsed] = createSignal(false);
   const activeStage = () =>
     s()
       .review()
@@ -31,8 +33,16 @@ export function ReviewPanel(props: Props) {
   const failedAgents = () => (s().review()?.agents ?? []).filter((a) => a.status === "error");
 
   return (
-    <aside class="review-panel">
+    <aside class="review-panel" classList={{ collapsed: collapsed() }}>
       <div class="review-panel-head">
+        <button
+          class="panel-collapse"
+          aria-expanded={!collapsed()}
+          aria-label={collapsed() ? "expand agent review" : "collapse agent review"}
+          onClick={() => setCollapsed(!collapsed())}
+        >
+          <ChevronIcon />
+        </button>
         <span class="review-panel-title">agent review</span>
         <button class="review-run" onClick={() => s().start()} disabled={!s().canRun()}>
           {!s().synced()
