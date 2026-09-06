@@ -5,7 +5,7 @@
 # Re-running setup preserves whatever you change below.
 #
 # Paths: after moving `database` or `data_dir`, move the files yourself and
-# run `pr-review doctor` — nothing is migrated or copied for you.
+# run `pr-review doctor` - nothing is migrated or copied for you.
 
 [server]
 # Address the web UI and API listen on.
@@ -29,7 +29,7 @@ remote_host = "{{ .Server.RemoteHost }}"
 
 [github]
 # OAuth app client ID used for the device-code login flow. Create one at
-# https://github.com/settings/developers — any redirect URL, device flow
+# https://github.com/settings/developers - any redirect URL, device flow
 # enabled. Client IDs are public; this one is not a secret.
 oauth_client_id = "{{ .GitHub.OAuthClientID }}"
 
@@ -47,7 +47,7 @@ url = "{{ .OpenCode.URL }}"
 # Directory holding .opencode/agents and .opencode/tools. Both are read once
 # at opencode startup, so editing them requires restarting opencode. Defaults
 # to wherever setup was run from; if that was not the pr-review checkout,
-# correct it here — `pr-review doctor` verifies the agent file exists.
+# correct it here - `pr-review doctor` verifies the agent file exists.
 project_dir = "{{ .OpenCode.ProjectDir }}"
 
 # Start `opencode serve` if nothing is answering on the URL above.

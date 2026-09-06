@@ -20,7 +20,7 @@ const concern = tool.schema.object({
 
 export default tool({
   description:
-    "Submit the finished review. Call this exactly once, as the final action. This is the only way to deliver a review — anything written as ordinary prose is discarded.",
+    "Submit the finished review. Call this exactly once, as the final action. This is the only way to deliver a review - anything written as ordinary prose is discarded.",
   args: {
     summary: tool.schema
       .string()

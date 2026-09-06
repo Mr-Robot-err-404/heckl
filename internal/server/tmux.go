@@ -124,7 +124,7 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(body.Picks) > s.cfg.Tmux.MaxWindows {
-		jsonError(w, fmt.Sprintf("too many files — %d max", s.cfg.Tmux.MaxWindows), http.StatusBadRequest)
+		jsonError(w, fmt.Sprintf("too many files - %d max", s.cfg.Tmux.MaxWindows), http.StatusBadRequest)
 		return
 	}
 

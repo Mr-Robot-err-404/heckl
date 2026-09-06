@@ -67,7 +67,7 @@ func run() error {
 		return err
 	}
 
-	fmt.Printf("session %s — %d window(s) in %s\n", session, len(windows), root)
+	fmt.Printf("session %s - %d window(s) in %s\n", session, len(windows), root)
 	fmt.Printf("attach: tmux attach -t %s\n", session)
 	return nil
 }

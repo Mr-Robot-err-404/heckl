@@ -88,7 +88,7 @@ func Load() (*Config, error) {
 
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("no config at %s — run `pr-review setup`", path)
+		return nil, fmt.Errorf("no config at %s - run `pr-review setup`", path)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("config: read %s: %w", path, err)
@@ -117,7 +117,7 @@ func (c *Config) applyEnv() {
 
 func (c *Config) normalise() error {
 	if c.OpenCode.ProjectDir == "" {
-		return fmt.Errorf("config: opencode.project_dir is empty — it must point at the directory holding .opencode/")
+		return fmt.Errorf("config: opencode.project_dir is empty - it must point at the directory holding .opencode/")
 	}
 	for _, p := range []*string{&c.Server.DataDir, &c.Server.Database, &c.OpenCode.ProjectDir, &c.GitHub.TokenFile} {
 		expanded, err := expand(*p)

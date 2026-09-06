@@ -39,7 +39,7 @@ func RequestDeviceCode(ctx context.Context, clientID string) (*DeviceCode, error
 		return nil, err
 	}
 	if out.DeviceCode == "" {
-		return nil, fmt.Errorf("github: device code request returned nothing — is %q a valid oauth client id with device flow enabled?", clientID)
+		return nil, fmt.Errorf("github: device code request returned nothing - is %q a valid oauth client id with device flow enabled?", clientID)
 	}
 	if out.Interval <= 0 {
 		out.Interval = 5

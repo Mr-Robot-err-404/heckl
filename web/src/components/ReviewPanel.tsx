@@ -32,6 +32,11 @@ export function ReviewPanel(props: Props) {
       ?.stages.find((stage) => stage.status === "running");
   const failedAgents = () => (s().review()?.agents ?? []).filter((a) => a.status === "error");
 
+  const isRerun = () => s().synced() && !s().busy() && !!s().review();
+
+  const runLabel = () =>
+    !s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run";
+
   return (
     <aside class="review-panel" classList={{ collapsed: collapsed() }}>
       <div class="review-panel-head">
@@ -44,14 +49,26 @@ export function ReviewPanel(props: Props) {
           <ChevronIcon />
         </button>
         <span class="review-panel-title">agent review</span>
-        <button class="review-run" onClick={() => s().start()} disabled={!s().canRun()}>
-          {!s().synced()
-            ? "connecting..."
-            : s().busy()
-              ? "reviewing..."
-              : s().review()
-                ? "re-run"
-                : "run"}
+        <Show when={s().review()?.opencodeSessionPath}>
+          <a
+            class="review-session-link"
+            href={opencodeUrl(s().review()?.opencodeSessionPath)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            continue in opencode ↗
+          </a>
+        </Show>
+        <button
+          class="review-run"
+          title={runLabel()}
+          aria-label={runLabel()}
+          onClick={() => s().start()}
+          disabled={!s().canRun()}
+        >
+          <Show when={isRerun()} fallback={runLabel()}>
+            <RerunIcon />
+          </Show>
         </button>
       </div>
 
@@ -62,7 +79,7 @@ export function ReviewPanel(props: Props) {
       </Show>
 
       <Show when={s().synced() && !s().connected()}>
-        <div class="review-stale">connection lost — reconnecting</div>
+        <div class="review-stale">connection lost - reconnecting</div>
       </Show>
 
       <Show when={!s().synced()}>
@@ -93,16 +110,6 @@ export function ReviewPanel(props: Props) {
                         agent.stages.find((st) => st.status === "running")?.name ?? ""
                       ] ?? "")}
                 </span>
-                <Show when={agent.opencodeSessionPath}>
-                  <a
-                    class="agent-progress-link"
-                    href={opencodeUrl(agent.opencodeSessionPath)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    ↗
-                  </a>
-                </Show>
                 <button
                   class="agent-rerun"
                   title="re-run this agent"
@@ -151,17 +158,6 @@ export function ReviewPanel(props: Props) {
             </For>
           </ul>
         </Show>
-      </Show>
-
-      <Show when={s().review()?.opencodeSessionPath}>
-        <a
-          class="review-open"
-          href={opencodeUrl(s().review()?.opencodeSessionPath)}
-          target="_blank"
-          rel="noreferrer"
-        >
-          continue in opencode ↗
-        </a>
       </Show>
 
       <ReviewerComments

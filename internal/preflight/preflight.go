@@ -30,15 +30,15 @@ type Check struct {
 
 func Run(ctx context.Context, cfg *config.Config) []Check {
 	checks := []Check{
-		binary("git", true, "install git — clones and worktrees are done with it, not delegated to an agent"),
-		binary("opencode", true, "install opencode: https://opencode.ai — reviews cannot run without it"),
+		binary("git", true, "install git - clones and worktrees are done with it, not delegated to an agent"),
+		binary("opencode", true, "install opencode: https://opencode.ai - reviews cannot run without it"),
 		agentFiles(cfg),
 		database(cfg),
 		token(cfg),
 	}
 	if cfg.Tmux.Enabled {
 		checks = append(checks,
-			binary("tmux", false, "install tmux, or set tmux.enabled = false — line picking will not open sessions without it"),
+			binary("tmux", false, "install tmux, or set tmux.enabled = false - line picking will not open sessions without it"),
 			binary(cfg.Tmux.Editor, false, fmt.Sprintf("install %s, or point tmux.editor at an editor you have", cfg.Tmux.Editor)),
 		)
 	}
@@ -74,7 +74,7 @@ func agentFiles(cfg *config.Config) Check {
 			Name:   "opencode agents",
 			Status: Fail,
 			Detail: "pr-reviewer.md not found under " + dir,
-			Hint:   "point opencode.project_dir at the pr-review checkout — .opencode/agents and .opencode/tools live there",
+			Hint:   "point opencode.project_dir at the pr-review checkout - .opencode/agents and .opencode/tools live there",
 		}
 	}
 	return Check{Name: "opencode agents", Status: OK, Detail: dir}

@@ -90,7 +90,7 @@ export function PRStatus(props: { pr: PR; reviewing: boolean }) {
             title={
               review.status === "error"
                 ? "last agent review failed"
-                : `agent reviewed — ${review.concernCount} concerns, ${review.highCount} high`
+                : `agent reviewed - ${review.concernCount} concerns, ${review.highCount} high`
             }
           >
             <BotIcon />

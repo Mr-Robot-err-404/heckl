@@ -188,7 +188,7 @@ func TestResolveShortDiffLineDoesNotHijackAnchor(t *testing.T) {
 
 	c := idx.resolve(Concern{File: "hijack.go", Anchor: `opts := Options{Retries: 3}`})
 	if c.Line == nil || *c.Line != 5 {
-		t.Fatalf("line = %s, want 5 — a bare %q line must not swallow a longer anchor", show(c.Line), "}")
+		t.Fatalf("line = %s, want 5 - a bare %q line must not swallow a longer anchor", show(c.Line), "}")
 	}
 }
 
@@ -205,7 +205,7 @@ func TestResolveExactMatchBeatsSubstringMatch(t *testing.T) {
 
 	c := idx.resolve(Concern{File: "rank.go", Anchor: "doThing()"})
 	if c.Line == nil || *c.Line != 3 {
-		t.Fatalf("line = %s, want 3 — exact match must outrank a containing line", show(c.Line))
+		t.Fatalf("line = %s, want 3 - exact match must outrank a containing line", show(c.Line))
 	}
 }
 
@@ -223,7 +223,7 @@ func TestResolveDegenerateAnchorIsIgnored(t *testing.T) {
 
 	c := idx.resolve(Concern{File: "brace.go", Line: ptr(4), Side: SideAdditions, Anchor: "}"})
 	if c.Line == nil || *c.Line != 4 {
-		t.Fatalf("line = %s, want 4 — a non-discriminating anchor must defer to the claimed line", show(c.Line))
+		t.Fatalf("line = %s, want 4 - a non-discriminating anchor must defer to the claimed line", show(c.Line))
 	}
 }
 

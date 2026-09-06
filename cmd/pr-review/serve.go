@@ -31,7 +31,7 @@ func runServe() {
 	checks := preflight.Run(context.Background(), cfg)
 	if preflight.Failed(checks) {
 		printChecks(checks)
-		fatal("preflight failed — fix the above, or run `pr-review setup`")
+		fatal("preflight failed - fix the above, or run `pr-review setup`")
 	}
 	for _, c := range checks {
 		if c.Status != preflight.OK {
@@ -44,7 +44,7 @@ func runServe() {
 		UseGHCLI:  cfg.GitHub.UseGHCLI,
 	})
 	if err != nil {
-		fatal("github: no token — run `pr-review setup`")
+		fatal("github: no token - run `pr-review setup`")
 	}
 	slog.Info("github token loaded", "source", string(tok.Source))
 
@@ -71,7 +71,7 @@ func runServe() {
 	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev, db, sessionPath)
 
 	if cfg.Server.RemoteHost != "" {
-		slog.Info("remote host override set — non-local clients will ssh here", "host", cfg.Server.RemoteHost)
+		slog.Info("remote host override set - non-local clients will ssh here", "host", cfg.Server.RemoteHost)
 	}
 
 	srv := server.New(gh, db, oc, orc, co, cfg)

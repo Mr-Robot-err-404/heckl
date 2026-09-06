@@ -46,7 +46,7 @@ export function AgentConfigModal(props: { onClose: () => void }) {
         </div>
 
         <Show when={config.isError}>
-          <div class="review-error">could not reach opencode — {String(config.error)}</div>
+          <div class="review-error">could not reach opencode - {String(config.error)}</div>
         </Show>
 
         <Show when={draft.agents.length > 0} fallback={<p class="review-idle">loading...</p>}>
@@ -61,7 +61,7 @@ export function AgentConfigModal(props: { onClose: () => void }) {
                       value={agent.model}
                       onChange={(e) => edit(index(), { model: e.currentTarget.value })}
                     >
-                      <option value="">default — {agent.defaultModel || "unset"}</option>
+                      <option value="">default - {agent.defaultModel || "unset"}</option>
                       <For each={models()}>
                         {(model) => (
                           <option value={model.ref}>
@@ -82,7 +82,7 @@ export function AgentConfigModal(props: { onClose: () => void }) {
                     <textarea
                       class="agent-config-prompt"
                       rows="8"
-                      placeholder="appended as the system prompt — blank for none"
+                      placeholder="appended as the system prompt - blank for none"
                       value={agent.prompt}
                       onInput={(e) => edit(index(), { prompt: e.currentTarget.value })}
                     />

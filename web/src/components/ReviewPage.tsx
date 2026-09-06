@@ -23,6 +23,11 @@ export function ReviewPage(props: Props) {
 
   const agents = (): ReviewAgent[] => s().review()?.agents ?? []
 
+  const isRerun = () => s().synced() && !s().busy() && !!s().review()
+
+  const runLabel = () =>
+    !s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"
+
   const grouped = () => {
     const known = agents()
     const orphaned = s()
@@ -41,8 +46,36 @@ export function ReviewPage(props: Props) {
   return (
     <div class="review-page">
       <div class="review-page-head">
-        <div>
-          <h2 class="review-page-title">agent review</h2>
+        <div class="review-head-start">
+          <Show when={s().review()?.opencodeSessionPath}>
+            <a
+              class="review-session-link"
+              href={opencodeUrl(s().review()?.opencodeSessionPath)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              continue in opencode ↗
+            </a>
+          </Show>
+        </div>
+        <div class="review-head-end">
+          <button
+            class="review-run"
+            title={runLabel()}
+            aria-label={runLabel()}
+            onClick={() => s().start()}
+            disabled={!s().canRun()}
+          >
+            <Show when={isRerun()} fallback={runLabel()}>
+              <RerunIcon />
+            </Show>
+          </button>
+        </div>
+      </div>
+
+      <AgentPicker
+        state={s()}
+        meta={
           <Show when={s().review()?.status === "done"}>
             <span class="review-meta">
               {s().concerns().length === 0
@@ -54,32 +87,15 @@ export function ReviewPage(props: Props) {
               </Show>
             </span>
           </Show>
-        </div>
-        <div class="review-page-actions">
-          <Show when={s().review()?.opencodeSessionPath}>
-            <a
-              class="review-session-link"
-              href={opencodeUrl(s().review()?.opencodeSessionPath)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              continue in opencode ↗
-            </a>
-          </Show>
-          <button class="review-run" onClick={() => s().start()} disabled={!s().canRun()}>
-            {!s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"}
-          </button>
-        </div>
-      </div>
-
-      <AgentPicker state={s()} />
+        }
+      />
 
       <Show when={s().error()}>
         <div class="review-error">{s().error()}</div>
       </Show>
 
       <Show when={s().synced() && !s().connected()}>
-        <div class="review-stale">connection lost — reconnecting</div>
+        <div class="review-stale">connection lost - reconnecting</div>
       </Show>
 
       <Show when={!s().synced()}>
@@ -87,7 +103,7 @@ export function ReviewPage(props: Props) {
       </Show>
 
       <Show when={s().synced() && !s().busy() && !s().review()}>
-        <p class="review-idle">no review yet — run one to see the agent's read on this PR</p>
+        <p class="review-idle">no review yet - run one to see the agent's read on this PR</p>
       </Show>
 
       <Show when={s().busy() && s().review()}>
@@ -105,9 +121,6 @@ export function ReviewPage(props: Props) {
               <div class={`agent-lane is-${agent.status}`}>
                 <div class="agent-lane-head">
                   <span class="agent-lane-name">{agentLabel(agent.name)}</span>
-                  <Show when={agent.status === "done" && agent.durationMs > 0}>
-                    <span class="review-stage-time">{formatMs(agent.durationMs)}</span>
-                  </Show>
                   <Show when={agent.opencodeSessionPath}>
                     <a
                       class="review-session-link"
@@ -117,6 +130,9 @@ export function ReviewPage(props: Props) {
                     >
                       {agent.status === "running" ? "watch ↗" : "session ↗"}
                     </a>
+                  </Show>
+                  <Show when={agent.status === "done" && agent.durationMs > 0}>
+                    <span class="review-stage-time">{formatMs(agent.durationMs)}</span>
                   </Show>
                   <button
                     class="agent-rerun"
@@ -155,22 +171,10 @@ export function ReviewPage(props: Props) {
         <For each={grouped()}>
           {(group) => (
             <section class="review-findings">
-              <h3 class="review-section-title">
-                {agentLabel(group.agent.name)}
-                <Show when={group.agent.opencodeSessionPath}>
-                  <a
-                    class="review-session-link"
-                    href={opencodeUrl(group.agent.opencodeSessionPath)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    session ↗
-                  </a>
-                </Show>
-              </h3>
+              <h3 class="review-section-title">{agentLabel(group.agent.name)}</h3>
               <Show
                 when={group.agent.status !== "error"}
-                fallback={<p class="review-failed">this agent failed — no findings recorded</p>}
+                fallback={<p class="review-failed">this agent failed - no findings recorded</p>}
               >
                 <Show
                   when={group.concerns.length > 0}

@@ -47,7 +47,7 @@ export function TmuxModal(props: Props) {
             </h4>
             <Show
               when={props.picks.length > 0}
-              fallback={<p class="muted">no lines selected — click a line in the diff</p>}
+              fallback={<p class="muted">no lines selected - click a line in the diff</p>}
             >
               <ul class="tmux-pick-list">
                 <For each={props.picks}>

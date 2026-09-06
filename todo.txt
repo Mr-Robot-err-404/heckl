@@ -1,4 +1,4 @@
-PR Detail — Description
+PR Detail - Description
 ------------------------
 [x] GitHub markdown in PR description
 [x] Video embeds (skipped)
@@ -6,38 +6,38 @@ PR Detail — Description
 [ ] Checks status
 [ ] Ready to merge state
 
-PR Detail — Review (diff)
+PR Detail - Review (diff)
 --------------------------
 [ ] File tree sidebar
 [ ] Concern lifecycle: open / resolved / dismissed / superseded
 
 Responsive
 -----------
-[x] Mobile breakpoint at 720px — lists full width, topbar wraps, files tab
+[x] Mobile breakpoint at 720px - lists full width, topbar wraps, files tab
     stacks panel-above-diff with a collapse toggle
 [ ] Verify on a real phone. Untested on hardware: touch targets are still
     desktop-sized, and diff line picking needs a tap in the line-number gutter,
     which is ~20px wide
-[ ] Diff horizontal scroll on a phone — CodeView is wide and the host scrolls,
+[ ] Diff horizontal scroll on a phone - CodeView is wide and the host scrolls,
     but a touch drag may fight the page scroll
 
 PR List
 --------
 [ ] Pagination past 100 PRs
-[ ] Keyboard nav — j/k, Enter, Escape
+[ ] Keyboard nav - j/k, Enter, Escape
 
 Onboarding / packaging
 -----------------------
-[x] Single `pr-review` binary — setup, doctor, serve, migrate
+[x] Single `pr-review` binary - setup, doctor, serve, migrate
 [x] TOML config from a commented template, XDG paths, PR_REVIEW_CONFIG
 [x] Device-code GitHub login, token at 0600; gh demoted to a fallback
 [x] Preflight checks shared by `doctor` and `serve`
-[ ] Bundle .opencode/agents and tools into the binary — opencode.project_dir
+[ ] Bundle .opencode/agents and tools into the binary - opencode.project_dir
     only exists because the agent and tool files must be on disk next to a
     checkout. embed + write to a state dir on setup would kill the whole
     class of "wrong project_dir" failures, but the session deep link is
     base64 of that same dir, so both have to move together
-[ ] Capabilities endpoint — the UI cannot tell tmux is disabled or missing, so
+[ ] Capabilities endpoint - the UI cannot tell tmux is disabled or missing, so
     the button is offered and then fails. Needs /api/capabilities plus a
     frontend that respects it
 [ ] `serve` does not re-check the token against GitHub, only that one exists.
@@ -47,48 +47,48 @@ Onboarding / packaging
 Infra / misc
 -------------
 [x] Colour and clean server logs
-[ ] Cost controls — steps cap, swappable model config
-[ ] Reap worktrees — data/worktrees/{owner}/{repo}/{pr}-{sha} grows forever,
+[ ] Cost controls - steps cap, swappable model config
+[ ] Reap worktrees - data/worktrees/{owner}/{repo}/{pr}-{sha} grows forever,
     one full checkout per PR head reviewed. Needs a sweep: keep the last N per
     repo, `os.RemoveAll` then `git worktree prune` (prune alone only drops
     records, it does not delete directories). Must skip any tree with a live
-    tmux session — `tmux.HasSession` — or it reintroduces the exact bug
+    tmux session - `tmux.HasSession` - or it reintroduces the exact bug
     worktrees were added to fix.
 
 
 Agent integration
 ==================
 [x] internal/opencode client
-[x] internal/checkout — clone/fetch/detached checkout
+[x] internal/checkout - clone/fetch/detached checkout
 [x] Per-session external_directory scoping
-[x] Server startup bootstrap — opencode.Setup
+[x] Server startup bootstrap - opencode.Setup
 [x] pr-reviewer agent
 [x] report.ts custom tool for structured output
 [x] sqlc-backed pr_review_sessions + concerns
 [x] SSE stage progress
 [x] Continue a review in opencode (needs `tailscale serve --https=4420` remotely)
-[x] Sibling agents — pr-skeptic, per-agent stages, shared checkout
+[x] Sibling agents - pr-skeptic, per-agent stages, shared checkout
 [ ] More siblings
-[x] Partial success — a failed agent no longer kills the review
-[x] Surface partial failure — per-agent status, error and lanes now survive
+[x] Partial success - a failed agent no longer kills the review
+[x] Surface partial failure - per-agent status, error and lanes now survive
     completion and reload
-[x] Rerun a single agent — merges into the existing session, any agent, any
+[x] Rerun a single agent - merges into the existing session, any agent, any
     prior outcome
-[x] Agent selection UI — toggle chips, all on by default, /api/agents is the
+[x] Agent selection UI - toggle chips, all on by default, /api/agents is the
     single source of names
-[ ] Per-agent summaries — stored per agent now, but only the highest-ranked
+[ ] Per-agent summaries - stored per agent now, but only the highest-ranked
     non-empty one is shown as the review synopsis
-[ ] Scope sessions to the checkout — POST /session?directory=<checkout>.
+[ ] Scope sessions to the checkout - POST /session?directory=<checkout>.
     Sessions currently inherit the serve cwd, so a read resolves against
     pr-review's own tree, not the PR
-[ ] Restore read for pr-reviewer once sessions are scoped — the diff alone is
+[ ] Restore read for pr-reviewer once sessions are scoped - the diff alone is
     often not enough context
-[ ] Per-agent file selection — pick which files of the diff an agent sees
-[x] tmux review sessions — select lines in the diff, one `nvim +line file`
+[ ] Per-agent file selection - pick which files of the diff an agent sees
+[x] tmux review sessions - select lines in the diff, one `nvim +line file`
     window per file in an isolated worktree
 [x] Route buildCopyPathButton through clipboard.copyText
-[ ] Surface `skipped` in the tmux modal — the API returns it, the client
+[ ] Surface `skipped` in the tmux modal - the API returns it, the client
     discards it, so picking four files and getting three windows is unexplained
-[ ] Agent selection isn't persisted — toggles reset on reload/navigation
-[ ] Review latency — single-shot prompt, model free to wander. Re-measure first;
+[ ] Agent selection isn't persisted - toggles reset on reload/navigation
+[ ] Review latency - single-shot prompt, model free to wander. Re-measure first;
     old 60-100s figure was recorded while reviews ran as the wrong agent.

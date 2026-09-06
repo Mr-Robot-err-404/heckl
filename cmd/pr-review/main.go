@@ -9,7 +9,7 @@ import (
 //go:embed all:dist
 var static embed.FS
 
-const usage = `pr-review — review pull requests with agents
+const usage = `pr-review - review pull requests with agents
 
 usage:
   pr-review setup           interactive first-run: config, github login, database

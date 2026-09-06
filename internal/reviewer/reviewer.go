@@ -191,7 +191,7 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfi
 	emit(ProgressEvent{Agent: name, Stage: StageSession})
 	t := time.Now()
 	sess, err := r.oc.CreateSession(opencode.CreateSessionRequest{
-		Title:      fmt.Sprintf("%s/%s #%d — %s", req.Owner, req.Repo, req.PRNumber, name),
+		Title:      fmt.Sprintf("%s/%s #%d - %s", req.Owner, req.Repo, req.PRNumber, name),
 		Agent:      name,
 		Permission: opencode.ReadOnlyPermission(req.CheckoutPath),
 	})
@@ -397,7 +397,7 @@ func primarySessionID(results []agentResult) string {
 
 func buildPrompt(req ReviewRequest) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "PR: %s/%s #%d — %s\n", req.Owner, req.Repo, req.PRNumber, req.Title)
+	fmt.Fprintf(&b, "PR: %s/%s #%d - %s\n", req.Owner, req.Repo, req.PRNumber, req.Title)
 	if body := strings.TrimSpace(req.Body); body != "" {
 		fmt.Fprintf(&b, "\n%s\n", body)
 	}
@@ -414,7 +414,7 @@ func truncateDiff(diff string, maxBytes int) string {
 	if cut <= 0 {
 		cut = maxBytes
 	}
-	return diff[:cut] + fmt.Sprintf("\n\n[diff truncated — %d of %d bytes shown. Review only what is above; do not go looking for the rest.]\n", cut, len(diff))
+	return diff[:cut] + fmt.Sprintf("\n\n[diff truncated - %d of %d bytes shown. Review only what is above; do not go looking for the rest.]\n", cut, len(diff))
 }
 
 func concernCount(n int) string {

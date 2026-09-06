@@ -32,10 +32,10 @@ func Setup(opts SetupOptions) (*Client, error) {
 		return c, nil
 	}
 	if !opts.Spawn {
-		return nil, fmt.Errorf("opencode: nothing responding at %s and opencode.spawn is false — start `opencode serve` yourself", c.baseURL)
+		return nil, fmt.Errorf("opencode: nothing responding at %s and opencode.spawn is false - start `opencode serve` yourself", c.baseURL)
 	}
 
-	slog.Info("opencode not responding — spawning", "url", c.baseURL, "dir", opts.ProjectDir)
+	slog.Info("opencode not responding - spawning", "url", c.baseURL, "dir", opts.ProjectDir)
 	if err := spawnServer(c.baseURL, opts.ProjectDir); err != nil {
 		return nil, fmt.Errorf("opencode: setup: spawn server: %w", err)
 	}

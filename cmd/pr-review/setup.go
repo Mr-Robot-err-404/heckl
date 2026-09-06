@@ -47,7 +47,7 @@ func runSetup() {
 	printChecks(checks)
 
 	if preflight.Failed(checks) {
-		fmt.Printf("%s setup finished with failures — fix them, then run %s\n\n",
+		fmt.Printf("%s setup finished with failures - fix them, then run %s\n\n",
 			out.Paint(term.Yellow, "note"),
 			out.Paint(term.Cyan, "pr-review doctor"),
 		)
@@ -73,7 +73,7 @@ func requireOpencode() {
 
 func loadOrDefault(path string) *config.Config {
 	if existing, err := config.Load(); err == nil {
-		fmt.Printf("%s existing config found — enter keeps the current value\n\n", out.Paint(term.Grey, "note"))
+		fmt.Printf("%s existing config found - enter keeps the current value\n\n", out.Paint(term.Grey, "note"))
 		return existing
 	}
 	cfg := config.Defaults()
@@ -113,7 +113,7 @@ func setupAuth(ctx context.Context, cfg *config.Config) {
 
 	token := acquireToken(ctx, cfg)
 	if token == "" {
-		fmt.Printf("%s skipped — the server will not start without a token\n\n", out.Paint(term.Yellow, "warn"))
+		fmt.Printf("%s skipped - the server will not start without a token\n\n", out.Paint(term.Yellow, "warn"))
 		return
 	}
 
@@ -149,7 +149,7 @@ func acquireToken(ctx context.Context, cfg *config.Config) string {
 func deviceLogin(ctx context.Context, cfg *config.Config) string {
 	if cfg.GitHub.OAuthClientID == "" {
 		fmt.Printf("\n%s no oauth client id configured.\n", out.Paint(term.Yellow, "note"))
-		fmt.Printf("  create one at %s — any name, any callback url, tick\n",
+		fmt.Printf("  create one at %s - any name, any callback url, tick\n",
 			out.Paint(term.Cyan, "https://github.com/settings/developers"))
 		fmt.Printf("  \"enable device flow\", then paste the client id here. It is not a secret.\n\n")
 		cfg.GitHub.OAuthClientID = ask("oauth client id", "")
