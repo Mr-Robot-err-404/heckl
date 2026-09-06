@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Show } from "solid-js"
+import { createEffect, createResource, createSignal, For, Show } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { useQueryClient } from "@tanstack/solid-query"
 import {
@@ -18,6 +18,7 @@ import { ReviewerComments } from "./ReviewerComments"
 import { ReviewPage } from "./ReviewPage"
 import { TmuxModal } from "./TmuxModal"
 import { useModal } from "../modal"
+import { diffAnchor, prUrl, type DiffAnchor } from "../github"
 import { api, errText } from "../api"
 import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick } from "../types"
 
@@ -140,9 +141,23 @@ export function PRDetail(props: Props) {
     focusLine(note.file, note.line, note.side, 0)
   }
 
+  const anchorTarget = (): DiffAnchor | null => {
+    if (props.tab !== "files") return null
+
+    const f = focus()
+    if (f) return { file: f.file, line: f.line, side: f.side }
+
+    const picked = picks.items.filter((p) => p.line != null)
+    const pick = picked[picked.length - 1]
+    return pick ? { file: pick.file, line: pick.line!, side: "additions" } : null
+  }
+
+  const [anchor] = createResource(anchorTarget, diffAnchor)
+
   const githubUrl = () => {
-    const base = `https://github.com/${props.owner}/${props.repo}/pull/${props.prNumber}`
-    return props.tab === "files" ? `${base}/files` : base
+    const base = prUrl(props.owner, props.repo, props.prNumber)
+    if (props.tab !== "files") return base
+    return `${base}/files${anchor() ?? ""}`
   }
 
   const prefetchFiles = () => {
@@ -174,7 +189,7 @@ export function PRDetail(props: Props) {
           rel="noreferrer"
           title="open this PR on github"
         >
-          continue in github ↗
+          <span class="pr-github-prefix">continue in </span>github ↗
         </a>
 
         <button
