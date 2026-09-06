@@ -4,21 +4,22 @@ import (
 	"context"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/harrylawton/pr-review/internal/checkout"
-	"github.com/harrylawton/pr-review/internal/config"
-	"github.com/harrylawton/pr-review/internal/ghauth"
-	"github.com/harrylawton/pr-review/internal/github"
-	"github.com/harrylawton/pr-review/internal/logs"
-	"github.com/harrylawton/pr-review/internal/opencode"
-	"github.com/harrylawton/pr-review/internal/orchestrator"
-	"github.com/harrylawton/pr-review/internal/preflight"
-	"github.com/harrylawton/pr-review/internal/reviewer"
-	"github.com/harrylawton/pr-review/internal/server"
-	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/checkout"
+	"github.com/Mr-Robot-err-404/heckl/internal/config"
+	"github.com/Mr-Robot-err-404/heckl/internal/ghauth"
+	"github.com/Mr-Robot-err-404/heckl/internal/github"
+	"github.com/Mr-Robot-err-404/heckl/internal/logs"
+	"github.com/Mr-Robot-err-404/heckl/internal/opencode"
+	"github.com/Mr-Robot-err-404/heckl/internal/orchestrator"
+	"github.com/Mr-Robot-err-404/heckl/internal/preflight"
+	"github.com/Mr-Robot-err-404/heckl/internal/reviewer"
+	"github.com/Mr-Robot-err-404/heckl/internal/server"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
 func runServe() {
@@ -31,7 +32,7 @@ func runServe() {
 	checks := preflight.Run(context.Background(), cfg)
 	if preflight.Failed(checks) {
 		printChecks(checks)
-		fatal("preflight failed - fix the above, or run `pr-review setup`")
+		fatal("preflight failed - fix the above, or run `heckl setup`")
 	}
 	for _, c := range checks {
 		if c.Status != preflight.OK {
@@ -44,7 +45,7 @@ func runServe() {
 		UseGHCLI:  cfg.GitHub.UseGHCLI,
 	})
 	if err != nil {
-		fatal("github: no token - run `pr-review setup`")
+		fatal("github: no token - run `heckl setup`")
 	}
 	slog.Info("github token loaded", "source", string(tok.Source))
 
@@ -82,10 +83,23 @@ func runServe() {
 	}
 	srv.Static(http.FS(dist))
 
-	slog.Info("listening", "addr", cfg.Server.Addr)
-	if err := http.ListenAndServe(cfg.Server.Addr, srv); err != nil {
+	ln, err := net.Listen("tcp", cfg.Server.Addr)
+	if err != nil {
 		fatal(err.Error())
 	}
+	slog.Info("listening", "addr", ln.Addr().String(), "url", localURL(ln.Addr()))
+
+	if err := http.Serve(ln, srv); err != nil {
+		fatal(err.Error())
+	}
+}
+
+func localURL(addr net.Addr) string {
+	_, port, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return "http://" + addr.String()
+	}
+	return "http://localhost:" + port
 }
 
 func logLevel(level string) slog.Level {

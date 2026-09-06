@@ -59,6 +59,13 @@ func readTokenFile(path string) string {
 	return strings.TrimSpace(string(data))
 }
 
+func GHCLIPresentButLoggedOut() bool {
+	if _, err := exec.LookPath("gh"); err != nil {
+		return false
+	}
+	return ghCLIToken() == ""
+}
+
 func ghCLIToken() string {
 	if _, err := exec.LookPath("gh"); err != nil {
 		return ""

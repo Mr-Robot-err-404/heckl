@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harrylawton/pr-review/internal/checkout"
-	"github.com/harrylawton/pr-review/internal/config"
-	"github.com/harrylawton/pr-review/internal/github"
-	"github.com/harrylawton/pr-review/internal/opencode"
-	"github.com/harrylawton/pr-review/internal/orchestrator"
-	"github.com/harrylawton/pr-review/internal/store"
-	"github.com/harrylawton/pr-review/internal/tmux"
+	"github.com/Mr-Robot-err-404/heckl/internal/checkout"
+	"github.com/Mr-Robot-err-404/heckl/internal/config"
+	"github.com/Mr-Robot-err-404/heckl/internal/github"
+	"github.com/Mr-Robot-err-404/heckl/internal/opencode"
+	"github.com/Mr-Robot-err-404/heckl/internal/orchestrator"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/tmux"
 )
 
 var allowedAssetProxyHosts = map[string]bool{

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/harrylawton/pr-review/internal/term"
+	"github.com/Mr-Robot-err-404/heckl/internal/term"
 )
 
 const (

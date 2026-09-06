@@ -15,9 +15,9 @@ A personal PR review tool. Replaces the GitHub review UI with a fast, owned expe
 ## Project structure
 
 ```
-pr-review/
+heckl/
 ├── cmd/
-│   ├── pr-review/            - the binary: setup, doctor, serve, migrate
+│   ├── heckl/            - the binary: setup, doctor, serve, migrate
 │   │   ├── main.go           - subcommand dispatch, embeds web/dist
 │   │   ├── setup.go          - interactive first run
 │   │   ├── doctor.go         - preflight report + shared CLI printing
@@ -27,7 +27,7 @@ pr-review/
 │   ├── tmux/main.go          - open files in a tmux session by hand
 │   └── opencode/main.go      - one-shot prompt against a running opencode
 ├── .opencode/
-│   ├── agents/pr-reviewer.md - the review agent, git-tracked markdown
+│   ├── agents/heckl.md - the review agent, git-tracked markdown
 │   └── tools/report.ts       - custom tool the agent calls to submit a review
 ├── internal/
 │   ├── config/               - TOML config, defaults, commented file template
@@ -133,7 +133,7 @@ hint. One list, two callers, so `doctor` and `serve` cannot disagree.
 
 ### Config
 
-TOML at `~/.config/pr-review/config.toml`, `PR_REVIEW_CONFIG` overrides.
+TOML at `~/.config/heckl/config.toml`, `HECKL_CONFIG` overrides.
 Generated from a commented template, so the file documents itself.
 
 - **Config and token live under `~/.config`, db and worktrees under
@@ -146,7 +146,7 @@ Generated from a commented template, so the file documents itself.
   stay in the db.
 - `opencode.project_dir` cannot be defaulted safely: it holds `.opencode/` and
   its base64 forms the session deep link. Setup uses the cwd, preflight checks
-  `pr-reviewer.md` is really there.
+  `heckl.md` is really there.
 - `REMOTE_HOST` and `LOG_LEVEL` override their config equivalents.
 
 ### GitHub auth
@@ -179,14 +179,14 @@ Desktop unchanged. One `@media (max-width: 720px)` block at the end of
 ## Makefile
 
 ```bash
-make setup        # pr-review setup
-make doctor       # pr-review doctor
-make server       # pr-review serve
+make setup        # heckl setup
+make doctor       # heckl doctor
+make server       # heckl serve
 make up           # goose migrate up
 make down         # goose migrate down
 make status       # goose migration status
 make reset        # goose reset
-make build        # npm build + copy dist + go build bin/pr-review
+make build        # npm build + copy dist + go build bin/heckl
 make dev          # vite dev server on :5173, proxies /api to :7331
 make vet          # go build + go vet + tsc -b - the verification command
 ```
@@ -365,7 +365,7 @@ what `npm run build` actually uses.
 - **No React** - SolidJS throughout. `@pierre/diffs` used via vanilla JS API only.
 - **DiffsHub** - explored as iframe embed, dropped because localStorage auth can't be injected for private repos. Replicated their approach instead: Go proxy + local CodeView rendering.
 - **Repos grouped by org** - single `<optgroup>` dropdown, no separate org selector step.
-- **sqlc** - type-safe queries. **goose** - migrations behind `pr-review migrate`, never applied implicitly by `serve`.
+- **sqlc** - type-safe queries. **goose** - migrations behind `heckl migrate`, never applied implicitly by `serve`.
 - **modernc/sqlite** - pure Go, no CGO.
 - **No agent shell commands** - git (clone/fetch/checkout) and other
   deterministic ops run in our own Go code (`internal/checkout`), never

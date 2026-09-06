@@ -1,4 +1,6 @@
-.PHONY: run sandbox-setup sandbox-doctor sandbox-serve sandbox-clean setup doctor server up down down-to redo status reset build dev vet test checkout opencode tmux generate
+.PHONY: run sandbox-setup sandbox-doctor sandbox-serve sandbox-clean setup doctor server up down down-to redo status reset build dev vet test checkout opencode tmux generate build-server
+
+GO_BUILD = go build -o bin/heckl ./cmd/heckl
 
 vet:
 	go build ./...
@@ -9,31 +11,31 @@ test:
 	go test ./...
 
 setup:
-	go run ./cmd/pr-review setup
+	go run ./cmd/heckl setup
 
 doctor:
-	go run ./cmd/pr-review doctor
+	go run ./cmd/heckl doctor
 
 server:
-	go run ./cmd/pr-review serve
+	go run ./cmd/heckl serve
 
 up:
-	go run ./cmd/pr-review migrate up
+	go run ./cmd/heckl migrate up
 
 down:
-	go run ./cmd/pr-review migrate down
+	go run ./cmd/heckl migrate down
 
 down-to:
-	go run ./cmd/pr-review migrate down-to $(V)
+	go run ./cmd/heckl migrate down-to $(V)
 
 redo:
-	go run ./cmd/pr-review migrate redo
+	go run ./cmd/heckl migrate redo
 
 status:
-	go run ./cmd/pr-review migrate status
+	go run ./cmd/heckl migrate status
 
 reset:
-	go run ./cmd/pr-review migrate reset
+	go run ./cmd/heckl migrate reset
 
 generate:
 	go tool sqlc generate
@@ -50,15 +52,18 @@ tmux:
 dev:
 	cd web && npm run dev
 
+build-server:
+	$(GO_BUILD)
+
 build:
 	cd web && npm run build
-	rm -rf cmd/pr-review/dist && cp -r web/dist cmd/pr-review/dist
-	go build -o bin/pr-review ./cmd/pr-review
+	rm -rf cmd/heckl/dist && cp -r web/dist cmd/heckl/dist
+	$(GO_BUILD)
 
 run:
-	./bin/pr-review serve
+	./bin/heckl serve
 
-SANDBOX ?= /tmp/pr-review-sandbox
+SANDBOX ?= /tmp/heckl-sandbox
 SANDBOX_ENV = XDG_CONFIG_HOME=$(SANDBOX)/.config \
 	XDG_DATA_HOME=$(SANDBOX)/.local/share \
 	GH_CONFIG_DIR=$(SANDBOX)/gh \
@@ -66,13 +71,13 @@ SANDBOX_ENV = XDG_CONFIG_HOME=$(SANDBOX)/.config \
 
 sandbox-setup:
 	mkdir -p $(SANDBOX)
-	env $(SANDBOX_ENV) ./bin/pr-review setup
+	env $(SANDBOX_ENV) ./bin/heckl setup
 
 sandbox-doctor:
-	env $(SANDBOX_ENV) ./bin/pr-review doctor
+	env $(SANDBOX_ENV) ./bin/heckl doctor
 
 sandbox-serve:
-	env $(SANDBOX_ENV) ./bin/pr-review serve
+	env $(SANDBOX_ENV) ./bin/heckl serve
 
 sandbox-clean:
 	rm -rf $(SANDBOX)

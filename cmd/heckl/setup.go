@@ -12,11 +12,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/harrylawton/pr-review/internal/config"
-	"github.com/harrylawton/pr-review/internal/ghauth"
-	"github.com/harrylawton/pr-review/internal/preflight"
-	"github.com/harrylawton/pr-review/internal/store"
-	"github.com/harrylawton/pr-review/internal/term"
+	"github.com/Mr-Robot-err-404/heckl/internal/config"
+	"github.com/Mr-Robot-err-404/heckl/internal/ghauth"
+	"github.com/Mr-Robot-err-404/heckl/internal/preflight"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/term"
 	_ "modernc.org/sqlite"
 )
 
@@ -27,7 +27,7 @@ func runSetup() {
 	path := config.Path()
 
 	fmt.Printf("\n%s\n%s\n\n",
-		out.Paint(term.Bold, "pr-review setup"),
+		out.Paint(term.Bold, "heckl setup"),
 		out.Paint(term.Grey, "config → "+path),
 	)
 
@@ -51,14 +51,14 @@ func runSetup() {
 	if preflight.Failed(checks) {
 		fmt.Printf("%s setup finished with failures - fix them, then run %s\n\n",
 			out.Paint(term.Yellow, "note"),
-			out.Paint(term.Cyan, "pr-review doctor"),
+			out.Paint(term.Cyan, "heckl doctor"),
 		)
 		os.Exit(1)
 	}
 
 	fmt.Printf("%s start it with %s, then open %s\n\n",
 		out.Paint(term.Green, "done"),
-		out.Paint(term.Cyan, "pr-review serve"),
+		out.Paint(term.Cyan, "heckl serve"),
 		out.Paint(term.Cyan, "http://localhost"+cfg.Server.Addr),
 	)
 }
@@ -135,6 +135,13 @@ func setupAuth(ctx context.Context, cfg *config.Config) {
 }
 
 func acquireToken(ctx context.Context, cfg *config.Config) string {
+	if cfg.GitHub.UseGHCLI && ghauth.GHCLIPresentButLoggedOut() {
+		fmt.Printf("%s gh is installed but not signed in - `%s` is the quickest route\n\n",
+			out.Paint(term.Yellow, "note"),
+			out.Paint(term.Cyan, "gh auth login"),
+		)
+	}
+
 	fmt.Printf("  %s browser login via a github oauth app (device flow)\n", out.Paint(term.Cyan, "1."))
 	fmt.Printf("  %s paste a personal access token\n", out.Paint(term.Cyan, "2."))
 	fmt.Printf("  %s skip\n\n", out.Paint(term.Cyan, "3."))
@@ -150,21 +157,9 @@ func acquireToken(ctx context.Context, cfg *config.Config) string {
 }
 
 func deviceLogin(ctx context.Context, cfg *config.Config) string {
-	if cfg.GitHub.OAuthClientID == "" {
-		fmt.Printf("\n%s no oauth client id configured.\n", out.Paint(term.Yellow, "note"))
-		fmt.Printf("  create one at %s - any name, any callback url, tick\n",
-			out.Paint(term.Cyan, "https://github.com/settings/developers"))
-		fmt.Printf("  \"enable device flow\", then paste the client id here. It is not a secret.\n\n")
-		cfg.GitHub.OAuthClientID = ask("oauth client id", "")
-		if cfg.GitHub.OAuthClientID == "" {
-			return ""
-		}
-		if err := cfg.Save(config.Path()); err != nil {
-			fatal(err.Error())
-		}
-	}
+	clientID := ghauth.ClientID(cfg.GitHub.OAuthClientID)
 
-	code, err := ghauth.RequestDeviceCode(ctx, cfg.GitHub.OAuthClientID)
+	code, err := ghauth.RequestDeviceCode(ctx, clientID)
 	if err != nil {
 		fatal(err.Error())
 	}
@@ -175,7 +170,7 @@ func deviceLogin(ctx context.Context, cfg *config.Config) string {
 	)
 	fmt.Printf("  %s\n", out.Paint(term.Grey, "waiting for approval..."))
 
-	token, err := ghauth.PollForToken(ctx, cfg.GitHub.OAuthClientID, code)
+	token, err := ghauth.PollForToken(ctx, clientID, code)
 	if err != nil {
 		fatal(err.Error())
 	}
@@ -235,7 +230,7 @@ func ask(label, fallback string) string {
 func askPort(label, current string) string {
 	host, port, err := net.SplitHostPort(current)
 	if err != nil {
-		host, port = "", "7331"
+		host, port = "127.0.0.1", "7331"
 	}
 	for {
 		answer := ask(label, port)

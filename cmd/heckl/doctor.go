@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/harrylawton/pr-review/internal/config"
-	"github.com/harrylawton/pr-review/internal/preflight"
-	"github.com/harrylawton/pr-review/internal/term"
+	"github.com/Mr-Robot-err-404/heckl/internal/config"
+	"github.com/Mr-Robot-err-404/heckl/internal/preflight"
+	"github.com/Mr-Robot-err-404/heckl/internal/term"
 )
 
 var out = term.NewPrinter(os.Stdout)

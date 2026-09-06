@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harrylawton/pr-review/internal/checkout"
-	"github.com/harrylawton/pr-review/internal/opencode"
-	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/checkout"
+	"github.com/Mr-Robot-err-404/heckl/internal/opencode"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
 const maxDiffBytes = 60000
@@ -19,7 +19,7 @@ const maxDiffBytes = 60000
 const reportTool = "report"
 
 const (
-	AgentReviewer = "pr-reviewer"
+	AgentReviewer = "heckl"
 	AgentSkeptic  = "pr-skeptic"
 )
 

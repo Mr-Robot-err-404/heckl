@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/harrylawton/pr-review/internal/config"
-	"github.com/harrylawton/pr-review/internal/ghauth"
-	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/config"
+	"github.com/Mr-Robot-err-404/heckl/internal/ghauth"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
 type Status int
@@ -68,13 +68,13 @@ func binary(name string, required bool, hint string) Check {
 
 func agentFiles(cfg *config.Config) Check {
 	dir := filepath.Join(cfg.OpenCode.ProjectDir, ".opencode")
-	agent := filepath.Join(dir, "agents", "pr-reviewer.md")
+	agent := filepath.Join(dir, "agents", "heckl.md")
 	if _, err := os.Stat(agent); err != nil {
 		return Check{
 			Name:   "opencode agents",
 			Status: Fail,
-			Detail: "pr-reviewer.md not found under " + dir,
-			Hint:   "point opencode.project_dir at the pr-review checkout - .opencode/agents and .opencode/tools live there",
+			Detail: "heckl.md not found under " + dir,
+			Hint:   "point opencode.project_dir at the heckl checkout - .opencode/agents and .opencode/tools live there",
 		}
 	}
 	return Check{Name: "opencode agents", Status: OK, Detail: dir}
@@ -87,7 +87,7 @@ func database(cfg *config.Config) Check {
 			Name:   "database",
 			Status: Fail,
 			Detail: "missing: " + path,
-			Hint:   "run `pr-review setup`, or `pr-review migrate up`",
+			Hint:   "run `heckl setup`, or `heckl migrate up`",
 		}
 	}
 
@@ -99,14 +99,14 @@ func database(cfg *config.Config) Check {
 
 	pending, err := store.PendingMigrations(db)
 	if err != nil {
-		return Check{Name: "database", Status: Fail, Detail: err.Error(), Hint: "run `pr-review migrate up`"}
+		return Check{Name: "database", Status: Fail, Detail: err.Error(), Hint: "run `heckl migrate up`"}
 	}
 	if pending > 0 {
 		return Check{
 			Name:   "database",
 			Status: Fail,
 			Detail: fmt.Sprintf("%d migration(s) pending", pending),
-			Hint:   "run `pr-review migrate up`",
+			Hint:   "run `heckl migrate up`",
 		}
 	}
 	return Check{Name: "database", Status: OK, Detail: path}
@@ -122,7 +122,7 @@ func token(cfg *config.Config) Check {
 			Name:   "github auth",
 			Status: Fail,
 			Detail: "no token",
-			Hint:   "run `pr-review setup` to sign in, or export GITHUB_TOKEN",
+			Hint:   "run `heckl setup` to sign in, or export GITHUB_TOKEN",
 		}
 	}
 	return Check{Name: "github auth", Status: OK, Detail: string(tok.Source)}

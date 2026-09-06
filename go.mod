@@ -1,4 +1,4 @@
-module github.com/harrylawton/pr-review
+module github.com/Mr-Robot-err-404/heckl
 
 go 1.26.3
 

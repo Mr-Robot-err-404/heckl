@@ -5,7 +5,7 @@ bin/
 
 web/node_modules/
 web/dist/
-cmd/pr-review/dist/
+cmd/heckl/dist/
 data/
 
 .opencode/*

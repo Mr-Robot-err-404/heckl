@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/harrylawton/pr-review/internal/opencode"
+	"github.com/Mr-Robot-err-404/heckl/internal/opencode"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 	}
 
 	req := opencode.CreateSessionRequest{
-		Title: "pr-review opencode cli",
+		Title: "heckl opencode cli",
 		Agent: *agent,
 	}
 	if *checkoutDir != "" {

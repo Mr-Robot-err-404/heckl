@@ -15,7 +15,16 @@ const (
 	deviceCodeURL  = "https://github.com/login/device/code"
 	accessTokenURL = "https://github.com/login/oauth/access_token"
 	scopes         = "repo read:org"
+
+	DefaultClientID = "Ov23li17V7i1lDaLetLy"
 )
+
+func ClientID(override string) string {
+	if strings.TrimSpace(override) != "" {
+		return strings.TrimSpace(override)
+	}
+	return DefaultClientID
+}
 
 type DeviceCode struct {
 	DeviceCode      string `json:"device_code"`

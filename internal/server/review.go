@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harrylawton/pr-review/internal/opencode"
-	"github.com/harrylawton/pr-review/internal/orchestrator"
-	"github.com/harrylawton/pr-review/internal/reviewer"
-	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/opencode"
+	"github.com/Mr-Robot-err-404/heckl/internal/orchestrator"
+	"github.com/Mr-Robot-err-404/heckl/internal/reviewer"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
 const streamPingInterval = 5 * time.Second

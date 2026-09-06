@@ -28,8 +28,8 @@ PR List
 
 Onboarding / packaging
 -----------------------
-[x] Single `pr-review` binary - setup, doctor, serve, migrate
-[x] TOML config from a commented template, XDG paths, PR_REVIEW_CONFIG
+[x] Single `heckl` binary - setup, doctor, serve, migrate
+[x] TOML config from a commented template, XDG paths, HECKL_CONFIG
 [x] Device-code GitHub login, token at 0600; gh demoted to a fallback
 [x] Preflight checks shared by `doctor` and `serve`
 [ ] Bundle .opencode/agents and tools into the binary - opencode.project_dir
@@ -62,7 +62,7 @@ Agent integration
 [x] internal/checkout - clone/fetch/detached checkout
 [x] Per-session external_directory scoping
 [x] Server startup bootstrap - opencode.Setup
-[x] pr-reviewer agent
+[x] heckl agent
 [x] report.ts custom tool for structured output
 [x] sqlc-backed pr_review_sessions + concerns
 [x] SSE stage progress
@@ -80,8 +80,8 @@ Agent integration
     non-empty one is shown as the review synopsis
 [ ] Scope sessions to the checkout - POST /session?directory=<checkout>.
     Sessions currently inherit the serve cwd, so a read resolves against
-    pr-review's own tree, not the PR
-[ ] Restore read for pr-reviewer once sessions are scoped - the diff alone is
+    heckl's own tree, not the PR
+[ ] Restore read for heckl once sessions are scoped - the diff alone is
     often not enough context
 [ ] Per-agent file selection - pick which files of the diff an agent sees
 [x] tmux review sessions - select lines in the diff, one `nvim +line file`
@@ -92,3 +92,7 @@ Agent integration
 [ ] Agent selection isn't persisted - toggles reset on reload/navigation
 [ ] Review latency - single-shot prompt, model free to wander. Re-measure first;
     old 60-100s figure was recorded while reviews ran as the wrong agent.
+[ ] Token refresh, then tick "expire user authorization tokens" on the OAuth
+    app. Needs refresh_token + expires_in parsed, an expiry stored alongside
+    the token, and refresh-on-401 in the github client. Enabling expiry only
+    affects newly issued tokens, so existing logins survive the upgrade.

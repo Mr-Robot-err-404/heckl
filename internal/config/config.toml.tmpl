@@ -1,17 +1,19 @@
-# pr-review configuration
+# heckl configuration
 #
-# `pr-review setup` only asks about things it cannot work out for itself.
-# Everything else is edited here and picked up on the next `pr-review serve`.
+# `heckl setup` only asks about things it cannot work out for itself.
+# Everything else is edited here and picked up on the next `heckl serve`.
 # Re-running setup preserves whatever you change below.
 #
 # Paths: after moving `database` or `data_dir`, move the files yourself and
-# run `pr-review doctor` - nothing is migrated or copied for you.
+# run `heckl doctor` - nothing is migrated or copied for you.
 
 [server]
-# Address the web UI and API listen on.
+# Address the web UI and API listen on. Loopback by default: there is no auth
+# in front of the UI, and it can post comments as you. Use "0.0.0.0:7331" to
+# expose it on the network, or leave it here and put a proxy in front.
 addr = "{{ .Server.Addr }}"
 
-# SQLite database. Created by `pr-review setup`, migrated by `pr-review migrate up`.
+# SQLite database. Created by `heckl setup`, migrated by `heckl migrate up`.
 database = "{{ .Server.Database }}"
 
 # Bare clones and per-PR worktrees live here. Grows with every PR reviewed;
@@ -28,16 +30,16 @@ log_level = "{{ .Server.LogLevel }}"
 remote_host = "{{ .Server.RemoteHost }}"
 
 [github]
-# OAuth app client ID used for the device-code login flow. Create one at
-# https://github.com/settings/developers - any redirect URL, device flow
-# enabled. Client IDs are public; this one is not a secret.
+# OAuth app client ID for the device-code login. heckl ships with one, so
+# leave this empty. Set it only to point the login at your own OAuth app,
+# for example on GitHub Enterprise. Client IDs are public, not secrets.
 oauth_client_id = "{{ .GitHub.OAuthClientID }}"
 
 # Where the access token is written, mode 0600. The GITHUB_TOKEN environment
 # variable overrides it entirely and nothing is written to disk.
 token_file = "{{ .GitHub.TokenFile }}"
 
-# Fall back to `gh auth token` when no token file and no client ID are set.
+# Fall back to `gh auth token` when GITHUB_TOKEN and the token file are unset.
 use_gh_cli = {{ .GitHub.UseGHCLI }}
 
 [opencode]
@@ -46,8 +48,8 @@ url = "{{ .OpenCode.URL }}"
 
 # Directory holding .opencode/agents and .opencode/tools. Both are read once
 # at opencode startup, so editing them requires restarting opencode. Defaults
-# to wherever setup was run from; if that was not the pr-review checkout,
-# correct it here - `pr-review doctor` verifies the agent file exists.
+# to wherever setup was run from; if that was not the heckl checkout,
+# correct it here - `heckl doctor` verifies the agent file exists.
 project_dir = "{{ .OpenCode.ProjectDir }}"
 
 # Start `opencode serve` if nothing is answering on the URL above.

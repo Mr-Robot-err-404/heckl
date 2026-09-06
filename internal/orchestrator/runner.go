@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harrylawton/pr-review/internal/github"
-	"github.com/harrylawton/pr-review/internal/reviewer"
-	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/github"
+	"github.com/Mr-Robot-err-404/heckl/internal/reviewer"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
 type Runner struct {

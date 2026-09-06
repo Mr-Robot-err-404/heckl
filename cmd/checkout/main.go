@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/harrylawton/pr-review/internal/checkout"
+	"github.com/Mr-Robot-err-404/heckl/internal/checkout"
 )
 
 func main() {

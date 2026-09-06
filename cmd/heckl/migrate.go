@@ -4,14 +4,14 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/harrylawton/pr-review/internal/config"
-	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/config"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
 	_ "modernc.org/sqlite"
 )
 
 func runMigrate(args []string) {
 	if len(args) == 0 {
-		fatal("usage: pr-review migrate <up|up-to|down|down-to|redo|status|reset|version> [version]")
+		fatal("usage: heckl migrate <up|up-to|down|down-to|redo|status|reset|version> [version]")
 	}
 
 	cfg, err := config.Load()

@@ -13,7 +13,7 @@ import (
 const startupPollInterval = 200 * time.Millisecond
 const startupTimeout = 15 * time.Second
 
-var requiredAgents = []string{"pr-reviewer.md"}
+var requiredAgents = []string{"heckl.md"}
 
 type SetupOptions struct {
 	BaseURL    string

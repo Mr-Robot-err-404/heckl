@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harrylawton/pr-review/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
 const globalKey = "*"

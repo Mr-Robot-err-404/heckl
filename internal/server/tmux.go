@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/harrylawton/pr-review/internal/store"
-	"github.com/harrylawton/pr-review/internal/tmux"
+	"github.com/Mr-Robot-err-404/heckl/internal/store"
+	"github.com/Mr-Robot-err-404/heckl/internal/tmux"
 )
 
 type tmuxPick struct {

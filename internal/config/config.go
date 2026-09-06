@@ -48,9 +48,9 @@ type Tmux struct {
 func Defaults() Config {
 	return Config{
 		Server: Server{
-			Addr:     ":7331",
+			Addr:     "127.0.0.1:7331",
 			DataDir:  filepath.Join(DataHome(), "data"),
-			Database: filepath.Join(DataHome(), "pr-review.db"),
+			Database: filepath.Join(DataHome(), "heckl.db"),
 			LogLevel: "info",
 		},
 		GitHub: GitHub{
@@ -70,7 +70,7 @@ func Defaults() Config {
 }
 
 func Path() string {
-	if p := strings.TrimSpace(os.Getenv("PR_REVIEW_CONFIG")); p != "" {
+	if p := strings.TrimSpace(os.Getenv("HECKL_CONFIG")); p != "" {
 		return p
 	}
 	return filepath.Join(Home(), "config.toml")
@@ -88,7 +88,7 @@ func Load() (*Config, error) {
 
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("no config at %s - run `pr-review setup`", path)
+		return nil, fmt.Errorf("no config at %s - run `heckl setup`", path)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("config: read %s: %w", path, err)
@@ -113,7 +113,7 @@ func (c *Config) applyEnv() {
 	if v := strings.TrimSpace(os.Getenv("LOG_LEVEL")); v != "" {
 		c.Server.LogLevel = v
 	}
-	if v := strings.TrimSpace(os.Getenv("PR_REVIEW_ADDR")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("HECKL_ADDR")); v != "" {
 		c.Server.Addr = v
 	}
 }
@@ -154,17 +154,17 @@ func expand(path string) (string, error) {
 
 func Home() string {
 	if dir, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(dir, "pr-review")
+		return filepath.Join(dir, "heckl")
 	}
-	return ".pr-review"
+	return ".heckl"
 }
 
 func DataHome() string {
 	if dir := strings.TrimSpace(os.Getenv("XDG_DATA_HOME")); dir != "" {
-		return filepath.Join(dir, "pr-review")
+		return filepath.Join(dir, "heckl")
 	}
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".local", "share", "pr-review")
+		return filepath.Join(home, ".local", "share", "heckl")
 	}
-	return ".pr-review"
+	return ".heckl"
 }

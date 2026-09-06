@@ -9,13 +9,13 @@ import (
 //go:embed all:dist
 var static embed.FS
 
-const usage = `pr-review - review pull requests with agents
+const usage = `heckl - review pull requests with agents
 
 usage:
-  pr-review setup           interactive first-run: config, github login, database
-  pr-review doctor          check dependencies and configuration
-  pr-review serve           run the server
-  pr-review migrate <cmd>   goose migrations (up, down, status, redo, reset)
+  heckl setup           interactive first-run: config, github login, database
+  heckl doctor          check dependencies and configuration
+  heckl serve           run the server
+  heckl migrate <cmd>   goose migrations (up, down, status, redo, reset)
 `
 
 func main() {
