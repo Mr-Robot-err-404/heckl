@@ -8,8 +8,10 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
+	"github.com/harrylawton/pr-review/internal/opencode"
 	"github.com/harrylawton/pr-review/internal/orchestrator"
 	"github.com/harrylawton/pr-review/internal/reviewer"
 	"github.com/harrylawton/pr-review/internal/store"
@@ -70,14 +72,27 @@ func (s *Server) handleListAgents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAgentConfig(w http.ResponseWriter, r *http.Request) {
-	configs, err := s.agentConfigs(r.Context())
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
+	var (
+		wg         sync.WaitGroup
+		configs    []agentConfigResponse
+		configsErr error
+		models     []opencode.ModelOption
+		modelsErr  error
+	)
+	wg.Go(func() {
+		configs, configsErr = s.agentConfigs(r.Context())
+	})
+	wg.Go(func() {
+		models, modelsErr = s.oc.Models()
+	})
+	wg.Wait()
+
+	if configsErr != nil {
+		jsonError(w, configsErr.Error(), http.StatusInternalServerError)
 		return
 	}
-	models, err := s.oc.Models()
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusBadGateway)
+	if modelsErr != nil {
+		jsonError(w, modelsErr.Error(), http.StatusBadGateway)
 		return
 	}
 	jsonOK(w, map[string]any{"agents": configs, "models": models})
@@ -115,16 +130,29 @@ type agentConfigResponse struct {
 }
 
 func (s *Server) agentConfigs(ctx context.Context) ([]agentConfigResponse, error) {
-	stored, err := s.store.ListAgentConfigs(ctx)
-	if err != nil {
-		return nil, err
+	var (
+		wg        sync.WaitGroup
+		stored    map[string]store.AgentConfig
+		storedErr error
+		agents    []opencode.AgentInfo
+		agentsErr error
+	)
+	wg.Go(func() {
+		stored, storedErr = s.store.ListAgentConfigs(ctx)
+	})
+	wg.Go(func() {
+		agents, agentsErr = s.oc.Agents()
+	})
+	wg.Wait()
+
+	if storedErr != nil {
+		return nil, storedErr
+	}
+	if agentsErr != nil {
+		return nil, agentsErr
 	}
 
 	defaults := map[string]string{}
-	agents, err := s.oc.Agents()
-	if err != nil {
-		return nil, err
-	}
 	for _, a := range agents {
 		defaults[a.Name] = a.Model.Ref()
 	}

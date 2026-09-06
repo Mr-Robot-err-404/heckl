@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Show } from "solid-js"
+import { createEffect, createSignal, For, onMount, Show } from "solid-js"
 import { useNavigate, useParams } from "@tanstack/solid-router"
 import { errText } from "../api"
 import { useAddRepo, useOrgs, useRepos, usePRDetail, usePrefetch, resolved, historyPageSize } from "../queries"
@@ -19,6 +19,8 @@ export function TopBar() {
   const [adding, setAdding] = createSignal(false)
   const [configOpen, setConfigOpen] = createSignal(false)
   const [themeOpen, setThemeOpen] = createSignal(false)
+
+  onMount(() => prefetch.agentConfig())
 
   const params = useParams({ strict: false })
   const selectedKey = () => {

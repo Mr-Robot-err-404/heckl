@@ -283,18 +283,12 @@ func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
 		reviewsErr  error
 		comments    []github.ReviewComment
 		commentsErr error
-		viewer      string
 	)
 	wg.Go(func() {
 		reviews, reviewsErr = s.gh.ListPRReviews(owner, repo, number)
 	})
 	wg.Go(func() {
 		comments, commentsErr = s.gh.ListPRReviewComments(owner, repo, number)
-	})
-	wg.Go(func() {
-		if login, err := s.gh.Viewer(); err == nil {
-			viewer = login
-		}
 	})
 	wg.Wait()
 
@@ -308,7 +302,7 @@ func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
 		reviews = nil
 	}
 
-	threads := github.GroupReviewerNotes(reviews, comments, viewer)
+	threads := github.GroupReviewerNotes(reviews, comments)
 	out := make([]reviewerThreadResponse, 0, len(threads))
 	for _, t := range threads {
 		out = append(out, reviewerThreadResponse{

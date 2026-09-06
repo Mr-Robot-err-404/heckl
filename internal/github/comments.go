@@ -20,11 +20,11 @@ type ReviewerThread struct {
 	Notes []ReviewerNote `json:"notes"`
 }
 
-func GroupReviewerNotes(reviews []Review, comments []ReviewComment, viewer string) []ReviewerThread {
+func GroupReviewerNotes(reviews []Review, comments []ReviewComment) []ReviewerThread {
 	byAuthor := map[string]*ReviewerThread{}
 
 	add := func(user User, note ReviewerNote) {
-		if user.Login == "" || user.Login == viewer {
+		if user.Login == "" {
 			return
 		}
 		thread, ok := byAuthor[user.Login]

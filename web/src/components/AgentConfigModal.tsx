@@ -4,7 +4,7 @@ import { agentLabel } from "../review"
 import { errText } from "../api"
 import { resolved, useAgentConfig, useSaveAgentConfig } from "../queries"
 import type { AgentConfig, ModelOption } from "../types"
-import { CloseIcon } from "./icons"
+import { ChevronIcon, CloseIcon } from "./icons"
 
 export function AgentConfigModal(props: { onClose: () => void }) {
   const config = useAgentConfig()
@@ -65,14 +65,21 @@ export function AgentConfigModal(props: { onClose: () => void }) {
                       <For each={models()}>
                         {(model) => (
                           <option value={model.ref}>
-                            {model.provider} · {model.name}
+                            {model.name} · {model.provider}
                           </option>
                         )}
                       </For>
                     </select>
                   </div>
-                  <button class="agent-config-toggle" onClick={() => toggle(agent.name)}>
-                    <span class="reviewer-caret">{expanded() === agent.name ? "▾" : "▸"}</span>
+                  <button
+                    class="agent-config-toggle"
+                    classList={{ collapsed: expanded() !== agent.name }}
+                    aria-expanded={expanded() === agent.name}
+                    onClick={() => toggle(agent.name)}
+                  >
+                    <span class="agent-config-caret">
+                      <ChevronIcon />
+                    </span>
                     extra prompt
                     <Show when={agent.prompt.trim()}>
                       <span class="muted">set</span>

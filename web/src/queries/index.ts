@@ -36,12 +36,14 @@ export function useReposByOwner(owner: () => string) {
 
 export const agentConfigKey = ["agents", "config"]
 
+const agentConfigOptions = () => ({
+  queryKey: agentConfigKey,
+  queryFn: api.agents.config,
+  staleTime: Infinity,
+})
+
 export function useAgentConfig() {
-  return createQuery(() => ({
-    queryKey: agentConfigKey,
-    queryFn: api.agents.config,
-    staleTime: Infinity,
-  }))
+  return createQuery(agentConfigOptions)
 }
 
 export function useSaveAgentConfig() {
@@ -203,6 +205,7 @@ export function usePrefetch() {
       run(prDetailOptions(owner, repo, number)),
     diff: (owner: string, repo: string, number: number) =>
       run(diffOptions(owner, repo, number)),
+    agentConfig: () => run(agentConfigOptions()),
     historyPage: (page: number) => run(historyOptions(page)),
     repoHistory: (owner: string, repo: string, limit: number) =>
       run(repoHistoryOptions(owner, repo, limit)),

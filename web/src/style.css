@@ -366,6 +366,16 @@ html, body, #root { height: 100%; }
 
 .agent-config-toggle:hover { color: var(--subtext1); }
 
+.agent-config-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.12s ease;
+}
+.agent-config-caret .bot-icon { width: 14px; height: 14px; }
+.agent-config-toggle.collapsed .agent-config-caret { transform: rotate(-90deg); }
+
 .agent-config-prompt {
   background: var(--surface0);
   border: 1px solid var(--surface2);
@@ -1884,6 +1894,12 @@ button.topbar-brand:hover { color: var(--text); }
   .topbar-left .repo-select {
     min-width: 0;
     max-width: 26vw;
+    text-overflow: ellipsis;
+  }
+
+  .agent-config-head .repo-select {
+    min-width: 0;
+    max-width: 55vw;
     text-overflow: ellipsis;
   }
 
