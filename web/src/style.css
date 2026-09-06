@@ -706,7 +706,7 @@ html, body, #root { height: 100%; }
 
 .review-diff { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-.review-panel {
+.review-rail {
   width: 400px;
   flex-shrink: 0;
   border-left: 1px solid var(--surface1);
@@ -718,11 +718,19 @@ html, body, #root { height: 100%; }
   gap: 12px;
 }
 
+.review-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .review-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .review-panel-title {
@@ -886,7 +894,25 @@ html, body, #root { height: 100%; }
   border-top: 1px solid var(--surface0);
 }
 
-.reviewer-comments-head { display: flex; align-items: center; gap: 8px; }
+.reviewer-comments-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.review-panel-head:hover .panel-collapse,
+.reviewer-comments-head:hover .panel-collapse { color: var(--text); }
+
+.review-panel-head .review-session-link,
+.review-panel-head .review-run { cursor: pointer; }
+
+.review-panel.collapsed > *:not(.review-panel-head),
+.reviewer-comments.collapsed > *:not(.reviewer-comments-head) { display: none; }
+
+.review-panel.collapsed .panel-collapse,
+.reviewer-comments.collapsed .panel-collapse { transform: rotate(-90deg); }
 
 .reviewer-thread { border-left: 2px solid var(--surface1); }
 .reviewer-thread.open { border-left-color: var(--overlay0); }
@@ -907,7 +933,17 @@ html, body, #root { height: 100%; }
 }
 .reviewer-thread-head:hover { color: var(--text); }
 
-.reviewer-caret { color: var(--overlay0); font-size: 10px; }
+.reviewer-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--overlay1);
+  transition: transform 0.15s;
+}
+.reviewer-caret .bot-icon { width: 14px; height: 14px; }
+.reviewer-thread:not(.open) .reviewer-caret { transform: rotate(-90deg); }
+.reviewer-thread-head:hover .reviewer-caret { color: var(--text); }
 .reviewer-avatar { width: 16px; height: 16px; border-radius: 50%; }
 .reviewer-login { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reviewer-count {
@@ -1811,7 +1847,7 @@ button.topbar-brand:hover { color: var(--text); }
 /* ── Mobile ── */
 
 .panel-collapse {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   background: none;
@@ -1897,7 +1933,7 @@ button.topbar-brand:hover { color: var(--text); }
 
   .review-layout { flex-direction: column; }
 
-  .review-panel {
+  .review-rail {
     order: -1;
     width: 100%;
     max-height: 40vh;
@@ -1907,15 +1943,6 @@ button.topbar-brand:hover { color: var(--text); }
   }
 
   .review-diff { flex: 1 1 auto; min-height: 0; }
-
-  .panel-collapse { display: inline-flex; }
-
-  .review-panel.collapsed {
-    max-height: none;
-    overflow: hidden;
-  }
-  .review-panel.collapsed > *:not(.review-panel-head) { display: none; }
-  .review-panel.collapsed .panel-collapse { transform: rotate(-90deg); }
 
   .command-block code { word-break: break-all; }
   .tmux-pick-file { word-break: break-all; }

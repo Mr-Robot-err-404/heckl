@@ -14,6 +14,7 @@ import { DiffView } from "./diff/DiffView"
 import { Markdown } from "./Markdown"
 import { SkeletonLines } from "./Skeleton"
 import { ReviewPanel } from "./ReviewPanel"
+import { ReviewerComments } from "./ReviewerComments"
 import { ReviewPage } from "./ReviewPage"
 import { TmuxModal } from "./TmuxModal"
 import { api, errText } from "../api"
@@ -201,14 +202,18 @@ export function PRDetail(props: Props) {
                   onUnpickLine={removePick}
                 />
               </div>
-              <ReviewPanel
-                state={review}
-                activeRank={focus()?.rank}
-                threads={threads() ?? []}
-                threadsPending={comments.isPending}
-                onFocusConcern={focusConcern}
-                onFocusNote={focusNote}
-              />
+              <aside class="review-rail">
+                <ReviewPanel
+                  state={review}
+                  activeRank={focus()?.rank}
+                  onFocusConcern={focusConcern}
+                />
+                <ReviewerComments
+                  threads={threads() ?? []}
+                  pending={comments.isPending}
+                  onFocusNote={focusNote}
+                />
+              </aside>
             </div>
           </div>
         </Show>

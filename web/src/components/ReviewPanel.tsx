@@ -1,17 +1,13 @@
 import { createSignal, For, Show } from "solid-js";
 import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review";
-import type { RankedConcern, ReviewerNote, ReviewerThread } from "../types";
+import type { RankedConcern } from "../types";
 import { AgentPicker } from "./AgentPicker";
 import { ChevronIcon, RerunIcon } from "./icons";
-import { ReviewerComments } from "./ReviewerComments";
 
 type Props = {
   state: ReviewState;
   activeRank?: number;
-  threads: ReviewerThread[];
-  threadsPending: boolean;
   onFocusConcern: (concern: RankedConcern) => void;
-  onFocusNote: (note: ReviewerNote) => void;
 };
 
 const stageLabels: Record<string, string> = {
@@ -39,12 +35,12 @@ export function ReviewPanel(props: Props) {
 
   return (
     <aside class="review-panel" classList={{ collapsed: collapsed() }}>
-      <div class="review-panel-head">
+      <div class="review-panel-head" onClick={() => setCollapsed(!collapsed())}>
         <button
           class="panel-collapse"
           aria-expanded={!collapsed()}
           aria-label={collapsed() ? "expand agent review" : "collapse agent review"}
-          onClick={() => setCollapsed(!collapsed())}
+          onClick={(e) => e.stopPropagation()}
         >
           <ChevronIcon />
         </button>
@@ -55,6 +51,7 @@ export function ReviewPanel(props: Props) {
             href={opencodeUrl(s().review()?.opencodeSessionPath)}
             target="_blank"
             rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
           >
             continue in opencode ↗
           </a>
@@ -63,7 +60,10 @@ export function ReviewPanel(props: Props) {
           class="review-run"
           title={runLabel()}
           aria-label={runLabel()}
-          onClick={() => s().start()}
+          onClick={(e) => {
+            e.stopPropagation()
+            s().start()
+          }}
           disabled={!s().canRun()}
         >
           <Show when={isRerun()} fallback={runLabel()}>
@@ -159,12 +159,6 @@ export function ReviewPanel(props: Props) {
           </ul>
         </Show>
       </Show>
-
-      <ReviewerComments
-        threads={props.threads}
-        pending={props.threadsPending}
-        onFocusNote={props.onFocusNote}
-      />
     </aside>
   );
 }

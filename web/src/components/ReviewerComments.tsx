@@ -1,5 +1,6 @@
 import { createSignal, For, Show } from "solid-js"
 import { fileName, relativeTime } from "../review"
+import { ChevronIcon } from "./icons"
 import { Markdown } from "./Markdown"
 import type { ReviewerNote, ReviewerThread } from "../types"
 
@@ -17,9 +18,19 @@ const stateLabels: Record<string, string> = {
 }
 
 export function ReviewerComments(props: Props) {
+  const [collapsed, setCollapsed] = createSignal(false)
+
   return (
-    <section class="reviewer-comments">
-      <div class="reviewer-comments-head">
+    <section class="reviewer-comments" classList={{ collapsed: collapsed() }}>
+      <div class="reviewer-comments-head" onClick={() => setCollapsed(!collapsed())}>
+        <button
+          class="panel-collapse"
+          aria-expanded={!collapsed()}
+          aria-label={collapsed() ? "expand other reviewers" : "collapse other reviewers"}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ChevronIcon />
+        </button>
         <span class="review-panel-title">other reviewers</span>
         <Show when={props.threads.length > 0}>
           <span class="review-stage-time">{props.threads.length}</span>
@@ -47,7 +58,9 @@ function Thread(props: { thread: ReviewerThread; onFocusNote: (note: ReviewerNot
   return (
     <div class={`reviewer-thread ${open() ? "open" : ""}`}>
       <button class="reviewer-thread-head" onClick={() => setOpen(!open())}>
-        <span class="reviewer-caret">{open() ? "▾" : "▸"}</span>
+        <span class="reviewer-caret">
+          <ChevronIcon />
+        </span>
         <Show when={props.thread.user.avatar}>
           <img class="reviewer-avatar" src={props.thread.user.avatar} alt="" />
         </Show>
