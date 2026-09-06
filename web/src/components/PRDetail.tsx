@@ -140,6 +140,11 @@ export function PRDetail(props: Props) {
     focusLine(note.file, note.line, note.side, 0)
   }
 
+  const githubUrl = () => {
+    const base = `https://github.com/${props.owner}/${props.repo}/pull/${props.prNumber}`
+    return props.tab === "files" ? `${base}/files` : base
+  }
+
   const prefetchFiles = () => {
     prefetch.diff(props.owner, props.repo, props.prNumber)
   }
@@ -161,6 +166,16 @@ export function PRDetail(props: Props) {
             </button>
           )}
         </For>
+
+        <a
+          class="pr-github-link"
+          href={githubUrl()}
+          target="_blank"
+          rel="noreferrer"
+          title="open this PR on github"
+        >
+          continue in github ↗
+        </a>
 
         <button
           class={`tmux-btn ${tmuxBadge().kind}`}
