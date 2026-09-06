@@ -47,7 +47,7 @@ func run() error {
 		if _, err := os.Stat(filepath.Join(root, path)); err != nil {
 			return fmt.Errorf("no such file under %s: %s", root, path)
 		}
-		windows = append(windows, tmux.NvimWindow(path, line))
+		windows = append(windows, tmux.EditorWindow("nvim", path, line))
 	}
 
 	ctx := context.Background()

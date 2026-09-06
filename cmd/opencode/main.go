@@ -27,7 +27,7 @@ func main() {
 	var c *opencode.Client
 	if *setup {
 		var err error
-		c, err = opencode.Setup(*url, *projectDir)
+		c, err = opencode.Setup(opencode.SetupOptions{BaseURL: *url, ProjectDir: *projectDir, Spawn: true})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "setup error:", err)
 			os.Exit(1)

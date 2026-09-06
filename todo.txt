@@ -16,6 +16,24 @@ PR List
 [ ] Pagination past 100 PRs
 [ ] Keyboard nav — j/k, Enter, Escape
 
+Onboarding / packaging
+-----------------------
+[x] Single `pr-review` binary — setup, doctor, serve, migrate
+[x] TOML config from a commented template, XDG paths, PR_REVIEW_CONFIG
+[x] Device-code GitHub login, token at 0600; gh demoted to a fallback
+[x] Preflight checks shared by `doctor` and `serve`
+[ ] Bundle .opencode/agents and tools into the binary — opencode.project_dir
+    only exists because the agent and tool files must be on disk next to a
+    checkout. embed + write to a state dir on setup would kill the whole
+    class of "wrong project_dir" failures, but the session deep link is
+    base64 of that same dir, so both have to move together
+[ ] Capabilities endpoint — the UI cannot tell tmux is disabled or missing, so
+    the button is offered and then fails. Needs /api/capabilities plus a
+    frontend that respects it
+[ ] `serve` does not re-check the token against GitHub, only that one exists.
+    An expired token surfaces as a 401 on first use, not at startup
+[ ] No systemd unit or `--daemon`; nothing keeps it running across reboots
+
 Infra / misc
 -------------
 [x] Colour and clean server logs

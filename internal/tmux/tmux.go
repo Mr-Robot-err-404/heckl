@@ -79,8 +79,8 @@ func SessionName(parts ...string) string {
 	}, joined)
 }
 
-func NvimWindow(path string, line int) Window {
-	cmd := []string{"nvim"}
+func EditorWindow(editor, path string, line int) Window {
+	cmd := []string{editor}
 	if line > 0 {
 		cmd = append(cmd, "+"+strconv.Itoa(line))
 	}

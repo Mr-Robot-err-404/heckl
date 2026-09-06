@@ -10,22 +10,31 @@ A personal PR review tool. Replaces the GitHub review UI with a fast, owned expe
 - **TanStack Router** (solid adapter) — URL state
 - **@pierre/diffs** — diff rendering via CodeView vanilla JS API. See `docs/diffs-skill.md` and `docs/diffs-references/`
 - **marked + DOMPurify** — markdown rendering in PR description tab
-- **Port:** 7331
+- **Port:** 7331 by default, `server.addr` in the config
 
 ## Project structure
 
 ```
 pr-review/
 ├── cmd/
-│   ├── server/main.go        — HTTP server entrypoint, embeds web/dist
-│   ├── migrate/main.go       — goose migration runner
+│   ├── pr-review/            — the binary: setup, doctor, serve, migrate
+│   │   ├── main.go           — subcommand dispatch, embeds web/dist
+│   │   ├── setup.go          — interactive first run
+│   │   ├── doctor.go         — preflight report + shared CLI printing
+│   │   ├── serve.go          — wiring, from config to listener
+│   │   └── migrate.go        — goose runner over the configured db
 │   ├── checkout/main.go      — checkout a PR head sha, print the path
+│   ├── tmux/main.go          — open files in a tmux session by hand
 │   └── opencode/main.go      — one-shot prompt against a running opencode
 ├── .opencode/
 │   ├── agents/pr-reviewer.md — the review agent, git-tracked markdown
 │   └── tools/report.ts       — custom tool the agent calls to submit a review
 ├── internal/
-│   ├── github/              — read-only GitHub API client, auth via `gh auth token`
+│   ├── config/               — TOML config, defaults, commented file template
+│   ├── ghauth/               — device-code login, token resolution + storage
+│   ├── preflight/            — dependency and configuration checks
+│   ├── term/                 — ANSI constants + tty detection, shared by logs and CLI
+│   ├── github/              — read-only GitHub API client
 │   ├── checkout/             — per-repo clone + detached checkout at a sha
 │   ├── opencode/             — HTTP client for `opencode serve` on :4420
 │   ├── reviewer/             — checkout → session → prompt → parse → store
@@ -81,7 +90,7 @@ pr-review/
 
 `DiffView.tsx` fetches `/api/diff` → raw unified patch text → `parsePatchFiles()` → `CodeView.setItems()`.
 
-The Go proxy authenticates with `gh auth token` — no manual PAT needed. The frontend uses the vanilla JS `CodeView` class directly, not the React wrapper.
+The Go proxy authenticates with the resolved GitHub token. The frontend uses the vanilla JS `CodeView` class directly, not the React wrapper.
 
 ```ts
 const patches = parsePatchFiles(patch, cacheKeyPrefix)
@@ -110,15 +119,91 @@ See `docs/diffs-references/recipe-vanilla.md` for FileDiff single-file usage.
 
 `DiffView`'s `CodeView` is locked to the `gruvbox-dark-medium` Shiki theme (single theme name, not a `{dark, light}` pair) so it always matches the app chrome instead of following OS `prefers-color-scheme` — that mismatch (light app UI, OS-dark diff view) was the original bug that prompted the switch away from Evergarden.
 
+## Startup, configuration and onboarding
+
+One binary, four subcommands: `setup`, `doctor`, `serve`, `migrate`. The old
+`cmd/server` and `cmd/migrate` are gone — a shipped tool that needs you to know
+which of two binaries to run has already failed at onboarding.
+
+**Nothing is implicit at startup.** `serve` loads the config, runs the same
+preflight checks as `doctor`, and refuses to start if a required one fails,
+printing the same annotated list with a fix for each line. It does **not**
+create the database and does **not** apply migrations — that stays an explicit
+act, as it always has. The difference is that the failure now names the command
+to run instead of surfacing as a SQL error three layers down.
+
+**opencode is asserted before anything else.** `setup` exits immediately if it
+is not on `PATH`, rather than collecting answers and reporting the failure at
+the end. It runs every review; a config written without it is a config for a
+tool that cannot do its one job.
+
+`internal/preflight` returns `[]Check` with an `OK`/`Warn`/`Fail` status, a
+detail, and a hint. Required dependencies fail; optional ones warn. It is one
+list consumed by two callers, so `doctor` and `serve` can never disagree about
+what a healthy install looks like.
+
+### Config
+
+TOML at `~/.config/pr-review/config.toml`, overridable with `PR_REVIEW_CONFIG`.
+The file is generated from a commented template, so the artefact on disk
+documents itself and there is no second copy of the docs to drift.
+
+**Everything user-owned lives under that one directory** — config, database,
+worktrees, token. Splitting across `~/.config` and `~/.local/share` is the
+correct XDG reading, and it is the wrong call here: it doubles the number of
+places to back up, delete or point at another disk, for a tool with a single
+user. One directory, one thing to move.
+
+**Setup only asks what it cannot work out.** tmux on or off, which editor, and
+how to authenticate. Paths, ports and the opencode URL all have workable
+defaults and a commented line in the file — asking about them makes onboarding
+longer without making it better informed, since a first-time user has no basis
+to answer. Re-running setup preserves hand-edits.
+
+**The split is process-level vs. user-level.** Anything the process needs before
+it can serve a request — listen address, database and data paths, opencode URL
+and project dir, tmux editor and window cap, GitHub auth — is config. Anything
+that is a live UI preference — theme, per-agent model and prompt overrides —
+stays in the database, reachable from the UI. Duplicating either across both
+would create two sources of truth with no arbitration.
+
+`opencode.project_dir` is load-bearing and cannot sensibly be defaulted: it is
+where `.opencode/agents` and `.opencode/tools` are read from at opencode
+startup, and it is also the directory whose base64 forms the session deep link.
+`setup` defaults it to the working directory and preflight verifies
+`pr-reviewer.md` actually exists under it.
+
+`REMOTE_HOST` and `LOG_LEVEL` still override their config equivalents, because
+both are things you want to flip for one run without editing a file.
+
+### GitHub auth
+
+`gh auth token` is no longer the mechanism, only the last fallback. Resolution
+order is `GITHUB_TOKEN`, then `github.token_file` (0600), then `gh` if
+`use_gh_cli` is on. First hit wins, and the server logs which source it used —
+"which token is this even using" is otherwise unanswerable.
+
+The primary path is the OAuth device flow: `setup` prints a user code and a
+URL, polls, verifies the result against `GET /user`, and stores it. It needs an
+OAuth app client ID, which the user must create once. That is real friction and
+there is no way around it — GitHub has no device flow without a client ID — so
+`setup` states the exact steps rather than failing with a 401. Client IDs are
+public; treating one as a secret would be cargo-culting.
+
+The token is a separate file from the config on purpose. Config is something
+you might paste into an issue; a token is not.
+
 ## Makefile
 
 ```bash
-make server       # go run ./cmd/server
+make setup        # pr-review setup
+make doctor       # pr-review doctor
+make server       # pr-review serve
 make up           # goose migrate up
 make down         # goose migrate down
 make status       # goose migration status
 make reset        # goose reset
-make build        # npm build + copy dist + go build binaries
+make build        # npm build + copy dist + go build bin/pr-review
 make dev          # vite dev server on :5173, proxies /api to :7331
 make vet          # go build + go vet + tsc -b — the verification command
 ```
@@ -328,12 +413,12 @@ what `npm run build` actually uses.
 
 ## Key decisions
 
-- **Auth** — `gh auth token` at startup, no PAT management
+- **Auth** — device-code OAuth, token on disk at 0600, `gh auth token` kept only as a fallback
 - **No cache** — PRs, file patches, and diffs are all fetched live from GitHub on every request. A single-user tool never approaches GitHub's 5000 req/hr rate limit, and a cache with no invalidation path is worse than no cache — it was causing PR lists to go stale forever after the first fetch. Removed entirely rather than patched.
 - **No React** — SolidJS throughout. `@pierre/diffs` used via vanilla JS API only.
 - **DiffsHub** — explored as iframe embed, dropped because localStorage auth can't be injected for private repos. Replicated their approach instead: Go proxy + local CodeView rendering.
 - **Repos grouped by org** — single `<optgroup>` dropdown, no separate org selector step.
-- **sqlc** — type-safe queries. **goose** — migrations in a separate `cmd/migrate` binary, not run on server startup.
+- **sqlc** — type-safe queries. **goose** — migrations behind `pr-review migrate`, never applied implicitly by `serve`.
 - **modernc/sqlite** — pure Go, no CGO.
 - **No agent shell commands** — git (clone/fetch/checkout) and other
   deterministic ops run in our own Go code (`internal/checkout`), never

@@ -9,18 +9,20 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/harrylawton/pr-review/internal/term"
 )
 
 const (
-	reset  = "\033[0m"
-	dim    = "\033[2m"
-	bold   = "\033[1m"
-	red    = "\033[31m"
-	green  = "\033[32m"
-	yellow = "\033[33m"
-	blue   = "\033[34m"
-	cyan   = "\033[36m"
-	grey   = "\033[90m"
+	reset  = term.Reset
+	dim    = term.Dim
+	bold   = term.Bold
+	red    = term.Red
+	green  = term.Green
+	yellow = term.Yellow
+	blue   = term.Blue
+	cyan   = term.Cyan
+	grey   = term.Grey
 )
 
 const (
@@ -43,19 +45,8 @@ func New(out *os.File, level slog.Leveler) *Handler {
 		mu:    &sync.Mutex{},
 		out:   out,
 		level: level,
-		color: colorEnabled(out),
+		color: term.Enabled(out),
 	}
-}
-
-func colorEnabled(out *os.File) bool {
-	if os.Getenv("NO_COLOR") != "" {
-		return false
-	}
-	info, err := out.Stat()
-	if err != nil {
-		return false
-	}
-	return info.Mode()&os.ModeCharDevice != 0
 }
 
 func (h *Handler) Enabled(_ context.Context, level slog.Level) bool {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/harrylawton/pr-review/internal/checkout"
+	"github.com/harrylawton/pr-review/internal/config"
 	"github.com/harrylawton/pr-review/internal/github"
 	"github.com/harrylawton/pr-review/internal/opencode"
 	"github.com/harrylawton/pr-review/internal/orchestrator"
@@ -34,12 +35,12 @@ type Server struct {
 	orchestrator *orchestrator.Orchestrator
 	checkout     *checkout.Manager
 	tmux         *tmux.Tmux
-	remoteHost   string
+	cfg          *config.Config
 	mux          *http.ServeMux
 }
 
-func New(gh *github.Client, store *store.Store, oc *opencode.Client, orc *orchestrator.Orchestrator, co *checkout.Manager, remoteHost string) *Server {
-	s := &Server{gh: gh, store: store, oc: oc, orchestrator: orc, checkout: co, tmux: tmux.Init(), remoteHost: remoteHost, mux: http.NewServeMux()}
+func New(gh *github.Client, store *store.Store, oc *opencode.Client, orc *orchestrator.Orchestrator, co *checkout.Manager, cfg *config.Config) *Server {
+	s := &Server{gh: gh, store: store, oc: oc, orchestrator: orc, checkout: co, tmux: tmux.Init(), cfg: cfg, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }

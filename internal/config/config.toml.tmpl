@@ -1,0 +1,65 @@
+# pr-review configuration
+#
+# `pr-review setup` only asks about things it cannot work out for itself.
+# Everything else is edited here and picked up on the next `pr-review serve`.
+# Re-running setup preserves whatever you change below.
+#
+# Paths: after moving `database` or `data_dir`, move the files yourself and
+# run `pr-review doctor` — nothing is migrated or copied for you.
+
+[server]
+# Address the web UI and API listen on.
+addr = "{{ .Server.Addr }}"
+
+# SQLite database. Created by `pr-review setup`, migrated by `pr-review migrate up`.
+database = "{{ .Server.Database }}"
+
+# Bare clones and per-PR worktrees live here. Grows with every PR reviewed;
+# it is the one directory worth pointing at a bigger disk.
+data_dir = "{{ .Server.DataDir }}"
+
+# "info" or "debug". The LOG_LEVEL environment variable overrides this.
+log_level = "{{ .Server.LogLevel }}"
+
+# Host that a remote browser should ssh to for a tmux attach. Leave empty
+# unless the hostname you reach this server on is not a valid ssh target;
+# it never applies to a request that arrives from this machine.
+# The REMOTE_HOST environment variable overrides this.
+remote_host = "{{ .Server.RemoteHost }}"
+
+[github]
+# OAuth app client ID used for the device-code login flow. Create one at
+# https://github.com/settings/developers — any redirect URL, device flow
+# enabled. Client IDs are public; this one is not a secret.
+oauth_client_id = "{{ .GitHub.OAuthClientID }}"
+
+# Where the access token is written, mode 0600. The GITHUB_TOKEN environment
+# variable overrides it entirely and nothing is written to disk.
+token_file = "{{ .GitHub.TokenFile }}"
+
+# Fall back to `gh auth token` when no token file and no client ID are set.
+use_gh_cli = {{ .GitHub.UseGHCLI }}
+
+[opencode]
+# Where `opencode serve` listens. Must include an explicit port.
+url = "{{ .OpenCode.URL }}"
+
+# Directory holding .opencode/agents and .opencode/tools. Both are read once
+# at opencode startup, so editing them requires restarting opencode. Defaults
+# to wherever setup was run from; if that was not the pr-review checkout,
+# correct it here — `pr-review doctor` verifies the agent file exists.
+project_dir = "{{ .OpenCode.ProjectDir }}"
+
+# Start `opencode serve` if nothing is answering on the URL above.
+spawn = {{ .OpenCode.Spawn }}
+
+[tmux]
+# Turn off to reject tmux session requests. The button stays in the UI; the
+# server answers with a clear error rather than pretending it worked.
+enabled = {{ .Tmux.Enabled }}
+
+# Editor launched in each window. Must accept a +<line> argument.
+editor = "{{ .Tmux.Editor }}"
+
+# Upper bound on windows in one session, i.e. files per selection.
+max_windows = {{ .Tmux.MaxWindows }}

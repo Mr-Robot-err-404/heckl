@@ -14,8 +14,6 @@ import (
 	"github.com/harrylawton/pr-review/internal/tmux"
 )
 
-const maxTmuxWindows = 20
-
 type tmuxPick struct {
 	File string `json:"file"`
 	Line int    `json:"line,omitempty"`
@@ -51,8 +49,8 @@ func (s *Server) attachCommand(r *http.Request, session string) string {
 	if isLoopback(host) {
 		return attach
 	}
-	if s.remoteHost != "" {
-		host = s.remoteHost
+	if s.cfg.Server.RemoteHost != "" {
+		host = s.cfg.Server.RemoteHost
 	}
 	return fmt.Sprintf("ssh -t %s %q", host, attach)
 }
@@ -105,6 +103,10 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !s.cfg.Tmux.Enabled {
+		jsonError(w, "tmux sessions are disabled in the server config", http.StatusServiceUnavailable)
+		return
+	}
 	if !tmux.Installed() {
 		jsonError(w, "tmux is not installed on the server", http.StatusServiceUnavailable)
 		return
@@ -121,8 +123,8 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "no files selected", http.StatusBadRequest)
 		return
 	}
-	if len(body.Picks) > maxTmuxWindows {
-		jsonError(w, fmt.Sprintf("too many files — %d max", maxTmuxWindows), http.StatusBadRequest)
+	if len(body.Picks) > s.cfg.Tmux.MaxWindows {
+		jsonError(w, fmt.Sprintf("too many files — %d max", s.cfg.Tmux.MaxWindows), http.StatusBadRequest)
 		return
 	}
 
@@ -151,7 +153,7 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 			skipped = append(skipped, p.File)
 			continue
 		}
-		windows = append(windows, tmux.NvimWindow(path, p.Line))
+		windows = append(windows, tmux.EditorWindow(s.cfg.Tmux.Editor, path, p.Line))
 		opened = append(opened, path)
 	}
 	if len(windows) == 0 {

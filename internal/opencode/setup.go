@@ -15,19 +15,28 @@ const startupTimeout = 15 * time.Second
 
 var requiredAgents = []string{"pr-reviewer.md"}
 
-func Setup(baseURL, projectDir string) (*Client, error) {
-	if err := checkAgentFiles(projectDir); err != nil {
+type SetupOptions struct {
+	BaseURL    string
+	ProjectDir string
+	Spawn      bool
+}
+
+func Setup(opts SetupOptions) (*Client, error) {
+	if err := checkAgentFiles(opts.ProjectDir); err != nil {
 		return nil, fmt.Errorf("opencode: setup: %w", err)
 	}
 
-	c := New(baseURL)
+	c := New(opts.BaseURL)
 	if healthy, version, err := c.Health(); err == nil && healthy {
 		slog.Info("opencode already running", "url", c.baseURL, "version", version)
 		return c, nil
 	}
+	if !opts.Spawn {
+		return nil, fmt.Errorf("opencode: nothing responding at %s and opencode.spawn is false — start `opencode serve` yourself", c.baseURL)
+	}
 
-	slog.Info("opencode not responding — spawning", "url", c.baseURL, "dir", projectDir)
-	if err := spawnServer(c.baseURL, projectDir); err != nil {
+	slog.Info("opencode not responding — spawning", "url", c.baseURL, "dir", opts.ProjectDir)
+	if err := spawnServer(c.baseURL, opts.ProjectDir); err != nil {
 		return nil, fmt.Errorf("opencode: setup: spawn server: %w", err)
 	}
 

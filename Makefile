@@ -1,4 +1,4 @@
-.PHONY: server build-server up down down-to redo status reset build dev vet test checkout opencode tmux generate
+.PHONY: setup doctor server up down down-to redo status reset build dev vet test checkout opencode tmux generate
 
 vet:
 	go build ./...
@@ -8,29 +8,32 @@ vet:
 test:
 	go test ./...
 
-server:
-	go run ./cmd/server
+setup:
+	go run ./cmd/pr-review setup
 
-build-server:
-	go build -o bin/server ./cmd/server
+doctor:
+	go run ./cmd/pr-review doctor
+
+server:
+	go run ./cmd/pr-review serve
 
 up:
-	go run ./cmd/migrate up
+	go run ./cmd/pr-review migrate up
 
 down:
-	go run ./cmd/migrate down
+	go run ./cmd/pr-review migrate down
 
 down-to:
-	go run ./cmd/migrate down-to $(V)
+	go run ./cmd/pr-review migrate down-to $(V)
 
 redo:
-	go run ./cmd/migrate redo
+	go run ./cmd/pr-review migrate redo
 
 status:
-	go run ./cmd/migrate status
+	go run ./cmd/pr-review migrate status
 
 reset:
-	go run ./cmd/migrate reset
+	go run ./cmd/pr-review migrate reset
 
 generate:
 	go tool sqlc generate
@@ -49,6 +52,5 @@ dev:
 
 build:
 	cd web && npm run build
-	rm -rf cmd/server/dist && cp -r web/dist cmd/server/dist
-	go build -o bin/server ./cmd/server
-	go build -o bin/migrate ./cmd/migrate
+	rm -rf cmd/pr-review/dist && cp -r web/dist cmd/pr-review/dist
+	go build -o bin/pr-review ./cmd/pr-review
