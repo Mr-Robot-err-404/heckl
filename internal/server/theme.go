@@ -13,6 +13,7 @@ var themes = []string{
 	"catppuccin-mocha",
 	"kanagawa-wave",
 	"tokyo-night",
+	"github-light",
 	"everforest",
 	"night-owl",
 }

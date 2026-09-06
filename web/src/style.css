@@ -115,6 +115,29 @@
   --orange: #f57d26;
 }
 
+:root[data-theme="github-light"] {
+  --base:     #ffffff;
+  --sunken:   #eaeef2;
+  --mantle:   #f6f8fa;
+  --crust:    #d0d7de;
+  --surface0: #f6f8fa;
+  --surface1: #eaeef2;
+  --surface2: #d8dee4;
+  --overlay0: #d0d7de;
+  --overlay1: #afb8c1;
+  --overlay2: #8c959f;
+  --subtext0: #6e7781;
+  --subtext1: #656d76;
+  --text:     #1f2328;
+
+  --green:  #1a7f37;
+  --aqua:   #1b7c83;
+  --blue:   #0969da;
+  --red:    #cf222e;
+  --yellow: #9a6700;
+  --orange: #bc4c00;
+}
+
 :root[data-theme="night-owl"] {
   --base:     #fbfbfb;
   --sunken:   #eeeeee;
@@ -1509,6 +1532,23 @@ button.topbar-brand:hover { color: var(--text); }
   min-width: 0;
 }
 
+.review-row-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--overlay1);
+  cursor: pointer;
+  transition: transform 0.12s ease, color 0.08s ease;
+}
+.review-row-caret .bot-icon { width: 14px; height: 14px; }
+.review-row-caret.collapsed { transform: rotate(-90deg); }
+.review-row:hover .review-row-caret { color: var(--text); }
+
 .review-row-pr { white-space: nowrap; }
 
 .review-row-title {
@@ -1520,6 +1560,14 @@ button.topbar-brand:hover { color: var(--text); }
   white-space: nowrap;
 }
 .review-row.is-error .review-row-title { color: var(--red); }
+
+.review-row.expanded .review-row-top { align-items: flex-start; }
+.review-row.expanded .review-row-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.5;
+}
 
 .review-row-meta {
   white-space: nowrap;

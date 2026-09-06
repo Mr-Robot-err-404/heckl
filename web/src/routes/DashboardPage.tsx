@@ -55,7 +55,7 @@ export function DashboardPage() {
         }
       >
         <ul class="review-rows" classList={{ "is-stale": history.isFetching }}>
-          <For each={rows()}>{(row) => <ReviewRow row={row} showRepo />}</For>
+          <For each={rows()}>{(row) => <ReviewRow row={row} showRepo collapsible />}</For>
         </ul>
       </Show>
 

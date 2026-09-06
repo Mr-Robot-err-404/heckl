@@ -4,6 +4,7 @@ import { api } from "./api"
 export type ThemeId =
   | "gruvbox"
   | "github-dark"
+  | "github-light"
   | "catppuccin-mocha"
   | "kanagawa-wave"
   | "tokyo-night"
@@ -23,6 +24,7 @@ export const themes: Theme[] = [
   { id: "catppuccin-mocha", label: "catppuccin mocha", shiki: "catppuccin-mocha", dark: true },
   { id: "kanagawa-wave", label: "kanagawa wave", shiki: "kanagawa-wave", dark: true },
   { id: "tokyo-night", label: "tokyo night", shiki: "tokyo-night", dark: true },
+  { id: "github-light", label: "github light", shiki: "github-light-default", dark: false },
   { id: "everforest", label: "everforest", shiki: "everforest-light", dark: false },
   { id: "night-owl", label: "night owl", shiki: "night-owl-light", dark: false },
 ]

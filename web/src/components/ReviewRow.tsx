@@ -1,8 +1,9 @@
-import { For, Show } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
 import { formatMs, relativeTime } from "../review"
 import { usePrefetch } from "../queries"
 import type { Review, ReviewHistoryRow } from "../types"
+import { ChevronIcon } from "./icons"
 
 export type Severity = "critical" | "warning" | "low"
 
@@ -69,9 +70,13 @@ export function historyRow(session: ReviewHistoryRow): Row {
   }
 }
 
-export function ReviewRow(props: { row: Row; showRepo?: boolean }) {
+export function ReviewRow(props: { row: Row; showRepo?: boolean; collapsible?: boolean }) {
   const navigate = useNavigate()
   const prefetch = usePrefetch()
+  const [expanded, setExpanded] = createSignal(false)
+
+  const hasSub = () => !!props.row.concerns || !!props.row.note
+  const showSub = () => hasSub() && (!props.collapsible || expanded())
 
   const warm = () =>
     prefetch.pr(props.row.owner, props.row.repo, props.row.prNumber)
@@ -88,8 +93,27 @@ export function ReviewRow(props: { row: Row; showRepo?: boolean }) {
     })
 
   return (
-    <li class={`review-row is-${props.row.status}`} onMouseEnter={warm} onClick={open}>
+    <li
+      class={`review-row is-${props.row.status}`}
+      classList={{ expanded: props.collapsible && expanded() }}
+      onMouseEnter={warm}
+      onClick={open}
+    >
       <div class="review-row-top">
+        <Show when={props.collapsible && hasSub()}>
+          <button
+            class="review-row-caret"
+            classList={{ collapsed: !expanded() }}
+            aria-expanded={expanded()}
+            aria-label={expanded() ? "collapse review detail" : "expand review detail"}
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpanded(!expanded())
+            }}
+          >
+            <ChevronIcon />
+          </button>
+        </Show>
         <span class={`pill pill-${props.row.status}`}>{props.row.label}</span>
         <span class="review-row-pr">
           <Show when={props.showRepo}>
@@ -101,6 +125,7 @@ export function ReviewRow(props: { row: Row; showRepo?: boolean }) {
         <span class="review-row-meta muted">{props.row.meta}</span>
       </div>
 
+      <Show when={showSub()}>
       <div class="review-row-sub">
         <Show when={props.row.concerns} keyed>
           {(concerns) => (
@@ -132,6 +157,7 @@ export function ReviewRow(props: { row: Row; showRepo?: boolean }) {
           <span class="review-row-note">{props.row.note}</span>
         </Show>
       </div>
+      </Show>
     </li>
   )
 }
