@@ -1,13 +1,13 @@
-import { For, Show } from "solid-js"
-import { agentLabel, formatMs, opencodeUrl, type ReviewState } from "../review"
-import { AgentPicker } from "./AgentPicker"
-import { RerunIcon } from "./icons"
-import type { RankedConcern, ReviewAgent, ReviewStage } from "../types"
+import { For, Show } from "solid-js";
+import { agentLabel, formatMs, opencodeUrl, type ReviewState } from "../review";
+import { AgentPicker } from "./AgentPicker";
+import { RerunIcon } from "./icons";
+import type { RankedConcern, ReviewAgent, ReviewStage } from "../types";
 
 type Props = {
-  state: ReviewState
-  onFocusConcern: (concern: RankedConcern) => void
-}
+  state: ReviewState;
+  onFocusConcern: (concern: RankedConcern) => void;
+};
 
 const stageLabels: Record<string, string> = {
   fetch: "fetching pr",
@@ -16,32 +16,34 @@ const stageLabels: Record<string, string> = {
   prompt: "reviewing",
   parse: "reading result",
   store: "saving",
-}
+};
 
 export function ReviewPage(props: Props) {
-  const s = () => props.state
+  const s = () => props.state;
 
-  const agents = (): ReviewAgent[] => s().review()?.agents ?? []
+  const agents = (): ReviewAgent[] => s().review()?.agents ?? [];
 
-  const isRerun = () => s().synced() && !s().busy() && !!s().review()
+  const isRerun = () => s().synced() && !s().busy() && !!s().review();
 
   const runLabel = () =>
-    !s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run"
+    !s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run";
 
   const grouped = () => {
-    const known = agents()
+    const known = agents();
     const orphaned = s()
       .concerns()
       .map((c) => c.agent)
       .filter((name, i, all) => all.indexOf(name) === i)
       .filter((name) => !known.some((a) => a.name === name))
-      .map((name): ReviewAgent => ({ name, status: "done", stages: [], durationMs: 0 }))
+      .map((name): ReviewAgent => ({ name, status: "done", stages: [], durationMs: 0 }));
 
     return [...known, ...orphaned].map((agent) => ({
       agent,
-      concerns: s().concerns().filter((c) => c.agent === agent.name),
-    }))
-  }
+      concerns: s()
+        .concerns()
+        .filter((c) => c.agent === agent.name),
+    }));
+  };
 
   return (
     <div class="review-page">
@@ -174,7 +176,7 @@ export function ReviewPage(props: Props) {
               <h3 class="review-section-title">{agentLabel(group.agent.name)}</h3>
               <Show
                 when={group.agent.status !== "error"}
-                fallback={<p class="review-failed">this agent failed - no findings recorded</p>}
+                fallback={<p class="review-failed">this agent failed</p>}
               >
                 <Show
                   when={group.concerns.length > 0}
@@ -182,7 +184,10 @@ export function ReviewPage(props: Props) {
                 >
                   <For each={group.concerns}>
                     {(concern) => (
-                      <ConcernCard concern={concern} onFocus={() => props.onFocusConcern(concern)} />
+                      <ConcernCard
+                        concern={concern}
+                        onFocus={() => props.onFocusConcern(concern)}
+                      />
                     )}
                   </For>
                 </Show>
@@ -192,14 +197,14 @@ export function ReviewPage(props: Props) {
         </For>
       </Show>
     </div>
-  )
+  );
 }
 
 function StageRow(props: { stage: ReviewStage; now: number }) {
   const live = () => {
-    if (props.stage.status !== "running" || !props.stage.startedAt) return 0
-    return props.now - Date.parse(props.stage.startedAt)
-  }
+    if (props.stage.status !== "running" || !props.stage.startedAt) return 0;
+    return props.now - Date.parse(props.stage.startedAt);
+  };
 
   return (
     <div class={`review-stage ${props.stage.status}`}>
@@ -218,11 +223,11 @@ function StageRow(props: { stage: ReviewStage; now: number }) {
         <span class="review-stage-time">{formatMs(live())}</span>
       </Show>
     </div>
-  )
+  );
 }
 
 function ConcernCard(props: { concern: RankedConcern; onFocus: () => void }) {
-  const locatable = () => props.concern.line != null && props.concern.side != null
+  const locatable = () => props.concern.line != null && props.concern.side != null;
 
   return (
     <article class={`review-concern sev-${props.concern.severity}`}>
@@ -244,5 +249,5 @@ function ConcernCard(props: { concern: RankedConcern; onFocus: () => void }) {
       </Show>
       <p class="review-concern-body">{props.concern.body}</p>
     </article>
-  )
+  );
 }
