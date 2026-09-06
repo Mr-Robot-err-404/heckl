@@ -5,9 +5,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/harrylawton/pr-review/internal/config"
@@ -84,6 +86,7 @@ func loadOrDefault(path string) *config.Config {
 }
 
 func promptConfig(cfg *config.Config) {
+	cfg.Server.Addr = askPort("port to serve on", cfg.Server.Addr)
 	cfg.Tmux.Enabled = askBool("enable tmux review sessions", cfg.Tmux.Enabled)
 	if cfg.Tmux.Enabled {
 		cfg.Tmux.Editor = ask("editor for tmux windows", cfg.Tmux.Editor)
@@ -227,6 +230,21 @@ func ask(label, fallback string) string {
 		return answer
 	}
 	return fallback
+}
+
+func askPort(label, current string) string {
+	host, port, err := net.SplitHostPort(current)
+	if err != nil {
+		host, port = "", "7331"
+	}
+	for {
+		answer := ask(label, port)
+		n, err := strconv.Atoi(answer)
+		if err == nil && n > 0 && n < 65536 {
+			return net.JoinHostPort(host, strconv.Itoa(n))
+		}
+		fmt.Printf("%s %s is not a port between 1 and 65535\n", out.Paint(term.Yellow, "warn"), answer)
+	}
 }
 
 func askBool(label string, fallback bool) bool {
