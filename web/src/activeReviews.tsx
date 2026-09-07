@@ -9,7 +9,7 @@ export function reviewKey(owner: string, repo: string, prNumber: number) {
 }
 
 function isFinished(review: Review) {
-  return review.status === "done" || review.status === "error"
+  return review.status === "done" || review.status === "error" || review.status === "cancelled"
 }
 
 type ActiveReviews = {

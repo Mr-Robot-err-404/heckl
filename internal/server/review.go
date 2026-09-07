@@ -67,6 +67,27 @@ func (s *Server) handleRerunAgent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(review)
 }
 
+func (s *Server) handleCancelReview(w http.ResponseWriter, r *http.Request) {
+	owner, repo, number, ok := prPath(w, r)
+	if !ok {
+		return
+	}
+	agent := r.PathValue("agent")
+
+	review, err := s.orchestrator.Cancel(owner, repo, number, agent)
+	if errors.Is(err, orchestrator.ErrNotRunning) {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	slog.Info("review cancelled", "owner", owner, "repo", repo, "pr", number, "agent", agent, "review_id", review.ID)
+	jsonOK(w, review)
+}
+
 func (s *Server) handleListAgents(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, reviewer.AgentOrder())
 }

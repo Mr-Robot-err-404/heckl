@@ -18,6 +18,10 @@ export type ReviewState = {
   isSelected: (name: string) => boolean
   start: (agents?: string[]) => Promise<void>
   rerun: (agent: string) => Promise<void>
+  cancel: () => Promise<void>
+  cancelAgent: (agent: string) => Promise<void>
+  stopping: Accessor<boolean>
+  agentBusy: (agent: string) => boolean
 }
 
 const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 }
@@ -64,6 +68,7 @@ export function createReview(
   const [synced, setSynced] = createSignal(false)
   const [connected, setConnected] = createSignal(false)
   const [starting, setStarting] = createSignal(false)
+  const [stopping, setStopping] = createSignal(false)
   const [error, setError] = createSignal("")
   const [now, setNow] = createSignal(Date.now())
   const [deselected, setDeselected] = createSignal<string[]>([])
@@ -83,6 +88,7 @@ export function createReview(
     setSynced(false)
     setConnected(false)
     setStarting(false)
+    setStopping(false)
     setError("")
     const close = api.review.stream(o, r, n, {
       state: (next) => {
@@ -104,10 +110,21 @@ export function createReview(
     synced() && connected() && !busy() && (knownAgents().length === 0 || selected().length > 0)
 
   createEffect(() => {
+    if (busy()) return
+    setStopping(false)
+  })
+
+  createEffect(() => {
     if (!busy()) return
     const timer = setInterval(() => setNow(Date.now()), 200)
     onCleanup(() => clearInterval(timer))
   })
+
+  const agentBusy = (agent: string) => {
+    if (!busy()) return false
+    const status = review()?.agents.find((a) => a.name === agent)?.status
+    return status === "pending" || status === "running"
+  }
 
   const elapsed = () => {
     const r = review()
@@ -147,6 +164,25 @@ export function createReview(
     }
   }
 
+  const cancel = async () => {
+    setStopping(true)
+    try {
+      await api.review.cancel(owner(), repo(), prNumber())
+      setStarting(false)
+    } catch (e) {
+      setStopping(false)
+      setError(errText(e))
+    }
+  }
+
+  const cancelAgent = async (agent: string) => {
+    try {
+      await api.review.cancelAgent(owner(), repo(), prNumber(), agent)
+    } catch (e) {
+      setError(errText(e))
+    }
+  }
+
   return {
     review,
     synced,
@@ -163,6 +199,10 @@ export function createReview(
     isSelected,
     start,
     rerun,
+    cancel,
+    cancelAgent,
+    stopping,
+    agentBusy,
   }
 }
 

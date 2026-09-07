@@ -73,3 +73,7 @@ func (c *Client) GetSession(id string) (*Session, error) {
 	err := c.decode("GET", "/session/"+id, nil, &s)
 	return &s, err
 }
+
+func (c *Client) Abort(id string) error {
+	return c.decode("POST", "/session/"+id+"/abort", nil, nil)
+}

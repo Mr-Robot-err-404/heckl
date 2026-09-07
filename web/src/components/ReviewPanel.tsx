@@ -2,7 +2,8 @@ import { createSignal, For, Show } from "solid-js";
 import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review";
 import type { RankedConcern } from "../types";
 import { AgentPicker } from "./AgentPicker";
-import { ChevronIcon, RerunIcon } from "./icons";
+import { ChevronIcon, RerunIcon, StopIcon } from "./icons";
+import { AgentButton } from "./ReviewPage";
 
 type Props = {
   state: ReviewState;
@@ -30,7 +31,7 @@ export function ReviewPanel(props: Props) {
   const isRerun = () => s().synced() && !s().busy() && !!s().review();
 
   const runLabel = () =>
-    !s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run";
+    !s().synced() ? "connecting..." : s().review() ? "re-run" : "run";
 
   return (
     <aside class="review-panel" classList={{ collapsed: collapsed() }}>
@@ -54,20 +55,38 @@ export function ReviewPanel(props: Props) {
             continue in opencode ↗
           </a>
         </Show>
-        <button
-          class="review-run"
-          title={runLabel()}
-          aria-label={runLabel()}
-          onClick={(e) => {
-            e.stopPropagation()
-            s().start()
-          }}
-          disabled={!s().canRun()}
+        <Show
+          when={s().busy()}
+          fallback={
+            <button
+              class="review-run"
+              title={runLabel()}
+              aria-label={runLabel()}
+              onClick={(e) => {
+                e.stopPropagation()
+                s().start()
+              }}
+              disabled={!s().canRun()}
+            >
+              <Show when={isRerun()} fallback={runLabel()}>
+                <RerunIcon />
+              </Show>
+            </button>
+          }
         >
-          <Show when={isRerun()} fallback={runLabel()}>
-            <RerunIcon />
-          </Show>
-        </button>
+          <button
+            class="review-run is-stop"
+            title="stop this review"
+            aria-label="stop this review"
+            onClick={(e) => {
+              e.stopPropagation()
+              s().cancel()
+            }}
+            disabled={s().stopping()}
+          >
+            <StopIcon />
+          </button>
+        </Show>
       </div>
 
       <AgentPicker state={s()} />
@@ -104,19 +123,13 @@ export function ReviewPanel(props: Props) {
                 <span class="review-stage-detail">
                   {agent.status === "error"
                     ? "failed"
-                    : (stageLabels[
-                        agent.stages.find((st) => st.status === "running")?.name ?? ""
-                      ] ?? "")}
+                    : agent.status === "cancelled"
+                      ? "stopped"
+                      : (stageLabels[
+                          agent.stages.find((st) => st.status === "running")?.name ?? ""
+                        ] ?? "")}
                 </span>
-                <button
-                  class="agent-rerun"
-                  title="re-run this agent"
-                  aria-label="re-run this agent"
-                  disabled={s().busy() || !s().review()?.sessionId}
-                  onClick={() => s().rerun(agent.name)}
-                >
-                  <RerunIcon />
-                </button>
+                <AgentButton state={s()} agent={agent} />
               </li>
             )}
           </For>
@@ -129,6 +142,10 @@ export function ReviewPanel(props: Props) {
 
       <Show when={s().review()?.status === "error"}>
         <div class="review-error">{s().review()?.error}</div>
+      </Show>
+
+      <Show when={s().review()?.status === "cancelled"}>
+        <div class="review-stopped">stopped</div>
       </Show>
 
       <Show when={s().review()?.status === "done"}>

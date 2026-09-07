@@ -1,7 +1,7 @@
 import { For, Show } from "solid-js";
 import { agentLabel, formatMs, opencodeUrl, type ReviewState } from "../review";
 import { AgentPicker } from "./AgentPicker";
-import { RerunIcon } from "./icons";
+import { RerunIcon, StopIcon } from "./icons";
 import type { RankedConcern, ReviewAgent, ReviewStage } from "../types";
 
 type Props = {
@@ -26,7 +26,7 @@ export function ReviewPage(props: Props) {
   const isRerun = () => s().synced() && !s().busy() && !!s().review();
 
   const runLabel = () =>
-    !s().synced() ? "connecting..." : s().busy() ? "reviewing..." : s().review() ? "re-run" : "run";
+    !s().synced() ? "connecting..." : s().review() ? "re-run" : "run";
 
   const grouped = () => {
     const known = agents();
@@ -61,17 +61,32 @@ export function ReviewPage(props: Props) {
           </Show>
         </div>
         <div class="review-head-end">
-          <button
-            class="review-run"
-            title={runLabel()}
-            aria-label={runLabel()}
-            onClick={() => s().start()}
-            disabled={!s().canRun()}
+          <Show
+            when={s().busy()}
+            fallback={
+              <button
+                class="review-run"
+                title={runLabel()}
+                aria-label={runLabel()}
+                onClick={() => s().start()}
+                disabled={!s().canRun()}
+              >
+                <Show when={isRerun()} fallback={runLabel()}>
+                  <RerunIcon />
+                </Show>
+              </button>
+            }
           >
-            <Show when={isRerun()} fallback={runLabel()}>
-              <RerunIcon />
-            </Show>
-          </button>
+            <button
+              class="review-run is-stop"
+              title="stop this review"
+              aria-label="stop this review"
+              onClick={() => s().cancel()}
+              disabled={s().stopping()}
+            >
+              <StopIcon />
+            </button>
+          </Show>
         </div>
       </div>
 
@@ -136,15 +151,7 @@ export function ReviewPage(props: Props) {
                   <Show when={agent.status === "done" && agent.durationMs > 0}>
                     <span class="review-stage-time">{formatMs(agent.durationMs)}</span>
                   </Show>
-                  <button
-                    class="agent-rerun"
-                    title="re-run this agent"
-                    aria-label="re-run this agent"
-                    disabled={s().busy() || !s().review()?.sessionId}
-                    onClick={() => s().rerun(agent.name)}
-                  >
-                    <RerunIcon />
-                  </button>
+                  <AgentButton state={s()} agent={agent} />
                 </div>
                 <For each={agent.stages}>
                   {(stage) => <StageRow stage={stage} now={s().now()} />}
@@ -162,6 +169,10 @@ export function ReviewPage(props: Props) {
         <div class="review-error">{s().review()?.error}</div>
       </Show>
 
+      <Show when={s().review()?.status === "cancelled"}>
+        <div class="review-stopped">stopped</div>
+      </Show>
+
       <Show when={s().review()?.status === "done"}>
         <Show when={s().review()?.summary}>
           <section class="review-synopsis">
@@ -175,21 +186,26 @@ export function ReviewPage(props: Props) {
             <section class="review-findings">
               <h3 class="review-section-title">{agentLabel(group.agent.name)}</h3>
               <Show
-                when={group.agent.status !== "error"}
-                fallback={<p class="review-failed">this agent failed</p>}
+                when={group.agent.status !== "cancelled"}
+                fallback={<p class="review-stopped">stopped before finishing</p>}
               >
                 <Show
-                  when={group.concerns.length > 0}
-                  fallback={<p class="review-clear">nothing worth flagging</p>}
+                  when={group.agent.status !== "error"}
+                  fallback={<p class="review-failed">this agent failed</p>}
                 >
-                  <For each={group.concerns}>
-                    {(concern) => (
-                      <ConcernCard
-                        concern={concern}
-                        onFocus={() => props.onFocusConcern(concern)}
-                      />
-                    )}
-                  </For>
+                  <Show
+                    when={group.concerns.length > 0}
+                    fallback={<p class="review-clear">nothing worth flagging</p>}
+                  >
+                    <For each={group.concerns}>
+                      {(concern) => (
+                        <ConcernCard
+                          concern={concern}
+                          onFocus={() => props.onFocusConcern(concern)}
+                        />
+                      )}
+                    </For>
+                  </Show>
                 </Show>
               </Show>
             </section>
@@ -197,6 +213,36 @@ export function ReviewPage(props: Props) {
         </For>
       </Show>
     </div>
+  );
+}
+
+export function AgentButton(props: { state: ReviewState; agent: ReviewAgent }) {
+  const s = () => props.state;
+
+  return (
+    <Show
+      when={s().agentBusy(props.agent.name)}
+      fallback={
+        <button
+          class="agent-rerun"
+          title="re-run this agent"
+          aria-label="re-run this agent"
+          disabled={s().busy() || !s().review()?.sessionId}
+          onClick={() => s().rerun(props.agent.name)}
+        >
+          <RerunIcon />
+        </button>
+      }
+    >
+      <button
+        class="agent-rerun is-stop"
+        title="stop this agent"
+        aria-label="stop this agent"
+        onClick={() => s().cancelAgent(props.agent.name)}
+      >
+        <StopIcon />
+      </button>
+    </Show>
   );
 }
 
@@ -215,6 +261,9 @@ function StageRow(props: { stage: ReviewStage; now: number }) {
       </Show>
       <Show when={props.stage.status === "error"}>
         <span class="review-stage-failed">failed</span>
+      </Show>
+      <Show when={props.stage.status === "cancelled"}>
+        <span class="review-stage-stopped">stopped</span>
       </Show>
       <Show when={props.stage.status === "done" && props.stage.durationMs > 0}>
         <span class="review-stage-time">{formatMs(props.stage.durationMs)}</span>

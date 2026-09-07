@@ -55,7 +55,7 @@ export type PRDetail = {
 
 export type Tab = "description" | "files" | "review"
 
-export type ReviewStatus = "pending" | "running" | "done" | "error"
+export type ReviewStatus = "pending" | "running" | "done" | "error" | "cancelled"
 
 export type ReviewStage = {
   name: string

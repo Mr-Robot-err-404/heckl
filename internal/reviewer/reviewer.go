@@ -3,6 +3,7 @@ package reviewer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -48,6 +49,15 @@ func New(oc *opencode.Client, co *checkout.Manager, s *store.Store) *Reviewer {
 
 func (r *Reviewer) Checkout() *checkout.Manager { return r.checkout }
 
+var ErrCancelled = errors.New("cancelled")
+
+func (r *Reviewer) Abort(opencodeSessionID string) error {
+	if opencodeSessionID == "" {
+		return nil
+	}
+	return r.oc.Abort(opencodeSessionID)
+}
+
 type ProgressEvent struct {
 	Agent     string
 	Stage     string
@@ -79,6 +89,7 @@ type ReviewRequest struct {
 	SessionID    int64
 	StartedAt    time.Time
 	Progress     Progress
+	Cancelled    func(agent string) bool
 }
 
 func (r ReviewRequest) elapsedMS() int64 {
@@ -146,7 +157,11 @@ func (r *Reviewer) Review(ctx context.Context, req ReviewRequest) (*Result, erro
 
 	sortByAgentRank(results)
 
-	succeeded, failed := partition(results)
+	succeeded, failed, cancelled := partition(results)
+	if len(succeeded) == 0 && len(failed) == 0 && len(cancelled) > 0 {
+		log.Info("reviewer: every agent was cancelled", "agents", len(cancelled))
+		return nil, ErrCancelled
+	}
 	if len(succeeded) == 0 && req.SessionID == 0 {
 		return nil, firstError(failed)
 	}
@@ -188,6 +203,22 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfi
 		return res
 	}
 
+	stop := func(stage string) agentResult {
+		emit(ProgressEvent{Agent: name, Stage: stage, Done: true, Err: ErrCancelled})
+		log.Info("reviewer: agent cancelled", "stage", stage)
+		res.err = ErrCancelled
+		res.durationMS = time.Since(began).Milliseconds()
+		return res
+	}
+
+	cancelled := req.Cancelled
+	if cancelled == nil {
+		cancelled = func(string) bool { return false }
+	}
+	if cancelled(name) {
+		return stop(StageSession)
+	}
+
 	emit(ProgressEvent{Agent: name, Stage: StageSession})
 	t := time.Now()
 	sess, err := r.oc.CreateSession(opencode.CreateSessionRequest{
@@ -203,6 +234,11 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfi
 	emit(ProgressEvent{Agent: name, Stage: StageSession, Done: true, SessionID: sess.ID})
 	log.Info("reviewer: session created", "duration_ms", time.Since(t).Milliseconds())
 
+	if cancelled(name) {
+		r.abortQuietly(sess.ID, log)
+		return stop(StagePrompt)
+	}
+
 	prompt := buildPrompt(req)
 	emit(ProgressEvent{Agent: name, Stage: StagePrompt})
 	t = time.Now()
@@ -213,14 +249,23 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfi
 		Parts:  []opencode.Part{{Type: "text", Text: prompt}},
 	})
 	if err != nil {
+		if cancelled(name) {
+			return stop(StagePrompt)
+		}
 		return fail(StagePrompt, fmt.Errorf("reviewer: prompt (%s): %w", name, err))
 	}
 	msgs, err := r.oc.Messages(sess.ID)
 	if err != nil {
+		if cancelled(name) {
+			return stop(StagePrompt)
+		}
 		return fail(StagePrompt, fmt.Errorf("reviewer: read session messages (%s): %w", name, err))
 	}
 	reported, ok := opencode.ToolInput(msgs, reportTool)
 	if !ok {
+		if msg.Info.Aborted() {
+			return stop(StagePrompt)
+		}
 		if msg.Info.HasError() {
 			return fail(StagePrompt, fmt.Errorf("reviewer: model error (%s): %s", name, string(msg.Info.Error)))
 		}
@@ -256,6 +301,9 @@ func (r *Reviewer) persist(
 	}
 
 	for _, res := range results {
+		if errors.Is(res.err, ErrCancelled) {
+			continue
+		}
 		if err := r.store.DeleteConcernsByAgent(ctx, session.ID, res.agent); err != nil {
 			return nil, fmt.Errorf("reviewer: clear concerns (%s): %w", res.agent, err)
 		}
@@ -329,6 +377,12 @@ func (r *Reviewer) session(ctx context.Context, req ReviewRequest, results []age
 	return session, nil
 }
 
+func (r *Reviewer) abortQuietly(opencodeSessionID string, log *slog.Logger) {
+	if err := r.Abort(opencodeSessionID); err != nil {
+		log.Warn("reviewer: abort session", "err", err)
+	}
+}
+
 func agentStatus(res agentResult) string {
 	if res.err != nil {
 		return store.ReviewStatusError
@@ -366,15 +420,18 @@ func sortByAgentRank(results []agentResult) {
 	}
 }
 
-func partition(results []agentResult) (succeeded, failed []agentResult) {
+func partition(results []agentResult) (succeeded, failed, cancelled []agentResult) {
 	for _, res := range results {
-		if res.err != nil {
+		switch {
+		case errors.Is(res.err, ErrCancelled):
+			cancelled = append(cancelled, res)
+		case res.err != nil:
 			failed = append(failed, res)
-			continue
+		default:
+			succeeded = append(succeeded, res)
 		}
-		succeeded = append(succeeded, res)
 	}
-	return succeeded, failed
+	return succeeded, failed, cancelled
 }
 
 func firstError(results []agentResult) error {

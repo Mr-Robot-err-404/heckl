@@ -136,6 +136,10 @@ export const api = {
       post<Review>(`/review/${owner}/${repo}/${number}`, { agents }),
     rerunAgent: (owner: string, repo: string, number: number, agent: string) =>
       post<Review>(`/review/${owner}/${repo}/${number}/agent/${agent}`, {}),
+    cancel: (owner: string, repo: string, number: number) =>
+      del(`/review/${owner}/${repo}/${number}`),
+    cancelAgent: (owner: string, repo: string, number: number, agent: string) =>
+      del(`/review/${owner}/${repo}/${number}/agent/${agent}`),
     stream: (
       owner: string,
       repo: string,

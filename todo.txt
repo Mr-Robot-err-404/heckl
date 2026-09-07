@@ -101,6 +101,14 @@ Agent integration
     prior outcome
 [x] Agent selection UI - toggle chips, all on by default, /api/agents is the
     single source of names
+[x] Cancel a review, or a single agent - the run/rerun button becomes a stop
+    button while in flight. DELETE /api/review/... (optionally /agent/{agent}).
+    Stopping calls opencode's POST /session/{id}/abort, so it is the same act
+    as hitting stop inside opencode itself. A session aborted from opencode's
+    own UI is detected via MessageAbortedError on the assistant message and
+    lands in the same place. Cancellation is a "cancelled" status, never an
+    error: nothing renders red, and nothing is persisted, so cancelling a
+    rerun leaves the previous stored review intact and restores it in the UI.
 [ ] Per-agent summaries - stored per agent now, but only the highest-ranked
     non-empty one is shown as the review synopsis
 [ ] Scope sessions to the checkout - POST /session?directory=<checkout>.

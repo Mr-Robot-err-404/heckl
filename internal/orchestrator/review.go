@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"errors"
 	"slices"
 	"sort"
 	"time"
@@ -12,11 +13,19 @@ import (
 type Status string
 
 const (
-	StatusPending Status = "pending"
-	StatusRunning Status = "running"
-	StatusDone    Status = "done"
-	StatusError   Status = "error"
+	StatusPending   Status = "pending"
+	StatusRunning   Status = "running"
+	StatusDone      Status = "done"
+	StatusError     Status = "error"
+	StatusCancelled Status = "cancelled"
 )
+
+func statusForError(err error) Status {
+	if errors.Is(err, reviewer.ErrCancelled) {
+		return StatusCancelled
+	}
+	return StatusError
+}
 
 const (
 	StageFetch    = "fetch"
@@ -229,11 +238,16 @@ func (r *Review) endStage(agentName, name, detail string, err error) {
 		s.DurationMS = now.Sub(*s.StartedAt).Milliseconds()
 	}
 	if err != nil {
-		s.Status = StatusError
-		s.Error = err.Error()
+		status := statusForError(err)
+		s.Status = status
+		if status == StatusError {
+			s.Error = err.Error()
+		}
 		if a := r.agent(agentName); a != nil {
-			a.Status = StatusError
-			a.Error = err.Error()
+			a.Status = status
+			if status == StatusError {
+				a.Error = err.Error()
+			}
 		}
 		return
 	}
@@ -260,15 +274,18 @@ func (r *Review) finish(err error) {
 	now := time.Now().UTC()
 	r.EndedAt = &now
 	if err != nil {
-		r.failRunningStages(err)
-		r.Status = StatusError
-		r.Error = err.Error()
+		status := statusForError(err)
+		r.settleRunningStages(err, status)
+		r.Status = status
+		if status == StatusError {
+			r.Error = err.Error()
+		}
 		return
 	}
 	r.Status = StatusDone
 }
 
-func (r *Review) failRunningStages(cause error) {
+func (r *Review) settleRunningStages(cause error, status Status) {
 	for i := range r.Stages {
 		if r.Stages[i].Status == StatusRunning {
 			r.endStage("", r.Stages[i].Name, "", cause)
@@ -281,7 +298,7 @@ func (r *Review) failRunningStages(cause error) {
 			}
 		}
 		if r.Agents[i].Status == StatusRunning || r.Agents[i].Status == StatusPending {
-			r.Agents[i].Status = StatusError
+			r.Agents[i].Status = status
 		}
 	}
 }

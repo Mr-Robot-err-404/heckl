@@ -834,6 +834,8 @@ html, body, #root { height: 100%; }
 .review-run .bot-icon { width: 13px; height: 13px; }
 .review-run:hover:not(:disabled) { background: var(--surface1); border-color: var(--overlay0); }
 .review-run:disabled { color: var(--overlay0); cursor: default; }
+.review-run.is-stop .bot-icon { width: 11px; height: 11px; }
+.review-run.is-stop:hover:not(:disabled) { color: var(--yellow); border-color: var(--yellow); }
 
 .review-idle, .review-hint { font-size: 12px; color: var(--overlay1); line-height: 1.6; }
 
@@ -858,6 +860,8 @@ html, body, #root { height: 100%; }
 .review-stage.running .review-stage-dot { background: var(--yellow); }
 .review-stage.done .review-stage-dot { background: var(--green); }
 .review-stage.error .review-stage-dot { background: var(--red); }
+.review-stage.cancelled .review-stage-dot { background: var(--overlay0); }
+.review-stage.cancelled { color: var(--overlay0); }
 .review-stage.running { color: var(--text); }
 .review-stage.done { color: var(--subtext0); }
 
@@ -879,6 +883,8 @@ html, body, #root { height: 100%; }
 .review-clear { font-size: 12px; color: var(--green); }
 .review-failed { font-size: 12px; color: var(--red); }
 .review-stage-failed { font-size: 11px; color: var(--red); }
+.review-stopped { font-size: 12px; color: var(--overlay1); }
+.review-stage-stopped { font-size: 11px; color: var(--overlay1); }
 
 .agent-picker { display: flex; flex-direction: column; gap: 6px; }
 
@@ -961,6 +967,10 @@ html, body, #root { height: 100%; }
 .agent-rerun .bot-icon { width: 12px; height: 12px; }
 .agent-rerun:hover:not(:disabled) { color: var(--text); border-color: var(--overlay0); }
 .agent-rerun:disabled { color: var(--surface2); cursor: default; }
+.agent-rerun.is-stop .bot-icon { width: 9px; height: 9px; }
+.agent-rerun.is-stop:hover { color: var(--yellow); border-color: var(--yellow); }
+.agent-lane-head .agent-rerun.is-stop { margin-left: auto; }
+.agent-progress-row .agent-rerun.is-stop { margin-left: auto; }
 
 .reviewer-comments {
   display: flex;
@@ -1953,6 +1963,7 @@ button.topbar-brand:hover { color: var(--text); }
 .agent-lane.is-running { border-left-color: var(--yellow); }
 .agent-lane.is-done    { border-left-color: var(--green); }
 .agent-lane.is-error   { border-left-color: var(--red); }
+.agent-lane.is-cancelled { border-left-color: var(--overlay0); }
 
 .agent-lane-head {
   display: flex;
@@ -1979,6 +1990,8 @@ button.topbar-brand:hover { color: var(--text); }
 .agent-progress-row .agent-rerun { margin-left: auto; }
 .agent-progress-row.is-error .review-stage-dot { background: var(--red); }
 .agent-progress-row.is-done .review-stage-dot { background: var(--green); }
+.agent-progress-row.is-cancelled .agent-progress-name { color: var(--overlay0); }
+.agent-progress-row.is-cancelled .review-stage-dot { background: var(--overlay0); }
 
 .agent-lane-head .review-stage-time,
 .agent-lane-head .agent-rerun { margin-left: auto; }

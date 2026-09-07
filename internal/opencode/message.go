@@ -63,6 +63,21 @@ func (m Message) HasError() bool {
 	return len(m.Error) > 0
 }
 
+const abortedError = "MessageAbortedError"
+
+func (m Message) Aborted() bool {
+	if len(m.Error) == 0 {
+		return false
+	}
+	var e struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(m.Error, &e); err != nil {
+		return false
+	}
+	return e.Name == abortedError
+}
+
 type PromptRequest struct {
 	Agent  string        `json:"agent,omitempty"`
 	Model  *ModelRef     `json:"model,omitempty"`

@@ -136,6 +136,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/agents/config", s.handleSaveAgentConfig)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}", s.handleReview)
 	s.mux.HandleFunc("POST /api/review/{owner}/{repo}/{number}/agent/{agent}", s.handleRerunAgent)
+	s.mux.HandleFunc("DELETE /api/review/{owner}/{repo}/{number}", s.handleCancelReview)
+	s.mux.HandleFunc("DELETE /api/review/{owner}/{repo}/{number}/agent/{agent}", s.handleCancelReview)
 	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}/stream", s.handleReviewStream)
 	s.mux.HandleFunc("GET /api/tmux/{owner}/{repo}/{number}", s.handleGetTmuxSession)
 	s.mux.HandleFunc("POST /api/tmux/{owner}/{repo}/{number}", s.handleTmuxSession)

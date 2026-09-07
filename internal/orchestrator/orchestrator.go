@@ -76,6 +76,13 @@ func (o *Orchestrator) Rerun(owner, repo string, prNumber int, agent string) (*R
 	})
 }
 
+func (o *Orchestrator) Cancel(owner, repo string, prNumber int, agent string) (*Review, error) {
+	if agent != "" && !slices.Contains(reviewer.AgentOrder(), agent) {
+		return nil, fmt.Errorf("unknown agent %q", agent)
+	}
+	return o.runner.Cancel(PRKey(owner, repo, prNumber), agent)
+}
+
 func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscription, *Review, error) {
 	key := PRKey(owner, repo, prNumber)
 

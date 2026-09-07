@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -13,6 +14,19 @@ import (
 	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
+var ErrNotRunning = errors.New("no review in flight")
+
+type activeRun struct {
+	review    *Review
+	cancel    context.CancelFunc
+	whole     bool
+	cancelled map[string]bool
+}
+
+func (a *activeRun) isCancelled(agent string) bool {
+	return a.whole || a.cancelled[agent]
+}
+
 type Runner struct {
 	ctx      context.Context
 	logger   *slog.Logger
@@ -23,7 +37,7 @@ type Runner struct {
 	path     SessionPath
 
 	mu       sync.RWMutex
-	inFlight map[string]*Review
+	inFlight map[string]*activeRun
 }
 
 func newRunner(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, st ReviewStore, publish func(string, *Review), path SessionPath) *Runner {
@@ -35,7 +49,7 @@ func newRunner(ctx context.Context, logger *slog.Logger, source PRSource, rev *r
 		store:    st,
 		publish:  publish,
 		path:     path,
-		inFlight: make(map[string]*Review),
+		inFlight: make(map[string]*activeRun),
 	}
 }
 
@@ -43,8 +57,8 @@ func (r *Runner) Active() []*Review {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	out := make([]*Review, 0, len(r.inFlight))
-	for _, review := range r.inFlight {
-		out = append(out, review.clone())
+	for _, active := range r.inFlight {
+		out = append(out, active.review.clone())
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].StartedAt.After(out[j].StartedAt) })
 	return out
@@ -53,8 +67,8 @@ func (r *Runner) Active() []*Review {
 func (r *Runner) InFlight(key string) *Review {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if review, ok := r.inFlight[key]; ok {
-		return review.clone()
+	if active, ok := r.inFlight[key]; ok {
+		return active.review.clone()
 	}
 	return nil
 }
@@ -73,7 +87,7 @@ func (r *Runner) Start(req StartRequest) (*Review, error) {
 
 	r.mu.Lock()
 	if existing, running := r.inFlight[key]; running {
-		snapshot := existing.clone()
+		snapshot := existing.review.clone()
 		r.mu.Unlock()
 		return snapshot, nil
 	}
@@ -90,15 +104,70 @@ func (r *Runner) Start(req StartRequest) (*Review, error) {
 	}
 	review.Status = StatusRunning
 	review.startStage("", StageFetch)
-	r.inFlight[key] = review
+
+	runCtx, cancel := context.WithCancel(r.ctx)
+	r.inFlight[key] = &activeRun{review: review, cancel: cancel, cancelled: map[string]bool{}}
 	snapshot := review.clone()
 	sessionID := review.SessionID
 	r.mu.Unlock()
 
 	r.publish(key, snapshot)
-	go r.run(key, req.Owner, req.Repo, req.PRNumber, agents, sessionID)
+	go r.run(runCtx, key, req.Owner, req.Repo, req.PRNumber, agents, sessionID)
 
 	return snapshot, nil
+}
+
+func (r *Runner) Cancel(key, agent string) (*Review, error) {
+	r.mu.Lock()
+	active, ok := r.inFlight[key]
+	if !ok {
+		r.mu.Unlock()
+		return nil, ErrNotRunning
+	}
+	if agent != "" && active.review.agent(agent) == nil {
+		r.mu.Unlock()
+		return nil, fmt.Errorf("agent %q is not part of this review", agent)
+	}
+
+	active.whole = active.whole || agent == ""
+
+	var sessions []string
+	for i := range active.review.Agents {
+		a := &active.review.Agents[i]
+		if agent != "" && a.Name != agent {
+			continue
+		}
+		active.cancelled[a.Name] = true
+		if a.OpencodeSessionID != "" && (a.Status == StatusRunning || a.Status == StatusPending) {
+			sessions = append(sessions, a.OpencodeSessionID)
+		}
+	}
+	snapshot := active.review.clone()
+	stopCheckout := active.cancel
+	r.mu.Unlock()
+
+	for _, id := range sessions {
+		r.abort(id)
+	}
+	if agent == "" {
+		stopCheckout()
+	}
+	return snapshot, nil
+}
+
+func (r *Runner) abort(opencodeSessionID string) {
+	if err := r.reviewer.Abort(opencodeSessionID); err != nil {
+		r.logger.Warn("orchestrator: abort opencode session", "session_id", opencodeSessionID, "err", err)
+	}
+}
+
+func (r *Runner) cancelledFor(key string) func(string) bool {
+	return func(agent string) bool {
+		r.mu.RLock()
+		defer r.mu.RUnlock()
+		active, ok := r.inFlight[key]
+		return ok && active.isCancelled(agent)
+	}
 }
 
 func normaliseAgents(selected []string) []string {
@@ -118,19 +187,14 @@ func normaliseAgents(selected []string) []string {
 	return out
 }
 
-func (r *Runner) run(key, owner, repo string, prNumber int, agents []string, sessionID int64) {
+func (r *Runner) run(ctx context.Context, key, owner, repo string, prNumber int, agents []string, sessionID int64) {
 	log := r.logger.With("owner", owner, "repo", repo, "pr", prNumber)
 	defer r.release(key)
 
 	t := time.Now()
 	pr, diff, err := r.fetch(owner, repo, prNumber)
 	if err != nil {
-		r.update(key, func(rv *Review) {
-			rv.endStage("", StageFetch, "", err)
-			rv.finish(err)
-		})
-		r.persistFailure(key, err)
-		log.Error("orchestrator: fetch failed", "err", err)
+		r.settle(key, sessionID, StageFetch, cancelCause(ctx, err), log)
 		return
 	}
 
@@ -142,14 +206,9 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string, ses
 	log.Info("orchestrator: pr fetched", "head_sha", headSHA, "diff_bytes", len(diff), "duration_ms", time.Since(t).Milliseconds())
 
 	r.update(key, func(rv *Review) { rv.startStage("", StageCheckout) })
-	worktree, err := r.reviewer.Checkout().Worktree(r.ctx, owner, repo, prNumber, headSHA)
+	worktree, err := r.reviewer.Checkout().Worktree(ctx, owner, repo, prNumber, headSHA)
 	if err != nil {
-		r.update(key, func(rv *Review) {
-			rv.endStage("", StageCheckout, "", err)
-			rv.finish(err)
-		})
-		r.persistFailure(key, err)
-		log.Error("orchestrator: checkout failed", "err", err)
+		r.settle(key, sessionID, StageCheckout, cancelCause(ctx, err), log)
 		return
 	}
 	r.update(key, func(rv *Review) { rv.endStage("", StageCheckout, shortSHA(headSHA), nil) })
@@ -167,26 +226,72 @@ func (r *Runner) run(key, owner, repo string, prNumber int, agents []string, ses
 		SessionID:    sessionID,
 		StartedAt:    t,
 		Progress:     r.progressFor(key),
+		Cancelled:    r.cancelledFor(key),
 	})
+	if err != nil {
+		r.settle(key, sessionID, "", err, log)
+		return
+	}
 
 	r.update(key, func(rv *Review) {
-		if err != nil {
-			rv.finish(err)
-			return
-		}
 		rv.SessionID = out.Session.ID
 		rv.Summary = out.Session.Summary
 		rv.Concerns = toConcerns(out.Concerns)
 		rv.mergeStoredAgents(out.Agents, r.path)
 		rv.finish(nil)
 	})
+	log.Info("orchestrator: review complete", "concerns", len(out.Concerns), "duration_ms", time.Since(t).Milliseconds())
+}
 
-	if err != nil {
-		r.persistFailure(key, err)
-		log.Error("orchestrator: review failed", "err", err)
+func cancelCause(ctx context.Context, err error) error {
+	if ctx.Err() != nil {
+		return reviewer.ErrCancelled
+	}
+	return err
+}
+
+func (r *Runner) settle(key string, sessionID int64, stage string, cause error, log *slog.Logger) {
+	r.update(key, func(rv *Review) {
+		if stage != "" {
+			rv.endStage("", stage, "", cause)
+		}
+		rv.finish(cause)
+	})
+
+	if errors.Is(cause, reviewer.ErrCancelled) {
+		if sessionID != 0 {
+			r.restore(key, sessionID)
+		}
+		log.Info("orchestrator: review cancelled", "stage", stage)
 		return
 	}
-	log.Info("orchestrator: review complete", "concerns", len(out.Concerns), "duration_ms", time.Since(t).Milliseconds())
+
+	r.persistFailure(key, cause)
+	log.Error("orchestrator: review failed", "stage", stage, "err", cause)
+}
+
+func (r *Runner) restore(key string, sessionID int64) {
+	if r.store == nil {
+		return
+	}
+	concerns, err := r.store.ListConcerns(r.ctx, sessionID)
+	if err != nil {
+		r.logger.Error("orchestrator: restore concerns", "pr", key, "session_id", sessionID, "err", err)
+		return
+	}
+	agents, err := r.store.ListSessionAgents(r.ctx, sessionID)
+	if err != nil {
+		r.logger.Error("orchestrator: restore agents", "pr", key, "session_id", sessionID, "err", err)
+		return
+	}
+	r.update(key, func(rv *Review) {
+		rv.Concerns = toConcerns(concerns)
+		for i := range rv.Agents {
+			rv.Agents[i].Stages = []Stage{}
+		}
+		rv.mergeStoredAgents(agents, r.path)
+		rv.Status = StatusDone
+	})
 }
 
 func (r *Runner) fetch(owner, repo string, prNumber int) (*github.PR, []byte, error) {
@@ -203,12 +308,17 @@ func (r *Runner) fetch(owner, repo string, prNumber int) (*github.PR, []byte, er
 
 func (r *Runner) progressFor(key string) reviewer.Progress {
 	return func(ev reviewer.ProgressEvent) {
-		r.update(key, func(rv *Review) {
+		abort := ""
+		r.mutate(key, func(active *activeRun) {
+			rv := active.review
 			if ev.SessionID != "" {
 				rv.setAgentSession(ev.Agent, ev.SessionID, r.path(ev.SessionID))
 				if rv.OpencodeSessionID == "" {
 					rv.OpencodeSessionID = ev.SessionID
 					rv.OpencodeSessionPath = r.path(ev.SessionID)
+				}
+				if active.isCancelled(ev.Agent) {
+					abort = ev.SessionID
 				}
 			}
 			if ev.Done {
@@ -217,6 +327,9 @@ func (r *Runner) progressFor(key string) reviewer.Progress {
 			}
 			rv.startStage(ev.Agent, ev.Stage)
 		})
+		if abort != "" {
+			r.abort(abort)
+		}
 	}
 }
 
@@ -228,14 +341,18 @@ func shortSHA(sha string) string {
 }
 
 func (r *Runner) update(key string, mutate func(*Review)) {
+	r.mutate(key, func(active *activeRun) { mutate(active.review) })
+}
+
+func (r *Runner) mutate(key string, apply func(*activeRun)) {
 	r.mu.Lock()
-	review, ok := r.inFlight[key]
+	active, ok := r.inFlight[key]
 	if !ok {
 		r.mu.Unlock()
 		return
 	}
-	mutate(review)
-	snapshot := review.clone()
+	apply(active)
+	snapshot := active.review.clone()
 	r.mu.Unlock()
 
 	r.publish(key, snapshot)
@@ -270,6 +387,9 @@ func (r *Runner) persistFailure(key string, cause error) {
 
 func (r *Runner) release(key string) {
 	r.mu.Lock()
-	delete(r.inFlight, key)
+	if active, ok := r.inFlight[key]; ok {
+		active.cancel()
+		delete(r.inFlight, key)
+	}
 	r.mu.Unlock()
 }
