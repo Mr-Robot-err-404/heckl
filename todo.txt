@@ -47,15 +47,14 @@ Onboarding / packaging
     checkout. embed + write to a state dir on setup would kill the whole
     class of "wrong project_dir" failures, but the session deep link is
     base64 of that same dir, so both have to move together
-[ ] report.ts has an npm dependency the bundle does not carry. It imports
-    @opencode-ai/plugin, but bundle.Write only writes agents and tools, so
-    writing it into any project dir that has no node_modules produces a tool
-    opencode cannot load. Locally this surfaced as a 500 on POST
-    /session/{id}/message once .opencode/tools became a symlink to
-    internal/bundle/tools - bun resolves the realpath, which walked past
-    .opencode/node_modules entirely. Worked around by hoisting the dep to a
-    root package.json. Real fix is either embedding a package.json plus an
-    install step in setup, or making report.ts import-free.
+[x] report.ts is import-free - no npm anywhere in the bundle. It used to
+    import @opencode-ai/plugin, whose tool() is identity and whose
+    tool.schema is a bare zod re-export. opencode's ToolRegistry only takes
+    the zod path when every arg value has _zod on it; otherwise it builds
+    the JSON Schema itself from plain objects. args are now plain JSON
+    Schema, so bundle.Write produces a tool that loads in any project dir.
+    The tradeoff: opencode no longer validates args before execute, which is
+    fine because reviewer.go unmarshals them into reviewOutput regardless.
 [ ] Capabilities endpoint - the UI cannot tell tmux is disabled or missing, so
     the button is offered and then fails. Needs /api/capabilities plus a
     frontend that respects it

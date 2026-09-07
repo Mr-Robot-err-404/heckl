@@ -42,7 +42,7 @@ export function agentOrder() {
 
 export const agentLabels: Record<string, string> = {
   "heckl": "core review",
-  "pr-skeptic": "skeptic",
+  "heckl-skeptic": "skeptic",
 }
 
 export function agentLabel(name: string) {

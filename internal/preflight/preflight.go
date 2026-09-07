@@ -7,10 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 
 	"github.com/Mr-Robot-err-404/heckl/internal/bundle"
 	"github.com/Mr-Robot-err-404/heckl/internal/config"
 	"github.com/Mr-Robot-err-404/heckl/internal/ghauth"
+	"github.com/Mr-Robot-err-404/heckl/internal/reviewer"
 	"github.com/Mr-Robot-err-404/heckl/internal/store"
 )
 
@@ -34,7 +36,7 @@ func Run(ctx context.Context, cfg *config.Config) []Check {
 		binary("git", true, "install git - clones and worktrees are done with it, not delegated to an agent"),
 		binary("opencode", true, "install opencode: https://opencode.ai - reviews cannot run without it"),
 		agentFiles(cfg),
-		toolPlugin(cfg),
+		toolFiles(cfg),
 		database(cfg),
 		token(cfg),
 	}
@@ -71,12 +73,21 @@ func binary(name string, required bool, hint string) Check {
 func agentFiles(cfg *config.Config) Check {
 	dir := filepath.Join(cfg.OpenCode.ProjectDir, ".opencode")
 
-	names, err := bundle.Agents()
+	bundled, err := bundle.Agents()
 	if err != nil {
 		return Check{Name: "opencode agents", Status: Fail, Detail: err.Error()}
 	}
 
-	for _, name := range names {
+	for _, agent := range reviewer.AgentOrder() {
+		name := agent + ".md"
+		if !slices.Contains(bundled, name) {
+			return Check{
+				Name:   "opencode agents",
+				Status: Fail,
+				Detail: "agent " + agent + " has no " + name + " in the bundle",
+				Hint:   "agent names in reviewer.AgentOrder must match the filenames under internal/bundle/agents - opencode resolves the agent by filename",
+			}
+		}
 		if _, err := os.Stat(filepath.Join(dir, "agents", name)); err != nil {
 			return Check{
 				Name:   "opencode agents",
@@ -89,18 +100,25 @@ func agentFiles(cfg *config.Config) Check {
 	return Check{Name: "opencode agents", Status: OK, Detail: dir}
 }
 
-func toolPlugin(cfg *config.Config) Check {
+func toolFiles(cfg *config.Config) Check {
 	dir := filepath.Join(cfg.OpenCode.ProjectDir, ".opencode")
-	plugin := filepath.Join(dir, "node_modules", "@opencode-ai", "plugin")
-	if _, err := os.Stat(plugin); err != nil {
-		return Check{
-			Name:   "opencode tools",
-			Status: Warn,
-			Detail: "@opencode-ai/plugin not installed under " + dir,
-			Hint:   "opencode installs it on first start - if the report tool still fails, run `bun install` in " + dir,
+
+	names, err := bundle.Tools()
+	if err != nil {
+		return Check{Name: "opencode tools", Status: Fail, Detail: err.Error()}
+	}
+
+	for _, name := range names {
+		if _, err := os.Stat(filepath.Join(dir, "tools", name)); err != nil {
+			return Check{
+				Name:   "opencode tools",
+				Status: Fail,
+				Detail: name + " not found under " + dir,
+				Hint:   "run `heckl setup` to write the bundled tools, or point opencode.project_dir at a directory that has them",
+			}
 		}
 	}
-	return Check{Name: "opencode tools", Status: OK, Detail: plugin}
+	return Check{Name: "opencode tools", Status: OK, Detail: dir}
 }
 
 func database(cfg *config.Config) Check {

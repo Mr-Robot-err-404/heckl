@@ -22,7 +22,7 @@ type SetupOptions struct {
 }
 
 func Setup(opts SetupOptions) (*Client, error) {
-	if err := checkAgentFiles(opts.ProjectDir); err != nil {
+	if err := checkBundleFiles(opts.ProjectDir); err != nil {
 		return nil, fmt.Errorf("opencode: setup: %w", err)
 	}
 
@@ -49,16 +49,24 @@ func Setup(opts SetupOptions) (*Client, error) {
 	return c, nil
 }
 
-func checkAgentFiles(projectDir string) error {
-	names, err := bundle.Agents()
+func checkBundleFiles(projectDir string) error {
+	agents, err := bundle.Agents()
 	if err != nil {
 		return err
 	}
-	dir := filepath.Join(projectDir, ".opencode", "agents")
-	for _, name := range names {
-		path := filepath.Join(dir, name)
-		if _, err := os.Stat(path); err != nil {
-			return fmt.Errorf("required agent file missing: %s - run `heckl setup`: %w", path, err)
+	tools, err := bundle.Tools()
+	if err != nil {
+		return err
+	}
+	for _, group := range []struct {
+		dir   string
+		names []string
+	}{{"agents", agents}, {"tools", tools}} {
+		for _, name := range group.names {
+			path := filepath.Join(projectDir, ".opencode", group.dir, name)
+			if _, err := os.Stat(path); err != nil {
+				return fmt.Errorf("required bundle file missing: %s - run `heckl setup`: %w", path, err)
+			}
 		}
 	}
 	return nil

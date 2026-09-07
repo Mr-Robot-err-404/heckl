@@ -49,14 +49,18 @@ func Write(projectDir string) (Result, error) {
 	return res, nil
 }
 
-func Agents() ([]string, error) {
-	entries, err := files.ReadDir("agents")
+func Agents() ([]string, error) { return names("agents") }
+
+func Tools() ([]string, error) { return names("tools") }
+
+func names(dir string) ([]string, error) {
+	entries, err := files.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(entries))
+	out := make([]string, 0, len(entries))
 	for _, e := range entries {
-		names = append(names, e.Name())
+		out = append(out, e.Name())
 	}
-	return names, nil
+	return out, nil
 }

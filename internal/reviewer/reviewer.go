@@ -20,7 +20,7 @@ const reportTool = "report"
 
 const (
 	AgentReviewer = "heckl"
-	AgentSkeptic  = "pr-skeptic"
+	AgentSkeptic  = "heckl-skeptic"
 )
 
 var agentOrder = []string{AgentReviewer, AgentSkeptic}
