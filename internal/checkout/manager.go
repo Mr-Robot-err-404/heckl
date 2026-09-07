@@ -2,6 +2,7 @@ package checkout
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -72,6 +73,42 @@ func (m *Manager) Worktree(ctx context.Context, owner, repo string, prNumber int
 		return "", fmt.Errorf("checkout: worktree %s/%s #%d: %w", owner, repo, prNumber, err)
 	}
 	return dir, nil
+}
+
+var ErrPathMissing = errors.New("checkout: path not found at revision")
+
+// FileAt returns the contents of path as of sha. ref is the branch the sha is
+// expected to be reachable from, fetched only when the clone does not already
+// have the commit.
+func (m *Manager) FileAt(ctx context.Context, owner, repo, sha, ref, path string) ([]byte, error) {
+	if sha == "" || path == "" {
+		return nil, fmt.Errorf("checkout: file at: empty sha or path")
+	}
+
+	unlock := m.lockFor(owner + "/" + repo)
+	defer unlock()
+
+	repoPath := m.repoPath(owner, repo)
+	if err := m.ensureClone(ctx, owner, repo, repoPath); err != nil {
+		return nil, fmt.Errorf("checkout: clone %s/%s: %w", owner, repo, err)
+	}
+
+	if !hasCommit(ctx, repoPath, sha) && ref != "" {
+		if err := runGit(ctx, repoPath, "fetch", "--no-tags", "origin", ref); err != nil {
+			return nil, fmt.Errorf("checkout: fetch %s %s: %w", repo, ref, err)
+		}
+	}
+
+	out, err := gitBytes(ctx, repoPath, "show", sha+":"+path)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s@%s", ErrPathMissing, path, sha)
+	}
+	return out, nil
+}
+
+func hasCommit(ctx context.Context, repoPath, sha string) bool {
+	_, err := gitOutput(ctx, repoPath, "cat-file", "-e", sha+"^{commit}")
+	return err == nil
 }
 
 func (m *Manager) ensureClone(ctx context.Context, owner, repo, path string) error {

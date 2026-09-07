@@ -9,6 +9,13 @@ PR Detail - Description
 PR Detail - Review (diff)
 --------------------------
 [ ] File tree sidebar
+[x] Expand up/down for more context - loadDiffFiles feeds the library's own
+    expand affordances, which hunkSeparators:"line-info" already wired up.
+    Lazy: FileDiff.expandHunk calls loadFilesIfNecessary, so nothing is
+    fetched until the first expand click on that file, then it is cached.
+    Backed by GET /api/blob, which reads both sides out of the existing
+    clone with `git show <sha>:<path>` - no GitHub API, no rate limit.
+    expansionLineCount is 20 to match GitHub; the library default is 100.
 [ ] Concern lifecycle: open / resolved / dismissed / superseded
 [ ] Changes since last agent review - GitHub's "changes since your last review",
     but keyed to the agent session rather than a human. Diff the PR head against

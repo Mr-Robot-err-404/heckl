@@ -41,6 +41,7 @@ type ReviewComment struct {
 
 type PRHead struct {
 	SHA string `json:"sha"`
+	Ref string `json:"ref"`
 }
 
 type PR struct {
@@ -54,6 +55,7 @@ type PR struct {
 	User      User   `json:"user"`
 	Draft     bool   `json:"draft"`
 	Head      PRHead `json:"head"`
+	Base      PRHead `json:"base"`
 
 	RequestedReviewers []User `json:"requested_reviewers"`
 }

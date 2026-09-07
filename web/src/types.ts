@@ -193,3 +193,13 @@ export type TmuxLiveSession = {
   worktree: string
   headSha: string
 }
+
+export type DiffBlobFile = {
+  name: string
+  contents: string
+}
+
+export type DiffBlob = {
+  oldFile: DiffBlobFile | null
+  newFile: DiffBlobFile | null
+}

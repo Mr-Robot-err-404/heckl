@@ -1,6 +1,7 @@
 import type {
   AgentConfig,
   AgentConfigPage,
+  DiffBlob,
   PR,
   PRDetail,
   Repo,
@@ -79,6 +80,11 @@ export const api = {
   diff: {
     get: (owner: string, repo: string, number: number) =>
       getText(`/diff/${owner}/${repo}/${number}`),
+    blob: (owner: string, repo: string, number: number, path: string, prev?: string) => {
+      const params = new URLSearchParams({ path })
+      if (prev && prev !== path) params.set("prev", prev)
+      return get<DiffBlob>(`/blob/${owner}/${repo}/${number}?${params}`)
+    },
   },
   reviews: {
     history: (opts: { limit: number; offset: number; owner?: string; repo?: string }) => {

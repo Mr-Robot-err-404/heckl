@@ -10,6 +10,7 @@ import {
   type DiffAnnotation,
   type NoteMetadata,
 } from "./annotations"
+import { loadDiffFiles } from "./loadFiles"
 import type { ConcernTarget, ReviewerThread } from "../../types"
 import { theme } from "../../theme"
 import { highlightVersion } from "../../highlight"
@@ -104,8 +105,12 @@ export function DiffView(props: Props) {
           selection.range.side ?? "additions",
         )
       },
+      loadDiffFiles: (fileDiff) =>
+        loadDiffFiles(props.owner, props.repo, props.prNumber, fileDiff),
+      expansionLineCount: 20,
       layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
-      unsafeCSS: "[data-change-icon] { display: none; }",
+      unsafeCSS:
+        "[data-change-icon] { display: none; } [data-code] { scrollbar-gutter: auto; }",
       renderHeaderPrefix: (fileDiff, context: unknown) =>
         buildCollapseToggle(fileDiff, context as DiffItemContext, toggleCollapsed),
       renderHeaderFilenameSuffix: (fileDiff) => buildCopyPathButton(fileDiff),
