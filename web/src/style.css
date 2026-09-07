@@ -2075,3 +2075,63 @@ button.topbar-brand:hover { color: var(--text); }
   .command-block code { word-break: break-all; }
   .tmux-pick-file { word-break: break-all; }
 }
+
+.diff-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 4px 12px;
+  padding: 8px 10px;
+  background: var(--mantle);
+  border: 1px solid var(--surface1);
+  border-left: 2px solid var(--overlay1);
+  border-radius: 4px;
+  white-space: normal;
+}
+
+.diff-note-item + .diff-note-item {
+  padding-top: 8px;
+  border-top: 1px solid var(--surface1);
+}
+
+.diff-note-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.diff-note-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.diff-note-login {
+  font-size: 11px;
+  color: var(--subtext1);
+}
+
+.diff-note-time {
+  font-size: 11px;
+  color: var(--overlay1);
+}
+
+.diff-note-link {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--overlay1);
+  text-decoration: none;
+}
+
+.diff-note-link:hover { color: var(--text); }
+
+.diff-note-body {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--subtext1);
+}
+
+.diff-note-body > *:first-child { margin-top: 0; }
+.diff-note-body > *:last-child { margin-bottom: 0; }

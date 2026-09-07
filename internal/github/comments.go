@@ -17,6 +17,7 @@ type ReviewerNote struct {
 
 type ReviewerThread struct {
 	User  User           `json:"user"`
+	Bot   bool           `json:"bot,omitempty"`
 	Notes []ReviewerNote `json:"notes"`
 }
 
@@ -29,7 +30,7 @@ func GroupReviewerNotes(reviews []Review, comments []ReviewComment) []ReviewerTh
 		}
 		thread, ok := byAuthor[user.Login]
 		if !ok {
-			thread = &ReviewerThread{User: user, Notes: []ReviewerNote{}}
+			thread = &ReviewerThread{User: user, Bot: user.IsBot(), Notes: []ReviewerNote{}}
 			byAuthor[user.Login] = thread
 		}
 		thread.Notes = append(thread.Notes, note)

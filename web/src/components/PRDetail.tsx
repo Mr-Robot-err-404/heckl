@@ -229,6 +229,7 @@ export function PRDetail(props: Props) {
                   repo={props.repo}
                   prNumber={props.prNumber}
                   focus={focus()}
+                  threads={threads() ?? []}
                   onPickLine={pickLine}
                   onUnpickLine={removePick}
                 />

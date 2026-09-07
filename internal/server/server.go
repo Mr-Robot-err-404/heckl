@@ -168,6 +168,7 @@ type userResponse struct {
 
 type reviewerThreadResponse struct {
 	User  userResponse          `json:"user"`
+	Bot   bool                  `json:"bot,omitempty"`
 	Notes []github.ReviewerNote `json:"notes"`
 }
 
@@ -307,6 +308,7 @@ func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
 	for _, t := range threads {
 		out = append(out, reviewerThreadResponse{
 			User:  userResponse{Login: t.User.Login, Avatar: t.User.AvatarURL},
+			Bot:   t.Bot,
 			Notes: t.Notes,
 		})
 	}

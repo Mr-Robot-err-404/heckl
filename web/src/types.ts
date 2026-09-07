@@ -111,6 +111,7 @@ export type ReviewerNote = {
 
 export type ReviewerThread = {
   user: GitHubUser
+  bot?: boolean
   notes: ReviewerNote[]
 }
 

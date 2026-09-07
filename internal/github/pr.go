@@ -3,11 +3,17 @@ package github
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 type User struct {
 	Login     string `json:"login"`
 	AvatarURL string `json:"avatar_url"`
+	Type      string `json:"type"`
+}
+
+func (u User) IsBot() bool {
+	return u.Type == "Bot" || strings.HasSuffix(u.Login, "[bot]")
 }
 
 type Review struct {
