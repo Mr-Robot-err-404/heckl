@@ -10,6 +10,7 @@ import {
   type DiffAnnotation,
   type NoteMetadata,
 } from "./annotations"
+import { diffUnsafeCSS } from "./diffCss"
 import { loadDiffFiles } from "./loadFiles"
 import type { ConcernTarget, ReviewerThread } from "../../types"
 import { theme } from "../../theme"
@@ -109,8 +110,7 @@ export function DiffView(props: Props) {
         loadDiffFiles(props.owner, props.repo, props.prNumber, fileDiff),
       expansionLineCount: 20,
       layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
-      unsafeCSS:
-        "[data-change-icon] { display: none; } [data-code] { scrollbar-gutter: auto; }",
+      unsafeCSS: diffUnsafeCSS,
       renderHeaderPrefix: (fileDiff, context: unknown) =>
         buildCollapseToggle(fileDiff, context as DiffItemContext, toggleCollapsed),
       renderHeaderFilenameSuffix: (fileDiff) => buildCopyPathButton(fileDiff),
