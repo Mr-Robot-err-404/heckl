@@ -10,6 +10,16 @@ PR Detail - Review (diff)
 --------------------------
 [ ] File tree sidebar
 [ ] Concern lifecycle: open / resolved / dismissed / superseded
+[ ] Changes since last agent review - GitHub's "changes since your last review",
+    but keyed to the agent session rather than a human. Diff the PR head against
+    the head sha the last completed session ran on, so a re-review shows only
+    what moved. The sha is already recorded (worktree paths are
+    {pr}-{sha}), so the anchor exists; the work is a second diff fetch
+    (compare base..head between two shas), a toggle in the diff header, and
+    deciding what happens to existing concerns pinned to lines that the new
+    diff no longer contains - which overlaps the concern lifecycle item above.
+    Force-pushes are the sharp edge: the old sha may be unreachable, in which
+    case fall back to the full diff rather than erroring.
 
 Responsive
 -----------
@@ -37,6 +47,15 @@ Onboarding / packaging
     checkout. embed + write to a state dir on setup would kill the whole
     class of "wrong project_dir" failures, but the session deep link is
     base64 of that same dir, so both have to move together
+[ ] report.ts has an npm dependency the bundle does not carry. It imports
+    @opencode-ai/plugin, but bundle.Write only writes agents and tools, so
+    writing it into any project dir that has no node_modules produces a tool
+    opencode cannot load. Locally this surfaced as a 500 on POST
+    /session/{id}/message once .opencode/tools became a symlink to
+    internal/bundle/tools - bun resolves the realpath, which walked past
+    .opencode/node_modules entirely. Worked around by hoisting the dep to a
+    root package.json. Real fix is either embedding a package.json plus an
+    install step in setup, or making report.ts import-free.
 [ ] Capabilities endpoint - the UI cannot tell tmux is disabled or missing, so
     the button is offered and then fails. Needs /api/capabilities plus a
     frontend that respects it

@@ -32,6 +32,7 @@ type ReviewComment struct {
 	Path         string `json:"path"`
 	Line         *int   `json:"line"`
 	OriginalLine *int   `json:"original_line"`
+	Position     *int   `json:"position"`
 	Side         string `json:"side"`
 	InReplyToID  int64  `json:"in_reply_to_id"`
 	HTMLURL      string `json:"html_url"`

@@ -56,7 +56,7 @@ func GroupReviewerNotes(reviews []Review, comments []ReviewComment) []ReviewerTh
 			File:      c.Path,
 			Line:      c.Line,
 			Side:      diffSide(c.Side),
-			Outdated:  c.Line == nil,
+			Outdated:  c.Position == nil,
 			Reply:     c.InReplyToID != 0,
 			URL:       c.HTMLURL,
 			CreatedAt: c.CreatedAt,

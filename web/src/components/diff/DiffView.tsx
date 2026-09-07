@@ -12,6 +12,7 @@ import {
 } from "./annotations"
 import type { ConcernTarget, ReviewerThread } from "../../types"
 import { theme } from "../../theme"
+import { highlightVersion } from "../../highlight"
 
 type Props = {
   owner: string
@@ -33,6 +34,7 @@ export function DiffView(props: Props) {
   let view: CodeView<NoteMetadata> | null = null
   let selectedFile: string | null = null
   let fileIds: string[] = []
+  let highlightSeen = highlightVersion()
 
   const diff = useDiff(
     () => props.owner,
@@ -120,8 +122,12 @@ export function DiffView(props: Props) {
   createEffect(() => {
     const annotations = notes()
     annotationsFingerprint(annotations)
+    const version = highlightVersion()
     const v = view
     if (!v || !rendered()) return
+
+    const forced = version !== highlightSeen
+    highlightSeen = version
 
     untrack(() => {
       for (const id of fileIds) {
@@ -129,7 +135,7 @@ export function DiffView(props: Props) {
         if (!item || item.type !== "diff") continue
 
         const next: DiffAnnotation[] = annotations.get(id) ?? []
-        if (sameAnnotations(item.annotations, next)) continue
+        if (!forced && sameAnnotations(item.annotations, next)) continue
 
         v.updateItem({ ...item, annotations: next, version: (item.version ?? 0) + 1 })
       }

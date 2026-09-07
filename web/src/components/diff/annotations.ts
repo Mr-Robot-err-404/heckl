@@ -1,5 +1,5 @@
 import { relativeTime } from "../../review"
-import { renderMarkdown } from "../Markdown"
+import { attachCodeCopyButtons, renderMarkdown } from "../Markdown"
 import type { ReviewerNote, ReviewerThread } from "../../types"
 
 export type NoteMetadata = {
@@ -99,19 +99,10 @@ function buildNote(entry: { login: string; avatar: string; note: ReviewerNote })
   when.textContent = relativeTime(entry.note.createdAt)
   head.appendChild(when)
 
-  if (entry.note.url) {
-    const link = document.createElement("a")
-    link.className = "diff-note-link"
-    link.href = entry.note.url
-    link.target = "_blank"
-    link.rel = "noreferrer"
-    link.textContent = "↗"
-    head.appendChild(link)
-  }
-
   const body = document.createElement("div")
   body.className = "markdown diff-note-body"
   body.innerHTML = renderMarkdown(entry.note.body)
+  attachCodeCopyButtons(body)
 
   wrap.appendChild(head)
   wrap.appendChild(body)

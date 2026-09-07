@@ -189,7 +189,7 @@ export function PRDetail(props: Props) {
           rel="noreferrer"
           title="open this PR on github"
         >
-          <span class="pr-github-prefix">continue in </span>github ↗
+          <span class="pr-github-prefix">continue in</span>github ↗
         </a>
 
         <button
