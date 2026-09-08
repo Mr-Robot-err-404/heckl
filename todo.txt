@@ -16,6 +16,17 @@ PR Detail - Review (diff)
     Backed by GET /api/blob, which reads both sides out of the existing
     clone with `git show <sha>:<path>` - no GitHub API, no rate limit.
     expansionLineCount is 20 to match GitHub; the library default is 100.
+[x] Expand latency - the blobless clone lazy-fetched one object per network
+    roundtrip, so the first click per file cost 1-5s. POST /api/prefetch warms
+    both sides of the changed files with a single `git archive` per side on PR
+    open, the blob endpoint takes shas from the client instead of calling
+    GetPR, and the per-repo lock no longer wraps reads. See architecture.md.
+[ ] Viewport-aware prefetch - the prefetch is capped at 50 paths per side, so a
+    larger PR still pays the cold cost on files past the cap. Warm files as they
+    approach the viewport instead of taking the first 50 in patch order.
+[ ] git gc the repo clones - one promisor pack accumulates per prefetched sha
+    (36 seen on one repo). `gc --prune=now` packs them down and provably keeps
+    the fetched blobs, so this is safe, just unwired.
 [ ] Concern lifecycle: open / resolved / dismissed / superseded
 [ ] Changes since last agent review - GitHub's "changes since your last review",
     but keyed to the agent session rather than a human. Diff the PR head against

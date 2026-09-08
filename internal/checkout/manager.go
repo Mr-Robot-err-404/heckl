@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -14,14 +15,16 @@ const shaLabelLen = 12
 type Manager struct {
 	stateDir string
 
-	mu    sync.Mutex
-	locks map[string]*sync.Mutex
+	mu       sync.Mutex
+	locks    map[string]*sync.Mutex
+	inflight map[string]bool
 }
 
 func New(stateDir string) *Manager {
 	return &Manager{
 		stateDir: stateDir,
 		locks:    make(map[string]*sync.Mutex),
+		inflight: make(map[string]bool),
 	}
 }
 
@@ -77,6 +80,27 @@ func (m *Manager) Worktree(ctx context.Context, owner, repo string, prNumber int
 
 var ErrPathMissing = errors.New("checkout: path not found at revision")
 
+func (m *Manager) ensureRepo(ctx context.Context, owner, repo string) (string, error) {
+	unlock := m.lockFor(owner + "/" + repo)
+	defer unlock()
+
+	repoPath := m.repoPath(owner, repo)
+	if err := m.ensureClone(ctx, owner, repo, repoPath); err != nil {
+		return "", fmt.Errorf("checkout: clone %s/%s: %w", owner, repo, err)
+	}
+	return repoPath, nil
+}
+
+func ensureCommit(ctx context.Context, repoPath, repo, sha, ref string) error {
+	if hasCommit(ctx, repoPath, sha) || ref == "" {
+		return nil
+	}
+	if err := runGit(ctx, repoPath, "fetch", "--no-tags", "origin", ref); err != nil {
+		return fmt.Errorf("checkout: fetch %s %s: %w", repo, ref, err)
+	}
+	return nil
+}
+
 // FileAt returns the contents of path as of sha. ref is the branch the sha is
 // expected to be reachable from, fetched only when the clone does not already
 // have the commit.
@@ -85,18 +109,12 @@ func (m *Manager) FileAt(ctx context.Context, owner, repo, sha, ref, path string
 		return nil, fmt.Errorf("checkout: file at: empty sha or path")
 	}
 
-	unlock := m.lockFor(owner + "/" + repo)
-	defer unlock()
-
-	repoPath := m.repoPath(owner, repo)
-	if err := m.ensureClone(ctx, owner, repo, repoPath); err != nil {
-		return nil, fmt.Errorf("checkout: clone %s/%s: %w", owner, repo, err)
+	repoPath, err := m.ensureRepo(ctx, owner, repo)
+	if err != nil {
+		return nil, err
 	}
-
-	if !hasCommit(ctx, repoPath, sha) && ref != "" {
-		if err := runGit(ctx, repoPath, "fetch", "--no-tags", "origin", ref); err != nil {
-			return nil, fmt.Errorf("checkout: fetch %s %s: %w", repo, ref, err)
-		}
+	if err := ensureCommit(ctx, repoPath, repo, sha, ref); err != nil {
+		return nil, err
 	}
 
 	out, err := gitBytes(ctx, repoPath, "show", sha+":"+path)
@@ -104,6 +122,67 @@ func (m *Manager) FileAt(ctx context.Context, owner, repo, sha, ref, path string
 		return nil, fmt.Errorf("%w: %s@%s", ErrPathMissing, path, sha)
 	}
 	return out, nil
+}
+
+// Prefetch warms every listed blob at sha in a single network roundtrip.
+func (m *Manager) Prefetch(ctx context.Context, owner, repo, sha, ref string, paths []string) error {
+	if sha == "" || len(paths) == 0 {
+		return nil
+	}
+
+	key := owner + "/" + repo + "@" + sha
+	if !m.claim(key) {
+		return nil
+	}
+	defer m.release(key)
+
+	repoPath, err := m.ensureRepo(ctx, owner, repo)
+	if err != nil {
+		return err
+	}
+	if err := ensureCommit(ctx, repoPath, repo, sha, ref); err != nil {
+		return err
+	}
+
+	present, err := existingPaths(ctx, repoPath, sha, paths)
+	if err != nil || len(present) == 0 {
+		return err
+	}
+
+	args := append([]string{"archive", "--format=tar", sha, "--"}, present...)
+	return runGit(ctx, repoPath, args...)
+}
+
+func existingPaths(ctx context.Context, repoPath, sha string, paths []string) ([]string, error) {
+	args := append([]string{"ls-tree", "-r", "-z", "--name-only", sha, "--"}, paths...)
+	out, err := gitOutput(ctx, repoPath, args...)
+	if err != nil {
+		return nil, fmt.Errorf("checkout: ls-tree %s: %w", sha, err)
+	}
+
+	var present []string
+	for _, name := range strings.Split(out, "\x00") {
+		if name != "" {
+			present = append(present, name)
+		}
+	}
+	return present, nil
+}
+
+func (m *Manager) claim(key string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.inflight[key] {
+		return false
+	}
+	m.inflight[key] = true
+	return true
+}
+
+func (m *Manager) release(key string) {
+	m.mu.Lock()
+	delete(m.inflight, key)
+	m.mu.Unlock()
 }
 
 func hasCommit(ctx context.Context, repoPath, sha string) bool {

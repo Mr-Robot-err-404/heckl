@@ -30,6 +30,10 @@ export type PR = {
   Draft: boolean
   CreatedAt: string
   UpdatedAt: string
+  baseSha?: string
+  baseRef?: string
+  headSha?: string
+  headRef?: string
   requestedReviewers?: GitHubUser[]
   approvals?: GitHubUser[]
   changesRequested?: GitHubUser[]
@@ -202,4 +206,19 @@ export type DiffBlobFile = {
 export type DiffBlob = {
   oldFile: DiffBlobFile | null
   newFile: DiffBlobFile | null
+}
+
+export type DiffSide = {
+  sha: string
+  ref: string
+}
+
+export type DiffSides = {
+  base: DiffSide
+  head: DiffSide
+}
+
+export type DiffPrefetch = {
+  base: DiffSide & { paths: string[] }
+  head: DiffSide & { paths: string[] }
 }

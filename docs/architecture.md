@@ -38,6 +38,8 @@ POST   /api/repos                              {owner, name}
 DELETE /api/repos/{owner}/{name}
 GET    /api/prs/{owner}/{repo}[/{number}]      live, never cached
 GET    /api/diff/{owner}/{repo}/{number}       proxy, raw unified patch
+GET    /api/blob/{owner}/{repo}/{number}       ?path&prev&baseSha&baseRef&headSha&headRef
+POST   /api/prefetch/{owner}/{repo}            {base,head}: {sha, ref, paths}
 GET    /api/asset                              authenticated image proxy
 POST   /api/review/{owner}/{repo}/{number}     returns immediately
 GET    /api/review/{owner}/{repo}/{number}/stream   SSE, one PR
@@ -143,6 +145,47 @@ tree whose `rev-parse HEAD` does not match is torn down, not reused. Worktree
 links are absolute and stored twice, so a moved data dir silently re-clones.
 
 Worktrees are never reaped.
+
+### Blob prefetch
+
+The clone is blobless, so blobs are not local and `git show <sha>:<path>` on a
+missing one lazily fetches it from the promisor remote as **one object per
+network roundtrip**. Measured on `ghostty-org/ghostty`: 1288 ms cold, 2 ms warm.
+The blob endpoint reads both sides, so an unwarmed expand paid two of those plus
+a `GetPR` call, which is where the multi-second first click per file came from.
+
+`git archive --format=tar <sha> -- <paths>` goes through git's bulk promisor
+path and pulls every missing blob in a single request. It is flat in file count:
+6 files 2642 ms, 40 files 1949 ms, against 7852 ms for the same 6 one at a time.
+`cat-file --batch` does **not** batch (7693 ms for 6) and is not an alternative.
+The tar goes to `/dev/null`; the point is the objects it leaves behind.
+
+Consequences that shaped the design:
+
+- **Warm is 5 ms**, so `Prefetch` is called unconditionally and needs no cache
+  state, TTL or invalidation. The in-flight map only stops concurrent duplicates.
+- **`git archive` is fail-fast on a pathspec that matches nothing**, so a file
+  added or deleted by the PR would abort the whole prefetch for the side it is
+  absent from. `existingPaths` filters via `ls-tree`, which reads only trees and
+  costs 3 ms. Do not use `ls-tree -l`: reporting size needs the blob, so it
+  lazy-fetches every one (17.9 s on 1351 entries).
+- **Fetched objects are permanent and reachability does not matter.** Verified:
+  `gc --prune=now` took 36 promisor packs to 1 and kept a blob reachable from no
+  ref at all. Git retains promisor-pack contents regardless of refs. So PR head
+  commits can stay `FETCH_HEAD`-only, revisiting a PR is warm forever, and `gc`
+  is safe to run against the pack growth.
+- **The per-repo lock covers the clone only.** `FileAt` and `Prefetch` run their
+  git commands unlocked, or an expand would queue behind an in-progress prefetch
+  or review checkout and end up slower than before. Git's object store is safe
+  for concurrent reads and pack writes.
+- Content addressing means a PR that gains commits is cold only for content that
+  genuinely changed; the base side and untouched files stay warm.
+
+Prefetch is client-driven: the frontend has already parsed the patch into files
+and holds the shas, so the server does no diff parsing and makes no GitHub call.
+Capped at `maxPrefetchPaths` (50) per side, beyond which expand falls back to
+per-click fetching. A viewport-aware scheme that warms files as they approach the
+screen is the intended follow-up.
 
 ## tmux
 

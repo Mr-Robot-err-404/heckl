@@ -11,6 +11,7 @@ import {
 } from "../queries"
 import { createReview } from "../review"
 import { DiffView } from "./diff/DiffView"
+import { diffSides } from "./diff/loadFiles"
 import { Markdown } from "./Markdown"
 import { SkeletonLines } from "./Skeleton"
 import { ReviewPanel } from "./ReviewPanel"
@@ -228,6 +229,7 @@ export function PRDetail(props: Props) {
                   owner={props.owner}
                   repo={props.repo}
                   prNumber={props.prNumber}
+                  sides={diffSides(detailData()?.pr)}
                   focus={focus()}
                   threads={threads() ?? []}
                   onPickLine={pickLine}

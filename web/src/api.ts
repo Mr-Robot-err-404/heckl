@@ -2,6 +2,8 @@ import type {
   AgentConfig,
   AgentConfigPage,
   DiffBlob,
+  DiffPrefetch,
+  DiffSides,
   PR,
   PRDetail,
   Repo,
@@ -80,11 +82,26 @@ export const api = {
   diff: {
     get: (owner: string, repo: string, number: number) =>
       getText(`/diff/${owner}/${repo}/${number}`),
-    blob: (owner: string, repo: string, number: number, path: string, prev?: string) => {
+    blob: (
+      owner: string,
+      repo: string,
+      number: number,
+      path: string,
+      prev?: string,
+      sides?: DiffSides,
+    ) => {
       const params = new URLSearchParams({ path })
       if (prev && prev !== path) params.set("prev", prev)
+      if (sides?.base.sha && sides?.head.sha) {
+        params.set("baseSha", sides.base.sha)
+        params.set("baseRef", sides.base.ref)
+        params.set("headSha", sides.head.sha)
+        params.set("headRef", sides.head.ref)
+      }
       return get<DiffBlob>(`/blob/${owner}/${repo}/${number}?${params}`)
     },
+    prefetch: (owner: string, repo: string, body: DiffPrefetch) =>
+      request(`/prefetch/${owner}/${repo}`, "POST", body),
   },
   reviews: {
     history: (opts: { limit: number; offset: number; owner?: string; repo?: string }) => {

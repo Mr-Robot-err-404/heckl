@@ -1,5 +1,10 @@
 import { createEffect, createSignal, onCleanup, Show, untrack } from "solid-js"
-import { CodeView, parsePatchFiles, type CodeViewItem } from "@pierre/diffs"
+import {
+  CodeView,
+  parsePatchFiles,
+  type CodeViewItem,
+  type FileDiffMetadata,
+} from "@pierre/diffs"
 import { useDiff, resolved } from "../../queries"
 import { SkeletonDiff } from "../Skeleton"
 import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
@@ -11,8 +16,9 @@ import {
   type NoteMetadata,
 } from "./annotations"
 import { diffUnsafeCSS } from "./diffCss"
-import { loadDiffFiles } from "./loadFiles"
-import type { ConcernTarget, ReviewerThread } from "../../types"
+import { loadDiffFiles, prefetchBody } from "./loadFiles"
+import { api } from "../../api"
+import type { ConcernTarget, DiffSides, ReviewerThread } from "../../types"
 import { theme } from "../../theme"
 import { highlightVersion } from "../../highlight"
 
@@ -20,6 +26,7 @@ type Props = {
   owner: string
   repo: string
   prNumber: number
+  sides?: DiffSides
   focus: ConcernTarget | null
   threads?: ReviewerThread[]
   onPickLine?: (file: string, line: number, side: "additions" | "deletions") => void
@@ -29,6 +36,15 @@ type Props = {
 function sameAnnotations(a: DiffAnnotation[] | undefined, b: DiffAnnotation[]): boolean {
   if ((a?.length ?? 0) !== b.length) return false
   return (a ?? []).every((item, i) => item.metadata.key === b[i].metadata.key)
+}
+
+const SPINNER_DELAY_MS = 120
+
+function fileHost(root: HTMLElement, id: string): HTMLElement | null {
+  const slot = root.querySelector(`.diff-collapse-slot[data-file="${CSS.escape(id)}"]`)
+  let el = slot?.parentElement ?? null
+  while (el && !el.shadowRoot) el = el.parentElement
+  return el
 }
 
 export function DiffView(props: Props) {
@@ -45,8 +61,28 @@ export function DiffView(props: Props) {
   )
   const patchData = resolved(diff)
   const [rendered, setRendered] = createSignal(false)
+  const [parsedFiles, setParsedFiles] = createSignal<FileDiffMetadata[]>([])
 
   const notes = () => annotationsByFile(props.threads ?? [])
+
+  const loadFiles = async (fileDiff: FileDiffMetadata) => {
+    const timer = window.setTimeout(() => {
+      fileHost(host, fileDiff.name)?.setAttribute("data-expanding", "")
+    }, SPINNER_DELAY_MS)
+
+    try {
+      return await loadDiffFiles(
+        props.owner,
+        props.repo,
+        props.prNumber,
+        fileDiff,
+        props.sides,
+      )
+    } finally {
+      clearTimeout(timer)
+      fileHost(host, fileDiff.name)?.removeAttribute("data-expanding")
+    }
+  }
 
   const toggleCollapsed = (id: string) => {
     const item = view?.getItem(id)
@@ -66,22 +102,31 @@ export function DiffView(props: Props) {
   })
 
   createEffect(() => {
+    const sides = props.sides
+    const files = parsedFiles()
+    if (!sides || files.length === 0) return
+    api.diff
+      .prefetch(props.owner, props.repo, prefetchBody(sides, files))
+      .catch(() => {})
+  })
+
+  createEffect(() => {
     const patch = patchData()
     const shiki = theme().shiki
     const annotations = untrack(notes)
     if (!patch) return
 
-    const items: CodeViewItem<NoteMetadata>[] = parsePatchFiles(
+    const files = parsePatchFiles(
       patch,
       `${props.owner}/${props.repo}/${props.prNumber}`,
-    ).flatMap((p) =>
-      p.files.map((fileDiff) => ({
-        id: `${fileDiff.name}`,
-        type: "diff" as const,
-        fileDiff,
-        annotations: annotations.get(fileDiff.name) ?? [],
-      }))
-    )
+    ).flatMap((p) => p.files)
+
+    const items: CodeViewItem<NoteMetadata>[] = files.map((fileDiff) => ({
+      id: `${fileDiff.name}`,
+      type: "diff" as const,
+      fileDiff,
+      annotations: annotations.get(fileDiff.name) ?? [],
+    }))
 
     view?.cleanUp()
     selectedFile = null
@@ -106,8 +151,7 @@ export function DiffView(props: Props) {
           selection.range.side ?? "additions",
         )
       },
-      loadDiffFiles: (fileDiff) =>
-        loadDiffFiles(props.owner, props.repo, props.prNumber, fileDiff),
+      loadDiffFiles: loadFiles,
       expansionLineCount: 20,
       layout: { paddingTop: 8, paddingBottom: 8, gap: 0 },
       unsafeCSS: diffUnsafeCSS,
@@ -118,6 +162,7 @@ export function DiffView(props: Props) {
         buildAnnotationNode(annotation),
     })
     fileIds = items.map((item) => item.id)
+    setParsedFiles(files)
     view.setup(host)
     view.setItems(items)
     view.render()

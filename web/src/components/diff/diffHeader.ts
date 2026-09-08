@@ -28,6 +28,7 @@ export function buildCollapseToggle(
 
   const slot = document.createElement("span")
   slot.className = "diff-collapse-slot"
+  slot.dataset.file = id
   slot.appendChild(button)
   return slot
 }

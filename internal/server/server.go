@@ -126,6 +126,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/prs/{owner}/{repo}/{number}/comments", s.handlePRComments)
 	s.mux.HandleFunc("GET /api/diff/{owner}/{repo}/{number}", s.handleDiff)
 	s.mux.HandleFunc("GET /api/blob/{owner}/{repo}/{number}", s.handleBlob)
+	s.mux.HandleFunc("POST /api/prefetch/{owner}/{repo}", s.handlePrefetch)
 	s.mux.HandleFunc("GET /api/asset", s.handleAsset)
 	s.mux.HandleFunc("GET /api/reviews/history", s.handleReviewHistory)
 	s.mux.HandleFunc("GET /api/reviews/stream", s.handleReviewsStream)
@@ -155,6 +156,11 @@ type prResponse struct {
 	Draft     bool   `json:"Draft"`
 	CreatedAt string `json:"CreatedAt"`
 	UpdatedAt string `json:"UpdatedAt"`
+
+	BaseSha string `json:"baseSha,omitempty"`
+	BaseRef string `json:"baseRef,omitempty"`
+	HeadSha string `json:"headSha,omitempty"`
+	HeadRef string `json:"headRef,omitempty"`
 
 	RequestedReviewers []userResponse           `json:"requestedReviewers,omitempty"`
 	Approvals          []userResponse           `json:"approvals,omitempty"`
@@ -206,6 +212,10 @@ func toPRResponse(owner, repo string, pr github.PR) prResponse {
 		Draft:     pr.Draft,
 		CreatedAt: pr.CreatedAt,
 		UpdatedAt: pr.UpdatedAt,
+		BaseSha:   pr.Base.SHA,
+		BaseRef:   pr.Base.Ref,
+		HeadSha:   pr.Head.SHA,
+		HeadRef:   pr.Head.Ref,
 	}
 }
 
