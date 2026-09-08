@@ -185,6 +185,7 @@
 
   --topbar-h: 48px;
   --gutter: 12px;
+  --hit-target: 28px;
 
   font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
   font-size: 13px;
@@ -2000,6 +2001,19 @@ button.topbar-brand:hover { color: var(--text); }
 .agent-lane .review-error { margin-top: 4px; }
 
 
+/* ── Icon button hit targets ── */
+.modal-close,
+.panel-collapse,
+.review-row-caret,
+.agent-rerun,
+.diff-header-btn,
+.markdown .code-block > .diff-copy-btn {
+  min-width: var(--hit-target);
+  min-height: var(--hit-target);
+  padding: 6px;
+}
+
+
 /* ── Mobile ── */
 
 .panel-collapse {
@@ -2094,7 +2108,6 @@ button.topbar-brand:hover { color: var(--text); }
 
   .agent-picker-list { grid-template-columns: minmax(0, 1fr); }
 
-  .agent-rerun { padding: 6px; }
   .agent-rerun .bot-icon { width: 14px; height: 14px; }
 
   .review-layout { flex-direction: column; }
