@@ -780,11 +780,12 @@ html, body, #root { height: 100%; }
   overflow: hidden;
 }
 
-.review-diff { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.review-diff { flex: 3 1 0; min-width: 0; display: flex; flex-direction: column; }
 
 .review-rail {
-  width: 400px;
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-width: 260px;
+  max-width: 560px;
   border-left: 1px solid var(--surface1);
   background: var(--mantle);
   overflow-y: auto;
@@ -2100,7 +2101,10 @@ button.topbar-brand:hover { color: var(--text); }
 
   .review-rail {
     order: -1;
+    flex: 0 1 auto;
     width: 100%;
+    min-width: 0;
+    max-width: none;
     max-height: 40vh;
     border-left: none;
     border-bottom: 1px solid var(--surface1);

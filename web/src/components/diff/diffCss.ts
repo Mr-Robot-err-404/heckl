@@ -17,7 +17,12 @@ export const diffUnsafeCSS = `
 
   [data-change-icon] { display: none; }
 
-  [data-code] { scrollbar-gutter: auto; }
+  [data-code] {
+    --diffs-scrollbar-gutter-override: 0px;
+    scrollbar-gutter: auto;
+    scrollbar-width: none;
+    padding-bottom: 0;
+  }
 
   [data-separator="line-info"] {
     height: 1lh;

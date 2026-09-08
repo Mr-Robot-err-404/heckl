@@ -109,7 +109,7 @@ export function DiffView(props: Props) {
       loadDiffFiles: (fileDiff) =>
         loadDiffFiles(props.owner, props.repo, props.prNumber, fileDiff),
       expansionLineCount: 20,
-      layout: { paddingTop: 8, paddingBottom: 8, gap: 8 },
+      layout: { paddingTop: 8, paddingBottom: 8, gap: 0 },
       unsafeCSS: diffUnsafeCSS,
       renderHeaderPrefix: (fileDiff, context: unknown) =>
         buildCollapseToggle(fileDiff, context as DiffItemContext, toggleCollapsed),
