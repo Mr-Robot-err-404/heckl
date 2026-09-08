@@ -14,6 +14,7 @@ export const diffUnsafeCSS = `
   :host {
     --diffs-min-number-column-width: ${NUMBER_COLUMN};
     --diff-gutter-width: ${BUTTON_WIDTH};
+    --diff-gutter-border: ${NUMBER_BORDER};
   }
 
   [data-change-icon] { display: none; }
