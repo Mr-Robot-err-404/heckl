@@ -13,9 +13,12 @@ const BUTTON_WIDTH = `calc(${NUMBER_PADDING_LEFT} + ${NUMBER_COLUMN} + ${NUMBER_
 export const diffUnsafeCSS = `
   :host {
     --diffs-min-number-column-width: ${NUMBER_COLUMN};
+    --diff-gutter-width: ${BUTTON_WIDTH};
   }
 
   [data-change-icon] { display: none; }
+
+  [data-diffs-header="default"] { padding-left: 0; }
 
   [data-code] {
     --diffs-scrollbar-gutter-override: 0px;
@@ -35,7 +38,7 @@ export const diffUnsafeCSS = `
 
   [data-separator="line-info"] [data-separator-wrapper] {
     font-family: var(--diffs-font-family, var(--diffs-font-fallback));
-    grid-template-columns: ${BUTTON_WIDTH} auto;
+    grid-template-columns: var(--diff-gutter-width) auto;
     padding-inline: 0;
     background-color: ${ROW_BLUE};
   }

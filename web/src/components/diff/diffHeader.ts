@@ -25,7 +25,11 @@ export function buildCollapseToggle(
     e.stopPropagation()
     onToggle(id)
   })
-  return button
+
+  const slot = document.createElement("span")
+  slot.className = "diff-collapse-slot"
+  slot.appendChild(button)
+  return slot
 }
 
 export function buildCopyPathButton(fileDiff: NamedFile) {

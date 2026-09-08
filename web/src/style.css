@@ -681,6 +681,14 @@ html, body, #root { height: 100%; }
   flex-shrink: 0;
 }
 .diff-header-btn:hover { color: var(--text); background: var(--surface1); }
+.diff-collapse-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--diffs-font-family, var(--diffs-font-fallback));
+  width: var(--diff-gutter-width);
+}
 .diff-collapse-btn { transition: transform 0.12s ease; }
 .diff-copy-btn.copied { color: var(--green); }
 

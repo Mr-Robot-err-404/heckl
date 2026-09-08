@@ -30,8 +30,19 @@ function icon(shapes: ShapeSpec[]) {
   return el
 }
 
+const EXPAND_CHEVRON =
+  "M3.47 5.47a.75.75 0 0 1 1.06 0L8 8.94l3.47-3.47a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 0 1 0-1.06"
+
 export function chevronIcon() {
-  return icon([{ tag: "path", d: "m6 9 6 6 6-6" }])
+  const el = document.createElementNS(SVG_NS, "svg")
+  el.setAttribute("viewBox", "0 0 16 16")
+  el.setAttribute("width", "16")
+  el.setAttribute("height", "16")
+  el.setAttribute("fill", "currentColor")
+  const path = document.createElementNS(SVG_NS, "path")
+  path.setAttribute("d", EXPAND_CHEVRON)
+  el.appendChild(path)
+  return el
 }
 
 export function clipboardIcon() {
