@@ -1,5 +1,6 @@
 import { createQuery, createMutation, useQueryClient } from "@tanstack/solid-query"
 import { api } from "../api"
+import type { DiffSides } from "../types"
 
 const keepPrevious = <T,>(prev: T | undefined) => prev
 
@@ -121,6 +122,21 @@ export function diffOptions(owner: string, repo: string, number: number) {
   return {
     queryKey: ["diff", owner, repo, number],
     queryFn: () => api.diff.get(owner, repo, number),
+    staleTime: Infinity,
+  }
+}
+
+export function blobOptions(
+  owner: string,
+  repo: string,
+  number: number,
+  path: string,
+  prev?: string,
+  sides?: DiffSides,
+) {
+  return {
+    queryKey: ["blob", owner, repo, number, path, prev ?? null, sides?.head.sha ?? null],
+    queryFn: () => api.diff.blob(owner, repo, number, path, prev, sides),
     staleTime: Infinity,
   }
 }

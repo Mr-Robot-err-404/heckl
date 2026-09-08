@@ -1,15 +1,15 @@
-const ROW_BLUE = "color-mix(in srgb, var(--blue) 6%, transparent)"
-const BUTTON_BLUE = "color-mix(in srgb, var(--blue) 34%, transparent)"
-const BUTTON_HOVER_BLUE = "color-mix(in srgb, var(--blue) 52%, transparent)"
+const ROW_BLUE = "color-mix(in srgb, var(--blue) 6%, transparent)";
+const BUTTON_BLUE = "color-mix(in srgb, var(--blue) 34%, transparent)";
+const BUTTON_HOVER_BLUE = "color-mix(in srgb, var(--blue) 52%, transparent)";
 
-const SPLIT_HEIGHT = "32px"
+const SPLIT_HEIGHT = "32px";
 
-const NUMBER_COLUMN = "4ch"
-const NUMBER_PADDING_LEFT = "2ch"
-const NUMBER_PADDING_RIGHT = "1ch"
-const NUMBER_BORDER = "2px"
-const SPINNER_SIZE = "11px"
-const BUTTON_WIDTH = `calc(${NUMBER_PADDING_LEFT} + ${NUMBER_COLUMN} + ${NUMBER_PADDING_RIGHT} + ${NUMBER_BORDER})`
+const NUMBER_COLUMN = "4ch";
+const NUMBER_PADDING_LEFT = "2ch";
+const NUMBER_PADDING_RIGHT = "1ch";
+const NUMBER_BORDER = "2px";
+const SPINNER_SIZE = "11px";
+const BUTTON_WIDTH = `calc(${NUMBER_PADDING_LEFT} + ${NUMBER_COLUMN} + ${NUMBER_PADDING_RIGHT} + ${NUMBER_BORDER})`;
 
 export const diffUnsafeCSS = `
   :host {
@@ -90,4 +90,4 @@ export const diffUnsafeCSS = `
     background-color: transparent;
     border-radius: 0;
   }
-`
+`;

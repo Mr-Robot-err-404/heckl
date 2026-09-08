@@ -1,11 +1,12 @@
-import { createEffect, createSignal, onCleanup, Show, untrack } from "solid-js"
+import { createEffect, createSignal, onCleanup, onMount, Show, untrack } from "solid-js"
 import {
   CodeView,
   parsePatchFiles,
   type CodeViewItem,
   type FileDiffMetadata,
 } from "@pierre/diffs"
-import { useDiff, resolved } from "../../queries"
+import { blobOptions, useDiff, resolved } from "../../queries"
+import { useQueryClient } from "@tanstack/solid-query"
 import { SkeletonDiff } from "../Skeleton"
 import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
 import {
@@ -16,7 +17,7 @@ import {
   type NoteMetadata,
 } from "./annotations"
 import { diffUnsafeCSS } from "./diffCss"
-import { loadDiffFiles, prefetchBody } from "./loadFiles"
+import { prefetchBody, toLoadedFiles } from "./loadFiles"
 import { api } from "../../api"
 import type { ConcernTarget, DiffSides, ReviewerThread } from "../../types"
 import { theme } from "../../theme"
@@ -47,7 +48,21 @@ function fileHost(root: HTMLElement, id: string): HTMLElement | null {
   return el
 }
 
+function hoveredExpandFile(event: Event): string | undefined {
+  const path = event.composedPath()
+  const onButton = path.some(
+    (node) => node instanceof HTMLElement && node.hasAttribute("data-expand-button"),
+  )
+  if (!onButton) return undefined
+
+  const container = path.find(
+    (node): node is HTMLElement => node instanceof HTMLElement && node.shadowRoot != null,
+  )
+  return container?.querySelector<HTMLElement>(".diff-collapse-slot[data-file]")?.dataset.file
+}
+
 export function DiffView(props: Props) {
+  const queryClient = useQueryClient()
   let host!: HTMLDivElement
   let view: CodeView<NoteMetadata> | null = null
   let selectedFile: string | null = null
@@ -65,19 +80,31 @@ export function DiffView(props: Props) {
 
   const notes = () => annotationsByFile(props.threads ?? [])
 
+  const blobFor = (fileDiff: FileDiffMetadata) =>
+    blobOptions(
+      props.owner,
+      props.repo,
+      props.prNumber,
+      fileDiff.name,
+      fileDiff.prevName,
+      props.sides,
+    )
+
+  const warmOnHover = (event: Event) => {
+    const id = hoveredExpandFile(event)
+    if (!id) return
+    const fileDiff = parsedFiles().find((f) => f.name === id)
+    if (fileDiff) void queryClient.prefetchQuery(blobFor(fileDiff))
+  }
+
   const loadFiles = async (fileDiff: FileDiffMetadata) => {
     const timer = window.setTimeout(() => {
       fileHost(host, fileDiff.name)?.setAttribute("data-expanding", "")
     }, SPINNER_DELAY_MS)
 
     try {
-      return await loadDiffFiles(
-        props.owner,
-        props.repo,
-        props.prNumber,
-        fileDiff,
-        props.sides,
-      )
+      const blob = await queryClient.fetchQuery(blobFor(fileDiff))
+      return toLoadedFiles(blob, fileDiff.name)
     } finally {
       clearTimeout(timer)
       fileHost(host, fileDiff.name)?.removeAttribute("data-expanding")
@@ -220,7 +247,10 @@ export function DiffView(props: Props) {
     })
   })
 
+  onMount(() => host.addEventListener("mouseover", warmOnHover))
+
   onCleanup(() => {
+    host.removeEventListener("mouseover", warmOnHover)
     view?.cleanUp()
     view = null
   })

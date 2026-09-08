@@ -1,6 +1,5 @@
 import type { FileDiffLoadedFiles, FileDiffMetadata } from "@pierre/diffs"
-import { api } from "../../api"
-import type { DiffPrefetch, DiffSides, PR } from "../../types"
+import type { DiffBlob, DiffPrefetch, DiffSides, PR } from "../../types"
 
 export function diffSides(pr: PR | undefined): DiffSides | undefined {
   if (!pr?.baseSha || !pr.headSha) return undefined
@@ -17,22 +16,7 @@ export function prefetchBody(sides: DiffSides, files: FileDiffMetadata[]): DiffP
   }
 }
 
-export async function loadDiffFiles(
-  owner: string,
-  repo: string,
-  prNumber: number,
-  fileDiff: FileDiffMetadata,
-  sides?: DiffSides,
-): Promise<FileDiffLoadedFiles> {
-  const blob = await api.diff.blob(
-    owner,
-    repo,
-    prNumber,
-    fileDiff.name,
-    fileDiff.prevName,
-    sides,
-  )
-
+export function toLoadedFiles(blob: DiffBlob, name: string): FileDiffLoadedFiles {
   const oldFile = blob.oldFile
     ? { name: blob.oldFile.name, contents: blob.oldFile.contents }
     : null
@@ -41,7 +25,7 @@ export async function loadDiffFiles(
     : null
 
   if (!oldFile || !newFile) {
-    throw new Error(`cannot expand ${fileDiff.name} - missing base or head contents`)
+    throw new Error(`cannot expand ${name} - missing base or head contents`)
   }
   return { oldFile, newFile }
 }

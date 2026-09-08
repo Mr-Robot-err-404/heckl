@@ -187,6 +187,24 @@ Capped at `maxPrefetchPaths` (50) per side, beyond which expand falls back to
 per-click fetching. A viewport-aware scheme that warms files as they approach the
 screen is the intended follow-up.
 
+Three layers cover the rest:
+
+- `/api/blob` is a real query (`blobOptions`, `staleTime: Infinity`, keyed on the
+  head sha so a force-push invalidates naturally) and `loadDiffFiles` goes
+  through `fetchQuery`. Re-expanding a file after the `CodeView` is rebuilt (a
+  theme change does this) is now a cache hit rather than a refetch.
+- Hovering an expand button `prefetchQuery`s that file. This is what covers files
+  past the 50 cap, moving their cost from the click to the hover. Delegated from
+  a single `mouseover` on the host: the buttons live in per-file shadow roots,
+  but the event is composed, so `composedPath` finds both the button and the
+  shadow host, and the host's slotted `.diff-collapse-slot[data-file]` names the
+  file. Repeat mouseovers are free, tanstack dedupes in-flight and fresh keys.
+- A spinner on the button after `SPINNER_DELAY_MS`, since a warm expand is 2ms
+  and would only flicker. `pointer-events: none` while in flight, styled from
+  `unsafeCSS` through `:host([data-expanding])`, which is the only way to reach
+  inside the shadow root. `FileDiff.loadFilesIfNecessary` already drops a second
+  load for a file with one pending, so this is feedback, not request control.
+
 ## tmux
 
 A click in the diff records one pick per file. Sessions are named
