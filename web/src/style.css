@@ -1212,22 +1212,7 @@ html, body, #root { height: 100%; }
 }
 .review-session-link:hover { color: var(--text); }
 
-.review-head-start .review-session-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 3px 10px;
-  border: 1px solid var(--surface1);
-  border-radius: 3px;
-  background: var(--surface0);
-  color: var(--subtext0);
-}
-.review-head-start .review-session-link:hover {
-  background: var(--surface1);
-  border-color: var(--overlay0);
-  color: var(--text);
-}
-
+.review-head-start .review-session-link,
 .review-panel-head .review-session-link {
   display: inline-flex;
   align-items: center;
@@ -2119,13 +2104,8 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 
   .review-page-head { gap: 8px; }
 
-  .review-head-start .review-session-link {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .review-head-end .review-run { min-height: 34px; padding: 6px 14px; }
-  .review-head-start .review-session-link { min-height: 34px; padding: 6px 12px; }
+  .review-head-start .review-session-link { min-height: 34px; }
 
   .agent-picker-list { grid-template-columns: minmax(0, 1fr); }
 

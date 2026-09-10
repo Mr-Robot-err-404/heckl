@@ -55,8 +55,10 @@ export function ReviewPage(props: Props) {
               href={opencodeUrl(s().review()?.opencodeSessionPath)}
               target="_blank"
               rel="noreferrer"
+              title="continue in opencode"
+              aria-label="continue in opencode"
             >
-              continue in opencode ↗
+              <span class="brand-mark is-opencode" />
             </a>
           </Show>
         </div>
