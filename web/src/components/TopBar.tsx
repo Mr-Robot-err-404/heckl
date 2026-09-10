@@ -188,6 +188,22 @@ export function TopBar() {
             <option value="__add__">+ add repo</option>
           </select>
         </Show>
+        <Show when={!adding() && selectedKey()}>
+          <button
+            class="topbar-btn"
+            title="back to the pr list"
+            disabled={prNumber() == null}
+            onMouseEnter={() => prefetch.prs(params().owner!, params().repo!)}
+            onClick={() =>
+              navigate({
+                to: "/$owner/$repo",
+                params: { owner: params().owner!, repo: params().repo! },
+              })
+            }
+          >
+            pr list
+          </button>
+        </Show>
       </div>
       <Show when={detailData()} keyed>
         {(d) => <span class="topbar-pr-title">{d.pr.Title}</span>}
