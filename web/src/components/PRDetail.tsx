@@ -1,4 +1,4 @@
-import { createEffect, createResource, createSignal, For, Show } from "solid-js"
+import { createEffect, createSignal, For, Show } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { useQueryClient } from "@tanstack/solid-query"
 import {
@@ -19,7 +19,7 @@ import { ReviewerComments } from "./ReviewerComments"
 import { ReviewPage } from "./ReviewPage"
 import { TmuxModal } from "./TmuxModal"
 import { useModal } from "../modal"
-import { diffAnchor, prUrl, type DiffAnchor } from "../github"
+import { createDiffAnchor, prUrl, type DiffAnchor } from "../github"
 import { api, errText } from "../api"
 import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick } from "../types"
 
@@ -153,7 +153,7 @@ export function PRDetail(props: Props) {
     return pick ? { file: pick.file, line: pick.line!, side: "additions" } : null
   }
 
-  const [anchor] = createResource(anchorTarget, diffAnchor)
+  const anchor = createDiffAnchor(anchorTarget)
 
   const githubUrl = () => {
     const base = prUrl(props.owner, props.repo, props.prNumber)
