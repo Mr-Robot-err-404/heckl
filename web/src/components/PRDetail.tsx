@@ -188,9 +188,10 @@ export function PRDetail(props: Props) {
           href={githubUrl()}
           target="_blank"
           rel="noreferrer"
-          title="open this PR on github"
+          title="continue in github"
+          aria-label="continue in github"
         >
-          <span class="pr-github-prefix">continue in</span>github ↗
+          <span class="brand-mark is-github" />
         </a>
 
         <button

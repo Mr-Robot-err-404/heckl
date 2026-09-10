@@ -1212,8 +1212,7 @@ html, body, #root { height: 100%; }
 }
 .review-session-link:hover { color: var(--text); }
 
-.review-head-start .review-session-link,
-.review-panel-head .review-session-link {
+.review-head-start .review-session-link {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
@@ -1223,18 +1222,16 @@ html, body, #root { height: 100%; }
   background: var(--surface0);
   color: var(--subtext0);
 }
-.review-head-start .review-session-link:hover,
-.review-panel-head .review-session-link:hover {
+.review-head-start .review-session-link:hover {
   background: var(--surface1);
   border-color: var(--overlay0);
   color: var(--text);
 }
 
 .review-panel-head .review-session-link {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }
 
 .agent-picker-meta .review-meta { padding-bottom: 0; }
@@ -1254,22 +1251,37 @@ html, body, #root { height: 100%; }
   margin-bottom: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 3px;
-  color: var(--subtext0);
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
   text-decoration: none;
-  white-space: nowrap;
 }
 
-.pr-github-link:hover {
-  background: var(--surface1);
-  border-color: var(--overlay0);
-  color: var(--text);
+.brand-mark {
+  display: block;
+  flex: none;
+  background-color: var(--overlay1);
+  transition: background-color 120ms ease;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
+
+.brand-mark.is-github {
+  width: 74px;
+  height: 21px;
+  -webkit-mask-image: url(/github.svg);
+  mask-image: url(/github.svg);
+}
+
+.brand-mark.is-opencode {
+  width: 84px;
+  height: 15px;
+  -webkit-mask-image: url(/opencode.png);
+  mask-image: url(/opencode.png);
+}
+
+a:hover .brand-mark { background-color: var(--text); }
 
 .tmux-btn {
   margin-bottom: 6px;
@@ -2042,8 +2054,6 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .panel-collapse .bot-icon { width: 14px; height: 14px; }
 
 @media (max-width: 720px) {
-  .pr-github-prefix { display: none; }
-
   .topbar {
     flex-wrap: wrap;
     height: auto;
