@@ -459,8 +459,6 @@ html, body, #root { height: 100%; }
 }
 
 .topbar-btn:hover { background: var(--surface1); }
-.topbar-btn:disabled { color: var(--overlay0); cursor: default; }
-.topbar-btn:disabled:hover { background: var(--surface0); }
 .topbar-btn.danger { color: var(--red); }
 .topbar-btn.danger:hover { background: var(--surface1); border-color: var(--red); }
 
@@ -1574,6 +1572,8 @@ button.topbar-brand {
   font-family: inherit;
 }
 button.topbar-brand:hover { color: var(--text); }
+button.topbar-prlist:disabled { color: var(--overlay0); cursor: default; }
+button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 
 .brand-badge {
   min-width: 16px;

@@ -190,7 +190,7 @@ export function TopBar() {
         </Show>
         <Show when={!adding() && selectedKey()}>
           <button
-            class="topbar-btn"
+            class="topbar-brand topbar-prlist"
             title="back to the pr list"
             disabled={prNumber() == null}
             onMouseEnter={() => prefetch.prs(params().owner!, params().repo!)}
