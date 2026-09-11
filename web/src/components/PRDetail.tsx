@@ -282,31 +282,38 @@ export function PRDetail(props: Props) {
                   <div class="desc-files">
                     <div class="desc-files-head">files affected</div>
                     <For each={groupByDir(d.files, (f) => f.Filename)}>
-                      {(group) => (
-                        <div class="desc-group">
-                          <div class="desc-group-dir" title={group.dir || "/"}>
-                            <Icon of={dirIcon(group.dir)} />
-                            <span class="desc-group-path">{group.dir || "./"}</span>
+                      {(group) => {
+                        const addWidth = Math.max(
+                          ...group.files.map((f) => `+${f.Additions}`.length),
+                        )
+                        return (
+                          <div class="desc-group">
+                            <div class="desc-group-dir" title={group.dir || "/"}>
+                              <Icon of={dirIcon(group.dir)} />
+                              <span class="desc-group-path">{group.dir || "./"}</span>
+                            </div>
+                            <For each={group.files}>
+                              {(f) => (
+                                <button
+                                  class="desc-file-row"
+                                  onClick={() => focusFile(f.Filename)}
+                                  onMouseEnter={prefetchFiles}
+                                  title={f.Filename}
+                                >
+                                  <Icon of={fileIcon(f.Filename)} />
+                                  <span class="desc-file-name">{basePart(f.Filename)}</span>
+                                  <span class="desc-file-stat">
+                                    <span class="additions" style={{ "min-width": `${addWidth}ch` }}>
+                                      +{f.Additions}
+                                    </span>
+                                    <span class="deletions">-{f.Deletions}</span>
+                                  </span>
+                                </button>
+                              )}
+                            </For>
                           </div>
-                          <For each={group.files}>
-                            {(f) => (
-                              <button
-                                class="desc-file-row"
-                                onClick={() => focusFile(f.Filename)}
-                                onMouseEnter={prefetchFiles}
-                                title={f.Filename}
-                              >
-                                <Icon of={fileIcon(f.Filename)} />
-                                <span class="desc-file-name">{basePart(f.Filename)}</span>
-                                <span class="desc-file-stat">
-                                  <span class="additions">+{f.Additions}</span>
-                                  <span class="deletions">-{f.Deletions}</span>
-                                </span>
-                              </button>
-                            )}
-                          </For>
-                        </div>
-                      )}
+                        )
+                      }}
                     </For>
                   </div>
                 )}
