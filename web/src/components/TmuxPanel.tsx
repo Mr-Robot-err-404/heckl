@@ -50,7 +50,7 @@ export function TmuxPanel() {
     navigate({
       to: "/$owner/$repo/$pr",
       params: { owner: row.owner, repo: row.repo, pr: String(row.prNumber) },
-      search: { tab: "files" },
+      search: { tab: "files", modal: "tmux" },
     })
 
   const activate = (row: TmuxRow) => (selecting() ? toggle(row) : open(row))
