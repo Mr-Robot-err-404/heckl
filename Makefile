@@ -1,4 +1,4 @@
-.PHONY: run sandbox-setup sandbox-doctor sandbox-serve sandbox-clean setup doctor server up down down-to redo status reset build dev vet test checkout opencode tmux generate build-server
+.PHONY: run sandbox-setup sandbox-doctor sandbox-serve sandbox-clean setup doctor server up down down-to redo status reset build dev vet test checkout opencode tmux generate icons build-server
 
 GO_BUILD = go build -o bin/heckl ./cmd/heckl
 
@@ -39,6 +39,9 @@ reset:
 
 generate:
 	go tool sqlc generate
+
+icons:
+	cd scripts/icons && go run . ../../web/src/fileIcons.ts
 
 checkout:
 	go run ./cmd/checkout $(ARGS)

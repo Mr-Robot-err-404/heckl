@@ -21,6 +21,7 @@ import { TmuxModal } from "./TmuxModal"
 import { useModal } from "../modal"
 import { createDiffAnchor, prUrl, type DiffAnchor } from "../github"
 import { api, errText } from "../api"
+import { dirIcon, fileIcon, iconViewBox, type Icon as FileIcon } from "../fileIcons"
 import type {
   ConcernTarget,
   FileTarget,
@@ -40,6 +41,12 @@ type Props = {
 }
 
 const tabs: Tab[] = ["description", "files", "review"]
+
+const Icon = (props: { of: FileIcon }) => (
+  <svg class={`nf nf-${props.of[1]}`} viewBox={iconViewBox} aria-hidden="true">
+    <path d={props.of[0]} fill="currentColor" />
+  </svg>
+)
 
 const dirPart = (path: string) => path.slice(0, path.lastIndexOf("/") + 1)
 const basePart = (path: string) => path.slice(path.lastIndexOf("/") + 1)
@@ -282,7 +289,8 @@ export function PRDetail(props: Props) {
                       {(group) => (
                         <div class="desc-group">
                           <div class="desc-group-dir" title={group.dir || "/"}>
-                            {group.dir || "./"}
+                            <Icon of={dirIcon(group.dir)} />
+                            <span class="desc-group-path">{group.dir || "./"}</span>
                           </div>
                           <For each={group.files}>
                             {(f) => (
@@ -292,6 +300,7 @@ export function PRDetail(props: Props) {
                                 onMouseEnter={prefetchFiles}
                                 title={f.Filename}
                               >
+                                <Icon of={fileIcon(f.Filename)} />
                                 <span class="desc-file-name">{basePart(f.Filename)}</span>
                                 <span class="desc-file-stat">
                                   <span class="additions">+{f.Additions}</span>

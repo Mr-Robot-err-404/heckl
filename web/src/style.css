@@ -1,5 +1,21 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+.nf {
+  flex-shrink: 0;
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.nf-blue   { color: var(--blue); }
+.nf-aqua   { color: var(--aqua); }
+.nf-green  { color: var(--green); }
+.nf-grey   { color: var(--overlay2); }
+.nf-orange { color: var(--orange); }
+.nf-purple { color: var(--purple); }
+.nf-red    { color: var(--red); }
+.nf-yellow { color: var(--yellow); }
+
 :root[data-theme="github-dark"] {
   --base:     #0d1117;
   --sunken:   #010409;
@@ -21,6 +37,7 @@
   --red:    #f85149;
   --yellow: #d29922;
   --orange: #db6d28;
+  --purple: #bc8cff;
 }
 
 :root[data-theme="catppuccin-mocha"] {
@@ -44,6 +61,7 @@
   --red:    #f38ba8;
   --yellow: #f9e2af;
   --orange: #fab387;
+  --purple: #cba6f7;
 }
 
 :root[data-theme="kanagawa-wave"] {
@@ -67,6 +85,7 @@
   --red:    #ff5d62;
   --yellow: #c0a36e;
   --orange: #ffa066;
+  --purple: #957fb8;
 }
 
 :root[data-theme="tokyo-night"] {
@@ -90,6 +109,7 @@
   --red:    #f7768e;
   --yellow: #e0af68;
   --orange: #ff9e64;
+  --purple: #bb9af7;
 }
 
 :root[data-theme="everforest"] {
@@ -113,6 +133,7 @@
   --red:    #f85552;
   --yellow: #dfa000;
   --orange: #f57d26;
+  --purple: #d699b6;
 }
 
 :root[data-theme="github-light"] {
@@ -136,6 +157,7 @@
   --red:    #cf222e;
   --yellow: #9a6700;
   --orange: #bc4c00;
+  --purple: #8250df;
 }
 
 :root[data-theme="night-owl"] {
@@ -159,6 +181,7 @@
   --red:    #de3d3b;
   --yellow: #daaa01;
   --orange: #d6438a;
+  --purple: #c792ea;
 }
 
 :root {
@@ -182,6 +205,7 @@
   --red:    #fb4934;
   --yellow: #fabd2f;
   --orange: #fe8019;
+  --purple: #d3869b;
 
   --topbar-h: 48px;
   --gutter: 12px;
@@ -750,23 +774,32 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .desc-group + .desc-group { padding-top: 4px; }
 
 .desc-group-dir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 0 var(--gutter) 4px;
   font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
   font-size: 11px;
   color: var(--overlay1);
+  min-width: 0;
+}
+
+.desc-group-path {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+
+
 .desc-file-row {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   background: none;
   border: none;
-  padding: 3px var(--gutter) 3px calc(var(--gutter) + 10px);
+  padding: 3px var(--gutter) 3px calc(var(--gutter) + 8px);
   cursor: pointer;
   text-align: left;
   font-family: inherit;

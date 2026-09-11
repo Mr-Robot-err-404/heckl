@@ -1,0 +1,326 @@
+package main
+
+import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+
+	"golang.org/x/image/font/sfnt"
+	"golang.org/x/image/math/fixed"
+)
+
+//go:embed dump.lua
+var dumpLua []byte
+
+const defaultFont = "/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf"
+
+var colors = map[string]string{
+	"MiniIconsAzure":  "blue",
+	"MiniIconsBlue":   "blue",
+	"MiniIconsCyan":   "aqua",
+	"MiniIconsGreen":  "green",
+	"MiniIconsGrey":   "grey",
+	"MiniIconsOrange": "orange",
+	"MiniIconsPurple": "purple",
+	"MiniIconsRed":    "red",
+	"MiniIconsYellow": "yellow",
+}
+
+type miniIcon struct {
+	Glyph string `json:"glyph"`
+	Hl    string `json:"hl"`
+}
+
+type dump struct {
+	Extension  map[string]miniIcon `json:"extension"`
+	File       map[string]miniIcon `json:"file"`
+	Directory  map[string]miniIcon `json:"directory"`
+	Default    miniIcon            `json:"default"`
+	DirDefault miniIcon            `json:"dirDefault"`
+}
+
+type box struct {
+	minX, minY, maxX, maxY fixed.Int26_6
+	set                    bool
+}
+
+func (b *box) add(p fixed.Point26_6) {
+	if !b.set {
+		b.minX, b.maxX, b.minY, b.maxY = p.X, p.X, p.Y, p.Y
+		b.set = true
+		return
+	}
+	b.minX = min(b.minX, p.X)
+	b.maxX = max(b.maxX, p.X)
+	b.minY = min(b.minY, p.Y)
+	b.maxY = max(b.maxY, p.Y)
+}
+
+func main() {
+	if len(os.Args) < 2 {
+		fail(fmt.Errorf("usage: go run . <out.ts>"))
+	}
+	out := os.Args[1]
+
+	d, err := runDump()
+	if err != nil {
+		fail(err)
+	}
+
+	fontPath := os.Getenv("NERD_FONT")
+	if fontPath == "" {
+		fontPath = defaultFont
+	}
+	paths, viewBox, err := glyphPaths(fontPath, d)
+	if err != nil {
+		fail(err)
+	}
+
+	src, err := render(d, paths, viewBox)
+	if err != nil {
+		fail(err)
+	}
+	if err := os.WriteFile(out, []byte(src), 0o644); err != nil {
+		fail(err)
+	}
+	fmt.Printf("%s: %d glyphs, viewBox %q, %d bytes\n", out, len(paths), viewBox, len(src))
+}
+
+func fail(err error) {
+	fmt.Fprintln(os.Stderr, "icons:", err)
+	os.Exit(1)
+}
+
+func runDump() (*dump, error) {
+	tmp, err := os.MkdirTemp("", "heckl-icons")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmp)
+
+	script := filepath.Join(tmp, "dump.lua")
+	if err := os.WriteFile(script, dumpLua, 0o644); err != nil {
+		return nil, err
+	}
+
+	cmd := exec.Command("nvim", "--headless",
+		"-c", "lua require('mini.icons').setup()",
+		"-c", "luafile "+script,
+		"-c", "qa!")
+	cmd.Stderr = nil
+	raw, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("nvim dump failed (is mini.icons installed?): %w", err)
+	}
+
+	var d dump
+	if err := json.Unmarshal(raw, &d); err != nil {
+		return nil, fmt.Errorf("decode dump: %w", err)
+	}
+	if len(d.Extension) == 0 {
+		return nil, fmt.Errorf("dump returned no extensions")
+	}
+	return &d, nil
+}
+
+func glyphRunes(d *dump) []rune {
+	seen := map[rune]bool{}
+	for _, t := range []map[string]miniIcon{d.Extension, d.File, d.Directory} {
+		for _, v := range t {
+			for _, r := range v.Glyph {
+				seen[r] = true
+			}
+		}
+	}
+	for _, v := range []miniIcon{d.Default, d.DirDefault} {
+		for _, r := range v.Glyph {
+			seen[r] = true
+		}
+	}
+	runes := make([]rune, 0, len(seen))
+	for r := range seen {
+		runes = append(runes, r)
+	}
+	sort.Slice(runes, func(i, j int) bool { return runes[i] < runes[j] })
+	return runes
+}
+
+func glyphPaths(fontPath string, d *dump) (map[rune]string, string, error) {
+	raw, err := os.ReadFile(fontPath)
+	if err != nil {
+		return nil, "", err
+	}
+	f, err := sfnt.Parse(raw)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var buf sfnt.Buffer
+	ppem := fixed.I(int(f.UnitsPerEm()))
+	paths := map[rune]string{}
+	var bounds box
+
+	for _, r := range glyphRunes(d) {
+		idx, err := f.GlyphIndex(&buf, r)
+		if err != nil {
+			return nil, "", err
+		}
+		if idx == 0 {
+			return nil, "", fmt.Errorf("font %s has no glyph for %U", fontPath, r)
+		}
+		segs, err := f.LoadGlyph(&buf, idx, ppem, nil)
+		if err != nil {
+			return nil, "", fmt.Errorf("load %U: %w", r, err)
+		}
+
+		var sb strings.Builder
+		for _, s := range segs {
+			n := 1
+			switch s.Op {
+			case sfnt.SegmentOpMoveTo:
+				sb.WriteString("M")
+			case sfnt.SegmentOpLineTo:
+				sb.WriteString("L")
+			case sfnt.SegmentOpQuadTo:
+				sb.WriteString("Q")
+				n = 2
+			case sfnt.SegmentOpCubeTo:
+				sb.WriteString("C")
+				n = 3
+			}
+			for i := range n {
+				if i > 0 {
+					sb.WriteString(" ")
+				}
+				p := s.Args[i]
+				bounds.add(p)
+				fmt.Fprintf(&sb, "%s %s", num(p.X), num(p.Y))
+			}
+		}
+		sb.WriteString("Z")
+		paths[r] = sb.String()
+	}
+
+	viewBox := fmt.Sprintf("%s %s %s %s",
+		num(bounds.minX), num(bounds.minY),
+		num(bounds.maxX-bounds.minX), num(bounds.maxY-bounds.minY))
+	return paths, viewBox, nil
+}
+
+func num(v fixed.Int26_6) string {
+	return strconv.FormatFloat(float64(v)/64, 'f', -1, 64)
+}
+
+var ident = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
+
+func render(d *dump, paths map[rune]string, viewBox string) (string, error) {
+	var sb strings.Builder
+
+	sb.WriteString("// Generated by scripts/icons. Do not edit.\n\n")
+	sb.WriteString("export type IconColor =\n")
+	shades := []string{"aqua", "blue", "green", "grey", "orange", "purple", "red", "yellow"}
+	for _, c := range shades {
+		fmt.Fprintf(&sb, "  | %q\n", c)
+	}
+	sb.WriteString("\nexport type Icon = [path: string, color: IconColor]\n\n")
+	fmt.Fprintf(&sb, "export const iconViewBox = %q\n\n", viewBox)
+
+	runes := glyphRunes(d)
+	index := make(map[rune]int, len(runes))
+	sb.WriteString("const p: string[] = [\n")
+	for i, r := range runes {
+		index[r] = i
+		fmt.Fprintf(&sb, "  %q,\n", paths[r])
+	}
+	sb.WriteString("]\n\n")
+
+	entry := func(v miniIcon) (string, error) {
+		color, ok := colors[v.Hl]
+		if !ok {
+			return "", fmt.Errorf("unmapped highlight %q", v.Hl)
+		}
+		i, ok := index[[]rune(v.Glyph)[0]]
+		if !ok {
+			return "", fmt.Errorf("missing path for %q", v.Glyph)
+		}
+		return fmt.Sprintf("[p[%d], %q]", i, color), nil
+	}
+
+	table := func(name string, t map[string]miniIcon) error {
+		keys := make([]string, 0, len(t))
+		for k := range t {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		fmt.Fprintf(&sb, "const %s: Record<string, Icon> = {\n", name)
+		for _, k := range keys {
+			e, err := entry(t[k])
+			if err != nil {
+				return fmt.Errorf("%s[%s]: %w", name, k, err)
+			}
+			key := k
+			if !ident.MatchString(k) {
+				key = strconv.Quote(k)
+			}
+			fmt.Fprintf(&sb, "  %s: %s,\n", key, e)
+		}
+		sb.WriteString("}\n\n")
+		return nil
+	}
+
+	if err := table("extensionIcons", d.Extension); err != nil {
+		return "", err
+	}
+	if err := table("filenameIcons", d.File); err != nil {
+		return "", err
+	}
+	if err := table("directoryIcons", d.Directory); err != nil {
+		return "", err
+	}
+
+	fileFallback, err := entry(d.Default)
+	if err != nil {
+		return "", err
+	}
+	dirFallback, err := entry(d.DirDefault)
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprintf(&sb, "const fileFallback: Icon = %s\n\n", fileFallback)
+	fmt.Fprintf(&sb, "const dirFallback: Icon = %s\n\n", dirFallback)
+
+	sb.WriteString(`export function fileIcon(path: string): Icon {
+  const name = path.slice(path.lastIndexOf("/") + 1)
+  const exact = filenameIcons[name]
+  if (exact) return exact
+
+  const lower = name.toLowerCase()
+  const byName = filenameIcons[lower]
+  if (byName) return byName
+
+  let dot = lower.indexOf(".")
+  while (dot !== -1) {
+    const byExt = extensionIcons[lower.slice(dot + 1)]
+    if (byExt) return byExt
+    dot = lower.indexOf(".", dot + 1)
+  }
+  return fileFallback
+}
+
+export function dirIcon(path: string): Icon {
+  const trimmed = path.endsWith("/") ? path.slice(0, -1) : path
+  if (trimmed === "") return dirFallback
+  return directoryIcons[trimmed.slice(trimmed.lastIndexOf("/") + 1)] ?? dirFallback
+}
+`)
+
+	return sb.String(), nil
+}
