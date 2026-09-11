@@ -1,8 +1,8 @@
 import { useNavigate, useSearch } from "@tanstack/solid-router"
 
-export type ModalId = "theme" | "agents" | "tmux"
+export type ModalId = "theme" | "agents" | "tmux" | "notifications"
 
-const ids: ModalId[] = ["theme", "agents", "tmux"]
+const ids: ModalId[] = ["theme", "agents", "tmux", "notifications"]
 
 export function validateModal(search: Record<string, unknown>): { modal?: ModalId } {
   const modal = ids.find((id) => id === search.modal)

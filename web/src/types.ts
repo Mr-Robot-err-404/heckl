@@ -211,6 +211,16 @@ export type TmuxRow = {
   live: boolean
 }
 
+export type Notification = {
+  id: string
+  reason: string
+  title: string
+  owner: string
+  repo: string
+  prNumber: number
+  updatedAt: string
+}
+
 export type TmuxRef = {
   owner: string
   repo: string

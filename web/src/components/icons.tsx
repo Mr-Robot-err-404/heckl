@@ -119,3 +119,18 @@ export function StopIcon() {
     </svg>
   )
 }
+
+export function BellIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M8 1.75a3.75 3.75 0 0 0-3.75 3.75c0 2.2-.5 3.6-1.1 4.4-.3.4 0 1 .5 1h8.7c.5 0 .8-.6.5-1-.6-.8-1.1-2.2-1.1-4.4A3.75 3.75 0 0 0 8 1.75ZM6.5 12.5a1.5 1.5 0 0 0 3 0"
+      />
+    </svg>
+  )
+}

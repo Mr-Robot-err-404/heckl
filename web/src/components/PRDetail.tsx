@@ -183,6 +183,17 @@ export function PRDetail(props: Props) {
           )}
         </For>
 
+        <Show when={detailData()} keyed>
+          {(d) => (
+            <span class="pr-stats">
+              <span class="additions">+{d.files.reduce((n, f) => n + f.Additions, 0)}</span>
+              <span class="deletions">-{d.files.reduce((n, f) => n + f.Deletions, 0)}</span>
+              <span class="muted">{d.files.length} files</span>
+              <span class="muted">{d.pr.Author}</span>
+            </span>
+          )}
+        </Show>
+
         <a
           class="pr-github-link"
           href={githubUrl()}

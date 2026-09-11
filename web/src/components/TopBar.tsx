@@ -6,13 +6,15 @@ import {
   useOrgs,
   useRepos,
   usePRDetail,
+  useNotifications,
   usePrefetch,
   resolved,
   historyPageSize,
 } from "../queries";
 import { useActiveReviews } from "../activeReviews";
 import { AgentConfigModal } from "./AgentConfigModal";
-import { BotIcon, PaletteIcon } from "./icons";
+import { BellIcon, BotIcon, PaletteIcon } from "./icons";
+import { NotificationsModal } from "./NotificationsModal";
 import { ThemeModal } from "./ThemeModal";
 import { useModal } from "../modal";
 
@@ -27,6 +29,8 @@ export function TopBar() {
   const [error, setError] = createSignal<string | null>(null);
   const [adding, setAdding] = createSignal(false);
   const modal = useModal();
+  const notifications = useNotifications();
+  const unread = () => (notifications.isSuccess ? (notifications.data?.length ?? 0) : 0);
 
   onMount(() => prefetch.agentConfig());
 
@@ -209,20 +213,17 @@ export function TopBar() {
         {(d) => <span class="topbar-pr-title">{d.pr.Title}</span>}
       </Show>
       <div class="topbar-right">
-        <Show when={detailData()} keyed>
-          {(d) => {
-            const additions = d.files.reduce((n, f) => n + f.Additions, 0);
-            const deletions = d.files.reduce((n, f) => n + f.Deletions, 0);
-            return (
-              <>
-                <span class="additions">+{additions}</span>
-                <span class="deletions">-{deletions}</span>
-                <span class="muted">{d.files.length} files</span>
-                <span class="muted">{d.pr.Author}</span>
-              </>
-            );
-          }}
-        </Show>
+        <button
+          class="topbar-btn topbar-config topbar-bell"
+          title="notifications"
+          aria-label="notifications"
+          onClick={() => modal.open("notifications")}
+        >
+          <BellIcon />
+          <Show when={unread() > 0}>
+            <span class="bell-badge">{unread()}</span>
+          </Show>
+        </button>
         <button class="topbar-btn topbar-config" title="theme" onClick={() => modal.open("theme")}>
           <PaletteIcon />
         </button>
@@ -236,6 +237,9 @@ export function TopBar() {
       </div>
       <Show when={modal.isOpen("agents")}>
         <AgentConfigModal onClose={modal.close} />
+      </Show>
+      <Show when={modal.isOpen("notifications")}>
+        <NotificationsModal onClose={modal.close} />
       </Show>
       <Show when={modal.isOpen("theme")}>
         <ThemeModal onClose={modal.close} />

@@ -4,6 +4,7 @@ import type {
   DiffBlob,
   DiffPrefetch,
   DiffSides,
+  Notification,
   PR,
   PRDetail,
   Repo,
@@ -143,6 +144,10 @@ export const api = {
     list: () => get<string[]>("/agents"),
     config: () => get<AgentConfigPage>("/agents/config"),
     save: (configs: AgentConfig[]) => put<AgentConfigPage>("/agents/config", configs),
+  },
+  notifications: {
+    list: () => get<Notification[]>("/notifications"),
+    read: (ids: string[]) => post<{ read: number }>("/notifications/read", { ids }),
   },
   tmux: {
     list: () => get<TmuxRow[]>("/tmux"),

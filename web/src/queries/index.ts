@@ -1,6 +1,6 @@
 import { createQuery, createMutation, useQueryClient } from "@tanstack/solid-query"
 import { api } from "../api"
-import type { DiffSides } from "../types"
+import type { DiffSides, Notification } from "../types"
 
 const keepPrevious = <T,>(prev: T | undefined) => prev
 
@@ -202,6 +202,29 @@ export function useTmuxSession(
     queryFn: () => api.tmux.get(owner(), repo(), number()!),
     enabled: !!owner() && !!repo() && number() != null,
     staleTime: 0,
+  }))
+}
+
+export const notificationsKey = ["notifications"] as const
+
+export function useNotifications() {
+  return createQuery(() => ({
+    queryKey: notificationsKey,
+    queryFn: api.notifications.list,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  }))
+}
+
+export function useReadNotifications() {
+  const client = useQueryClient()
+  return createMutation(() => ({
+    mutationFn: api.notifications.read,
+    onMutate: (ids: string[]) => {
+      client.setQueryData<Notification[]>(notificationsKey, (prev) =>
+        (prev ?? []).filter((row) => !ids.includes(row.id)),
+      )
+    },
   }))
 }
 
