@@ -300,10 +300,11 @@ button.topbar-config:hover { background: none; color: var(--text); }
 }
 
 .pr-stats {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 0 8px 14px;
+  padding: 0 var(--gutter) 8px 14px;
   font-size: 12px;
   white-space: nowrap;
 }
@@ -654,11 +655,29 @@ button.topbar-config:hover { background: none; color: var(--text); }
 
 .pr-tabs {
   display: flex;
+  align-items: stretch;
   border-bottom: 1px solid var(--crust);
-  padding: 0 var(--gutter) 0 0;
   flex-shrink: 0;
   height: 36px;
+}
+
+.pr-tabs-main {
+  flex: 3 1 0;
+  min-width: 0;
+  display: flex;
   align-items: flex-end;
+}
+
+.pr-tabs-side {
+  flex: 1 1 0;
+  min-width: 260px;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 var(--gutter);
+  border-left: 1px solid var(--surface1);
 }
 
 .pr-tab {
@@ -1281,9 +1300,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
 }
 
 .pr-github-link {
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 6px;
   display: inline-flex;
   align-items: center;
   text-decoration: none;
@@ -1327,7 +1343,6 @@ a:hover .brand-mark,
 .tmux-btn:hover .brand-mark { background-color: var(--text); }
 
 .tmux-btn {
-  margin-bottom: 6px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1349,9 +1364,17 @@ a:hover .brand-mark,
 }
 
 .tmux-btn-count {
-  font-size: 12px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--overlay1);
+  background: var(--surface0);
 }
 .tmux-btn.picked .tmux-btn-count { color: var(--green); }
 .tmux-btn.live .tmux-btn-count { color: var(--blue); }
@@ -2257,7 +2280,14 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   .repo-history .review-rows.compact { margin: 0 -12px; }
   .review-rows.compact .review-row { padding: 8px 12px; }
 
-  .pr-tabs { padding: 0 var(--gutter) 0 0; }
+  .pr-tabs-side {
+    flex: 0 0 auto;
+    min-width: 0;
+    gap: 10px;
+    padding: 0 var(--gutter) 0 10px;
+    border-left: none;
+  }
+  .pr-stats { display: none; }
   .pr-tab { padding: 0 10px 8px; }
   .pr-tab:first-child { padding-left: var(--gutter); }
 

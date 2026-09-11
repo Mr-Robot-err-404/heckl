@@ -168,54 +168,58 @@ export function PRDetail(props: Props) {
   return (
     <div class="pr-detail">
       <div class="pr-tabs">
-        <For each={tabs}>
-          {(tab) => (
-            <button
-              class={`pr-tab ${props.tab === tab ? "active" : ""}`}
-              onClick={() => props.onTabChange(tab)}
-              onMouseEnter={tab === "files" ? prefetchFiles : undefined}
-            >
-              {tab}
-              <Show when={tab === "review" && review.concerns().length > 0}>
-                <span class="pr-tab-badge">{review.concerns().length}</span>
-              </Show>
-            </button>
-          )}
-        </For>
+        <div class="pr-tabs-main">
+          <For each={tabs}>
+            {(tab) => (
+              <button
+                class={`pr-tab ${props.tab === tab ? "active" : ""}`}
+                onClick={() => props.onTabChange(tab)}
+                onMouseEnter={tab === "files" ? prefetchFiles : undefined}
+              >
+                {tab}
+                <Show when={tab === "review" && review.concerns().length > 0}>
+                  <span class="pr-tab-badge">{review.concerns().length}</span>
+                </Show>
+              </button>
+            )}
+          </For>
 
-        <Show when={detailData()} keyed>
-          {(d) => (
-            <span class="pr-stats">
-              <span class="additions">+{d.files.reduce((n, f) => n + f.Additions, 0)}</span>
-              <span class="deletions">-{d.files.reduce((n, f) => n + f.Deletions, 0)}</span>
-              <span class="muted">{d.files.length} files</span>
-              <span class="muted">{d.pr.Author}</span>
-            </span>
-          )}
-        </Show>
-
-        <a
-          class="pr-github-link"
-          href={githubUrl()}
-          target="_blank"
-          rel="noreferrer"
-          title="continue in github"
-          aria-label="continue in github"
-        >
-          <span class="brand-mark is-github" />
-        </a>
-
-        <button
-          class={`tmux-btn ${tmuxBadge().kind}`}
-          title={live() ? "tmux session active" : "open selected lines in nvim"}
-          aria-label={live() ? "tmux session active" : "open selected lines in nvim"}
-          onClick={openTmuxModal}
-        >
-          <span class="brand-mark is-tmux" />
-          <Show when={tmuxBadge().count}>
-            <span class="tmux-btn-count">{tmuxBadge().count}</span>
+          <Show when={detailData()} keyed>
+            {(d) => (
+              <span class="pr-stats">
+                <span class="additions">+{d.files.reduce((n, f) => n + f.Additions, 0)}</span>
+                <span class="deletions">-{d.files.reduce((n, f) => n + f.Deletions, 0)}</span>
+                <span class="muted">{d.files.length} files</span>
+                <span class="muted">{d.pr.Author}</span>
+              </span>
+            )}
           </Show>
-        </button>
+        </div>
+
+        <div class="pr-tabs-side">
+          <a
+            class="pr-github-link"
+            href={githubUrl()}
+            target="_blank"
+            rel="noreferrer"
+            title="continue in github"
+            aria-label="continue in github"
+          >
+            <span class="brand-mark is-github" />
+          </a>
+
+          <button
+            class={`tmux-btn ${tmuxBadge().kind}`}
+            title={live() ? "tmux session active" : "open selected lines in nvim"}
+            aria-label={live() ? "tmux session active" : "open selected lines in nvim"}
+            onClick={openTmuxModal}
+          >
+            <span class="brand-mark is-tmux" />
+            <Show when={tmuxBadge().count}>
+              <span class="tmux-btn-count">{tmuxBadge().count}</span>
+            </Show>
+          </button>
+        </div>
       </div>
 
       <div class="pr-tab-content">
