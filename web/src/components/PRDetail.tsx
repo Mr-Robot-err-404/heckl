@@ -9,7 +9,7 @@ import {
   resolved,
   tmuxSessionKey,
 } from "../queries"
-import { createReview } from "../review"
+import { createReview, opencodeUrl } from "../review"
 import { DiffView } from "./diff/DiffView"
 import { diffSides } from "./diff/loadFiles"
 import { Markdown } from "./Markdown"
@@ -244,6 +244,19 @@ export function PRDetail(props: Props) {
           >
             <span class="brand-mark is-github" />
           </a>
+
+          <Show when={review.review()?.opencodeSessionPath}>
+            <a
+              class="pr-github-link"
+              href={opencodeUrl(review.review()?.opencodeSessionPath)}
+              target="_blank"
+              rel="noreferrer"
+              title="continue in opencode"
+              aria-label="continue in opencode"
+            >
+              <span class="brand-mark is-opencode" />
+            </a>
+          </Show>
 
           <button
             class={`tmux-btn ${tmuxBadge().kind}`}

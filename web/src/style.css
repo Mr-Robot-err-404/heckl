@@ -1163,22 +1163,10 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .review-panel-head:hover .panel-collapse,
 .reviewer-comments-head:hover .panel-collapse { color: var(--text); }
 
-.review-panel-head .review-session-link,
-.review-panel-head .review-run { cursor: pointer; }
+.review-panel-head .agent-rerun { cursor: pointer; }
 
 .review-panel-head .review-panel-title { margin-right: 0; }
-.review-panel-head .review-session-link,
-.review-panel-head .review-run:not(.is-inline) { margin-left: auto; }
-
-.review-run.is-inline {
-  min-height: 20px;
-  padding: 0 2px;
-  background: none;
-  border: none;
-  color: var(--overlay1);
-}
-.review-run.is-inline:hover:not(:disabled) { background: none; color: var(--text); }
-.review-run.is-inline .bot-icon { width: 12px; height: 12px; }
+.review-panel-head .agent-rerun { margin-left: auto; }
 
 .review-panel.collapsed > *:not(.review-panel-head),
 .reviewer-comments.collapsed > *:not(.reviewer-comments-head) { display: none; }
@@ -1387,8 +1375,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
 }
 .review-session-link:hover { color: var(--text); }
 
-.review-head-start .review-session-link,
-.review-panel-head .review-session-link {
+.review-head-start .review-session-link {
   display: inline-flex;
   align-items: center;
   min-height: 24px;

@@ -1,8 +1,8 @@
 import { createSignal, For, Show } from "solid-js";
-import { agentLabel, fileName, formatMs, opencodeUrl, type ReviewState } from "../review";
+import { agentLabel, fileName, formatMs, type ReviewState } from "../review";
 import type { RankedConcern } from "../types";
 import { AgentPicker } from "./AgentPicker";
-import { ChevronIcon, RerunIcon, StopIcon } from "./icons";
+import { ChevronIcon, PlayIcon, RerunIcon, StopIcon } from "./icons";
 import { AgentButton } from "./ReviewPage";
 
 type Props = {
@@ -47,7 +47,7 @@ export function ReviewPanel(props: Props) {
 
         <Show when={isRerun()}>
           <button
-            class="review-run is-inline"
+            class="agent-rerun"
             title={runLabel()}
             aria-label={runLabel()}
             onClick={(e) => {
@@ -60,23 +60,9 @@ export function ReviewPanel(props: Props) {
           </button>
         </Show>
 
-        <Show when={s().review()?.opencodeSessionPath}>
-          <a
-            class="review-session-link"
-            href={opencodeUrl(s().review()?.opencodeSessionPath)}
-            target="_blank"
-            rel="noreferrer"
-            title="continue in opencode"
-            aria-label="continue in opencode"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span class="brand-mark is-opencode" />
-          </a>
-        </Show>
-
         <Show when={s().busy()}>
           <button
-            class="review-run is-stop"
+            class="agent-rerun is-stop"
             title="stop this review"
             aria-label="stop this review"
             onClick={(e) => {
@@ -91,7 +77,7 @@ export function ReviewPanel(props: Props) {
 
         <Show when={!s().busy() && !isRerun()}>
           <button
-            class="review-run"
+            class="agent-rerun"
             title={runLabel()}
             aria-label={runLabel()}
             onClick={(e) => {
@@ -100,7 +86,7 @@ export function ReviewPanel(props: Props) {
             }}
             disabled={!s().canRun()}
           >
-            {runLabel()}
+            <PlayIcon />
           </button>
         </Show>
       </div>

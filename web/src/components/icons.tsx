@@ -112,6 +112,14 @@ export function RerunIcon() {
   )
 }
 
+export function PlayIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path fill="currentColor" d="M4.5 2.75a.75.75 0 0 1 1.14-.64l7 5.25a.75.75 0 0 1 0 1.28l-7 5.25a.75.75 0 0 1-1.14-.64Z" />
+    </svg>
+  )
+}
+
 export function StopIcon() {
   return (
     <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
