@@ -1436,12 +1436,14 @@ a:hover .brand-mark,
 .tmux-btn:hover .brand-mark { background-color: var(--text); }
 
 .tmux-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 0;
   font: inherit;
   font-size: 11px;
   padding: 0;
+  margin-right: -2px;
   background: none;
   border: none;
   cursor: pointer;
@@ -1457,13 +1459,16 @@ a:hover .brand-mark,
 }
 
 .tmux-btn-count {
+  position: absolute;
+  top: 0;
+  right: -6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  border-radius: 9px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 8px;
   font-size: 10px;
   font-weight: 700;
   color: var(--overlay1);
