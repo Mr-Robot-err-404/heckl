@@ -44,6 +44,19 @@ const tabs: Tab[] = ["description", "files", "review"]
 const dirPart = (path: string) => path.slice(0, path.lastIndexOf("/") + 1)
 const basePart = (path: string) => path.slice(path.lastIndexOf("/") + 1)
 
+function groupByDir<T>(files: T[], path: (f: T) => string): { dir: string; files: T[] }[] {
+  const groups = new Map<string, T[]>()
+  for (const f of files) {
+    const dir = dirPart(path(f))
+    const existing = groups.get(dir)
+    if (existing) existing.push(f)
+    else groups.set(dir, [f])
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([dir, files]) => ({ dir, files }))
+}
+
 export function PRDetail(props: Props) {
   const detail = usePRDetail(
     () => props.owner,
@@ -265,23 +278,29 @@ export function PRDetail(props: Props) {
                       <span>files affected</span>
                       <span class="desc-files-count">{d.files.length}</span>
                     </div>
-                    <For each={d.files}>
-                      {(f) => (
-                        <button
-                          class="desc-file-row"
-                          onClick={() => focusFile(f.Filename)}
-                          onMouseEnter={prefetchFiles}
-                          title={f.Filename}
-                        >
-                          <span class="desc-file-name">
-                            <span class="desc-file-dir">{dirPart(f.Filename)}</span>
-                            <span class="desc-file-base">{basePart(f.Filename)}</span>
-                          </span>
-                          <span class="desc-file-stat">
-                            <span class="additions">+{f.Additions}</span>
-                            <span class="deletions">-{f.Deletions}</span>
-                          </span>
-                        </button>
+                    <For each={groupByDir(d.files, (f) => f.Filename)}>
+                      {(group) => (
+                        <div class="desc-group">
+                          <div class="desc-group-dir" title={group.dir || "/"}>
+                            {group.dir || "./"}
+                          </div>
+                          <For each={group.files}>
+                            {(f) => (
+                              <button
+                                class="desc-file-row"
+                                onClick={() => focusFile(f.Filename)}
+                                onMouseEnter={prefetchFiles}
+                                title={f.Filename}
+                              >
+                                <span class="desc-file-name">{basePart(f.Filename)}</span>
+                                <span class="desc-file-stat">
+                                  <span class="additions">+{f.Additions}</span>
+                                  <span class="deletions">-{f.Deletions}</span>
+                                </span>
+                              </button>
+                            )}
+                          </For>
+                        </div>
                       )}
                     </For>
                   </div>

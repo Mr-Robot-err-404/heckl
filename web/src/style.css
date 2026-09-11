@@ -746,6 +746,19 @@ button.topbar-config:hover { background: none; color: var(--text); }
 
 .desc-files-pending { padding: 14px var(--gutter); }
 
+.desc-group { padding: 10px 0; }
+.desc-group + .desc-group { padding-top: 4px; }
+
+.desc-group-dir {
+  padding: 0 var(--gutter) 4px;
+  font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--overlay1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .desc-file-row {
   display: flex;
   align-items: baseline;
@@ -753,48 +766,36 @@ button.topbar-config:hover { background: none; color: var(--text); }
   width: 100%;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--surface0);
-  padding: 7px var(--gutter);
+  padding: 3px var(--gutter) 3px calc(var(--gutter) + 10px);
   cursor: pointer;
   text-align: left;
-  color: var(--text);
   font-family: inherit;
-  font-size: 12px;
   min-width: 0;
 }
-.desc-file-row:hover { background: var(--surface0); }
-.desc-file-row:last-child { border-bottom: none; }
 
 .desc-file-name {
   flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: baseline;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--subtext1);
   font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
   font-size: 11px;
 }
-
-.desc-file-dir {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--overlay1);
-}
-
-.desc-file-base {
-  flex-shrink: 0;
-  color: var(--subtext1);
-}
-.desc-file-row:hover .desc-file-base { color: var(--text); }
+.desc-file-row:hover .desc-file-name { color: var(--text); }
 
 .desc-file-stat {
   display: flex;
   gap: 6px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  min-width: 68px;
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
+.desc-file-stat .additions,
+.desc-file-stat .deletions { flex: 0 0 auto; }
 
 .diffview-host { flex: 1; overflow: auto; height: 100%; }
 
