@@ -1469,6 +1469,7 @@ a:hover .brand-mark,
   color: var(--overlay1);
   background: var(--surface0);
 }
+.tmux-btn-count.is-empty { visibility: hidden; }
 .tmux-btn.picked .tmux-btn-count { color: var(--green); }
 .tmux-btn.live .tmux-btn-count { color: var(--blue); }
 

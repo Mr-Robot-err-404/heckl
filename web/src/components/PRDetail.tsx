@@ -265,9 +265,9 @@ export function PRDetail(props: Props) {
             onClick={openTmuxModal}
           >
             <span class="brand-mark is-tmux" />
-            <Show when={tmuxBadge().count}>
-              <span class="tmux-btn-count">{tmuxBadge().count}</span>
-            </Show>
+            <span class="tmux-btn-count" classList={{ "is-empty": !tmuxBadge().count }}>
+              {tmuxBadge().count || ""}
+            </span>
           </button>
         </div>
       </div>
