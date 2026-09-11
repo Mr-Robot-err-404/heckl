@@ -264,13 +264,21 @@ html, body, #root { height: 100%; }
   margin-left: auto;
 }
 
-.topbar-config {
+button.topbar-config {
   display: flex;
   align-items: center;
-  padding: 5px 8px;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--subtext0);
 }
 
-.topbar-config:hover { color: var(--text); }
+button.topbar-config .bot-icon { width: 18px; height: 18px; }
+button.topbar-config:hover { background: none; color: var(--text); }
+
 
 .topbar-bell { position: relative; overflow: visible; }
 
@@ -1032,6 +1040,20 @@ html, body, #root { height: 100%; }
 
 .review-panel-head .review-session-link,
 .review-panel-head .review-run { cursor: pointer; }
+
+.review-panel-head .review-panel-title { margin-right: 0; }
+.review-panel-head .review-session-link,
+.review-panel-head .review-run:not(.is-inline) { margin-left: auto; }
+
+.review-run.is-inline {
+  min-height: 20px;
+  padding: 0 2px;
+  background: none;
+  border: none;
+  color: var(--overlay1);
+}
+.review-run.is-inline:hover:not(:disabled) { background: none; color: var(--text); }
+.review-run.is-inline .bot-icon { width: 12px; height: 12px; }
 
 .review-panel.collapsed > *:not(.review-panel-head),
 .reviewer-comments.collapsed > *:not(.reviewer-comments-head) { display: none; }

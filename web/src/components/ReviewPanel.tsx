@@ -44,6 +44,22 @@ export function ReviewPanel(props: Props) {
           <ChevronIcon />
         </button>
         <span class="review-panel-title">agent review</span>
+
+        <Show when={isRerun()}>
+          <button
+            class="review-run is-inline"
+            title={runLabel()}
+            aria-label={runLabel()}
+            onClick={(e) => {
+              e.stopPropagation()
+              s().start()
+            }}
+            disabled={!s().canRun()}
+          >
+            <RerunIcon />
+          </button>
+        </Show>
+
         <Show when={s().review()?.opencodeSessionPath}>
           <a
             class="review-session-link"
@@ -57,25 +73,8 @@ export function ReviewPanel(props: Props) {
             <span class="brand-mark is-opencode" />
           </a>
         </Show>
-        <Show
-          when={s().busy()}
-          fallback={
-            <button
-              class="review-run"
-              title={runLabel()}
-              aria-label={runLabel()}
-              onClick={(e) => {
-                e.stopPropagation()
-                s().start()
-              }}
-              disabled={!s().canRun()}
-            >
-              <Show when={isRerun()} fallback={runLabel()}>
-                <RerunIcon />
-              </Show>
-            </button>
-          }
-        >
+
+        <Show when={s().busy()}>
           <button
             class="review-run is-stop"
             title="stop this review"
@@ -87,6 +86,21 @@ export function ReviewPanel(props: Props) {
             disabled={s().stopping()}
           >
             <StopIcon />
+          </button>
+        </Show>
+
+        <Show when={!s().busy() && !isRerun()}>
+          <button
+            class="review-run"
+            title={runLabel()}
+            aria-label={runLabel()}
+            onClick={(e) => {
+              e.stopPropagation()
+              s().start()
+            }}
+            disabled={!s().canRun()}
+          >
+            {runLabel()}
           </button>
         </Show>
       </div>
