@@ -9,14 +9,11 @@ export function AgentPicker(props: { state: ReviewState; meta?: JSX.Element }) {
   return (
     <Show when={showList() || props.meta}>
       <div class="agent-picker">
-        <div class="agent-picker-head">
-          <Show when={showList()}>
-            <span class="agent-picker-label">agents</span>
-          </Show>
-          <Show when={props.meta}>
+        <Show when={props.meta}>
+          <div class="agent-picker-head">
             <span class="agent-picker-meta">{props.meta}</span>
-          </Show>
-        </div>
+          </div>
+        </Show>
         <Show when={showList()}>
           <div class="agent-picker-list">
             <For each={s().available()}>

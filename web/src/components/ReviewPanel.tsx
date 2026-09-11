@@ -105,7 +105,9 @@ export function ReviewPanel(props: Props) {
         </Show>
       </div>
 
-      <AgentPicker state={s()} />
+      <Show when={!s().review()}>
+        <AgentPicker state={s()} />
+      </Show>
 
       <Show when={s().error()}>
         <div class="review-error">{s().error()}</div>
@@ -150,10 +152,6 @@ export function ReviewPanel(props: Props) {
             )}
           </For>
         </ul>
-      </Show>
-
-      <Show when={s().synced() && !s().busy() && !s().review()}>
-        <p class="review-idle">no review yet</p>
       </Show>
 
       <Show when={s().review()?.status === "error"}>

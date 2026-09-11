@@ -1079,14 +1079,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
 
 .agent-picker-meta { margin-left: auto; }
 
-.agent-picker-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--overlay0);
-}
-
 .agent-picker-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
