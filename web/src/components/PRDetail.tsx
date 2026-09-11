@@ -227,7 +227,6 @@ export function PRDetail(props: Props) {
               <span class="pr-stats">
                 <span class="additions">+{d.files.reduce((n, f) => n + f.Additions, 0)}</span>
                 <span class="deletions">-{d.files.reduce((n, f) => n + f.Deletions, 0)}</span>
-                <span class="muted">{d.files.length} files</span>
                 <span class="muted">{d.pr.Author}</span>
               </span>
             )}
@@ -281,10 +280,7 @@ export function PRDetail(props: Props) {
               <Show when={detailData()} keyed>
                 {(d) => (
                   <div class="desc-files">
-                    <div class="desc-files-head">
-                      <span>files affected</span>
-                      <span class="desc-files-count">{d.files.length}</span>
-                    </div>
+                    <div class="desc-files-head">files affected</div>
                     <For each={groupByDir(d.files, (f) => f.Filename)}>
                       {(group) => (
                         <div class="desc-group">

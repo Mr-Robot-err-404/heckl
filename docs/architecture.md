@@ -240,6 +240,18 @@ Signals holding arrays of objects break `<For>`; use `createStore`. Icons live
 in `web/src/components/icons.tsx`. `navigator.clipboard` is undefined on http
 to a non-localhost host, so use `clipboard.copyText`.
 
+**Avoid dividers.** Separate with spacing, grouping and colour, not border lines.
+The exceptions are structural: the tab strip's bottom edge and the rail's
+`border-left`, which mark panel boundaries rather than list items.
+
+File icons come from your local mini.icons via `make icons`, which runs
+`scripts/icons` (its own Go module, so `x/image` stays out of the app).
+`nvim --headless` dumps the glyph/highlight tables, `sfnt` extracts the outlines,
+and `web/src/fileIcons.ts` is generated with a uniform `viewBox` (the union bbox
+of every glyph, so relative sizes hold) and deduped path data. No font ships and
+nothing depends on a Nerd Font being installed. The generator fails loudly on an
+unmapped highlight group or a missing glyph.
+
 `.pr-tabs` has no left padding; the gutter is on `.pr-tab:first-child`.
 `display: contents` is what makes `.agent-picker` children grid items. A
 `<select>` has an intrinsic min-width from its widest option, so `min-width: 0`

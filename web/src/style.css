@@ -328,7 +328,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 var(--gutter) 8px 14px;
+  padding: 0 var(--gutter) 0 14px;
   font-size: 12px;
   white-space: nowrap;
 }
@@ -689,7 +689,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
   flex: 3 1 0;
   min-width: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 .pr-tabs-side {
@@ -712,7 +712,9 @@ button.topbar-config:hover { background: none; color: var(--text); }
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
-  padding: 0 14px 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
   margin-bottom: -1px;
 }
 .pr-tab:first-child { padding-left: var(--gutter); }
@@ -729,8 +731,9 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .pr-description { overflow-y: auto; }
 
 .pr-description-body {
-  padding: 28px var(--gutter);
+  padding: var(--gutter) var(--gutter) 28px;
   max-width: 900px;
+  margin: 0 auto;
 }
 
 .review-rail.desc-rail {
@@ -747,7 +750,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .desc-files-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   position: sticky;
   top: 0;
@@ -759,13 +761,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
   text-transform: uppercase;
   color: var(--subtext0);
   padding: 14px var(--gutter) 10px;
-  border-bottom: 1px solid var(--surface0);
   flex-shrink: 0;
-}
-
-.desc-files-count {
-  color: var(--overlay1);
-  font-weight: 500;
 }
 
 .desc-files-pending { padding: 14px var(--gutter); }
@@ -1163,7 +1159,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
   flex-direction: column;
   gap: 6px;
   padding-top: 12px;
-  border-top: 1px solid var(--surface0);
 }
 
 .reviewer-comments-head {
