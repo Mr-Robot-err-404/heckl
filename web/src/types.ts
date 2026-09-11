@@ -198,6 +198,25 @@ export type TmuxLiveSession = {
   headSha: string
 }
 
+export type TmuxRow = {
+  owner: string
+  repo: string
+  prNumber: number
+  session: string
+  attach: string
+  windows: number
+  worktree: string
+  headSha: string
+  createdAt: string
+  live: boolean
+}
+
+export type TmuxRef = {
+  owner: string
+  repo: string
+  prNumber: number
+}
+
 export type DiffBlobFile = {
   name: string
   contents: string

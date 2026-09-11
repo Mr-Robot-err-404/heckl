@@ -140,6 +140,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /api/review/{owner}/{repo}/{number}", s.handleCancelReview)
 	s.mux.HandleFunc("DELETE /api/review/{owner}/{repo}/{number}/agent/{agent}", s.handleCancelReview)
 	s.mux.HandleFunc("GET /api/review/{owner}/{repo}/{number}/stream", s.handleReviewStream)
+	s.mux.HandleFunc("GET /api/tmux", s.handleListTmuxSessions)
+	s.mux.HandleFunc("POST /api/tmux/cleanup", s.handleCleanupTmuxSessions)
 	s.mux.HandleFunc("GET /api/tmux/{owner}/{repo}/{number}", s.handleGetTmuxSession)
 	s.mux.HandleFunc("POST /api/tmux/{owner}/{repo}/{number}", s.handleTmuxSession)
 }

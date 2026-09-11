@@ -3,6 +3,7 @@ import { useNavigate, useSearch } from "@tanstack/solid-router"
 import { useActiveReviews } from "../activeReviews"
 import { useReviewHistory, usePrefetch, resolved } from "../queries"
 import { ReviewRow, activeRow, historyRow, type Row } from "../components/ReviewRow"
+import { TmuxPanel } from "../components/TmuxPanel"
 
 const skeletonRows = Array.from({ length: 8 })
 
@@ -26,57 +27,63 @@ export function DashboardPage() {
 
   return (
     <div class="dashboard">
-      <div class="dashboard-head">
-        <h1>history</h1>
-        <Show when={active().length > 0}>
-          <span class="badge running">{active().length} in progress</span>
-        </Show>
-      </div>
+      <div class="dashboard-cols">
+        <TmuxPanel />
 
-      <Show when={history.error}>
-        <div class="empty error">{String(history.error)}</div>
-      </Show>
+        <section class="dashboard-main">
+          <div class="dashboard-head">
+            <h1>history</h1>
+            <Show when={active().length > 0}>
+              <span class="badge running">{active().length} in progress</span>
+            </Show>
+          </div>
 
-      <Show
-        when={rows().length > 0}
-        fallback={
-          <Show when={history.isPending} fallback={<div class="empty">no reviews yet</div>}>
-            <ul class="review-rows">
-              <For each={skeletonRows}>
-                {() => (
-                  <li class="review-row is-skeleton">
-                    <span class="skeleton skeleton-title" />
-                    <span class="skeleton skeleton-meta" />
-                  </li>
-                )}
-              </For>
+          <Show when={history.error}>
+            <div class="empty error">{String(history.error)}</div>
+          </Show>
+
+          <Show
+            when={rows().length > 0}
+            fallback={
+              <Show when={history.isPending} fallback={<div class="empty">no reviews yet</div>}>
+                <ul class="review-rows">
+                  <For each={skeletonRows}>
+                    {() => (
+                      <li class="review-row is-skeleton">
+                        <span class="skeleton skeleton-title" />
+                        <span class="skeleton skeleton-meta" />
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </Show>
+            }
+          >
+            <ul class="review-rows" classList={{ "is-stale": history.isFetching }}>
+              <For each={rows()}>{(row) => <ReviewRow row={row} showRepo collapsible />}</For>
             </ul>
           </Show>
-        }
-      >
-        <ul class="review-rows" classList={{ "is-stale": history.isFetching }}>
-          <For each={rows()}>{(row) => <ReviewRow row={row} showRepo collapsible />}</For>
-        </ul>
-      </Show>
 
-      <div class="pager">
-        <button
-          class="topbar-btn"
-          disabled={page() === 0}
-          onMouseEnter={() => page() > 0 && prefetch.historyPage(page() - 1)}
-          onClick={() => goto(-1)}
-        >
-          prev
-        </button>
-        <span class="muted">page {page() + 1}</span>
-        <button
-          class="topbar-btn"
-          disabled={!historyData()?.hasMore}
-          onMouseEnter={() => historyData()?.hasMore && prefetch.historyPage(page() + 1)}
-          onClick={() => goto(1)}
-        >
-          next
-        </button>
+          <div class="pager">
+            <button
+              class="topbar-btn"
+              disabled={page() === 0}
+              onMouseEnter={() => page() > 0 && prefetch.historyPage(page() - 1)}
+              onClick={() => goto(-1)}
+            >
+              prev
+            </button>
+            <span class="muted">page {page() + 1}</span>
+            <button
+              class="topbar-btn"
+              disabled={!historyData()?.hasMore}
+              onMouseEnter={() => historyData()?.hasMore && prefetch.historyPage(page() + 1)}
+              onClick={() => goto(1)}
+            >
+              next
+            </button>
+          </div>
+        </section>
       </div>
     </div>
   )

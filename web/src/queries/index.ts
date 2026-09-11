@@ -205,6 +205,24 @@ export function useTmuxSession(
   }))
 }
 
+export const tmuxListKey = ["tmux", "list"] as const
+
+export function useTmuxSessions() {
+  return createQuery(() => ({
+    queryKey: tmuxListKey,
+    queryFn: api.tmux.list,
+    staleTime: 0,
+  }))
+}
+
+export function useCleanupTmux() {
+  const client = useQueryClient()
+  return createMutation(() => ({
+    mutationFn: api.tmux.cleanup,
+    onSuccess: () => client.invalidateQueries({ queryKey: ["tmux"] }),
+  }))
+}
+
 export function useDiff(
   owner: () => string,
   repo: () => string,

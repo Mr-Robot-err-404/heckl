@@ -1528,7 +1528,7 @@ button.review-concern-loc:hover { text-decoration: underline; }
 
 /* ── Dashboard (history) ── */
 .dashboard {
-  max-width: 900px;
+  max-width: 1340px;
   margin: 0 auto;
   padding: 24px var(--gutter) 40px;
   display: flex;
@@ -1728,6 +1728,99 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   font-size: 12px;
 }
 .pager button:disabled { opacity: 0.4; cursor: default; }
+
+.dashboard-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tmux-panel { min-width: 0; }
+.tmux-panel .dashboard-head { margin-bottom: 12px; }
+
+.tmux-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 132px;
+}
+.tmux-actions button:disabled { opacity: 0.4; cursor: default; }
+.tmux-actions button { min-width: 58px; }
+
+.tmux-panel input[type="checkbox"] {
+  accent-color: var(--blue);
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.tmux-row {
+  display: grid;
+  grid-template-columns: 13px 42px minmax(0, 1fr) 62px 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+.tmux-row.is-head {
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--surface0);
+  background: var(--surface0);
+  padding: 6px 12px;
+  cursor: default;
+}
+.tmux-row.is-head .tmux-actions { grid-column: 2 / -1; justify-self: end; }
+
+.tmux-row input[type="checkbox"] { visibility: hidden; }
+.tmux-panel.is-selecting .tmux-row input[type="checkbox"] { visibility: visible; }
+
+.tmux-row.is-live { border-left-color: var(--blue); }
+.tmux-row.is-live:hover { border-left-color: var(--blue); }
+.tmux-row.is-gone:hover { border-left-color: var(--red); }
+.tmux-row.is-picked { background: var(--surface1); }
+
+.tmux-row .pill { padding: 1px 0; }
+.pill-live { color: var(--blue); }
+.pill-gone { color: var(--overlay1); }
+
+.tmux-row-pr {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tmux-windows {
+  text-align: center;
+  color: var(--blue);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tmux-age {
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 1080px) {
+  .dashboard-cols { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .tmux-panel {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--surface0);
+  }
+}
 
 /* ── Repo history sidebar ── */
 .repo-history {

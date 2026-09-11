@@ -144,6 +144,25 @@ func (s *Store) DeleteTmuxSession(ctx context.Context, owner, repo string, prNum
 	})
 }
 
+type TmuxRef struct {
+	Owner    string
+	Repo     string
+	PRNumber int
+}
+
+func (s *Store) ListTmuxSessions(ctx context.Context) ([]*TmuxSession, error) {
+	return s.queries.ListTmuxSessions(ctx)
+}
+
+func (s *Store) DeleteTmuxSessions(ctx context.Context, refs []TmuxRef) error {
+	for _, ref := range refs {
+		if err := s.DeleteTmuxSession(ctx, ref.Owner, ref.Repo, ref.PRNumber); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Store) CreateReviewSession(ctx context.Context, in NewReviewSession) (*ReviewSession, error) {
 	status := in.Status
 	if status == "" {

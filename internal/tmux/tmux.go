@@ -39,6 +39,31 @@ func (tm *Tmux) HasSession(ctx context.Context, name string) bool {
 	return err == nil
 }
 
+func (tm *Tmux) LiveSessions(ctx context.Context) map[string]bool {
+	live := map[string]bool{}
+	out, err := run(ctx, "list-sessions", "-F", "#{session_name}")
+	if err != nil {
+		return live
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		if name := strings.TrimSpace(line); name != "" {
+			live[name] = true
+		}
+	}
+	return live
+}
+
+func (tm *Tmux) KillSessions(ctx context.Context, names []string) []string {
+	killed := make([]string, 0, len(names))
+	for _, name := range names {
+		if err := tm.KillSession(ctx, name); err != nil {
+			continue
+		}
+		killed = append(killed, name)
+	}
+	return killed
+}
+
 func (tm *Tmux) KillSession(ctx context.Context, name string) error {
 	_, err := run(ctx, "kill-session", "-t", target(name))
 	return err

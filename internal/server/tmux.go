@@ -97,6 +97,98 @@ func (s *Server) handleGetTmuxSession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type tmuxRow struct {
+	Owner     string `json:"owner"`
+	Repo      string `json:"repo"`
+	PRNumber  int    `json:"prNumber"`
+	Session   string `json:"session"`
+	Attach    string `json:"attach"`
+	Windows   int    `json:"windows"`
+	Worktree  string `json:"worktree"`
+	HeadSHA   string `json:"headSha"`
+	CreatedAt string `json:"createdAt"`
+	Live      bool   `json:"live"`
+}
+
+func (s *Server) handleListTmuxSessions(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.store.ListTmuxSessions(r.Context())
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	live := map[string]bool{}
+	if tmux.Installed() {
+		live = s.tmux.LiveSessions(r.Context())
+	}
+
+	out := make([]tmuxRow, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, tmuxRow{
+			Owner:     row.Owner,
+			Repo:      row.Repo,
+			PRNumber:  int(row.PrNumber),
+			Session:   row.Name,
+			Attach:    s.attachCommand(r, row.Name),
+			Windows:   int(row.Windows),
+			Worktree:  row.Worktree,
+			HeadSHA:   row.HeadSha,
+			CreatedAt: row.CreatedAt,
+			Live:      live[row.Name],
+		})
+	}
+	jsonOK(w, out)
+}
+
+func (s *Server) handleCleanupTmuxSessions(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Sessions []struct {
+			Owner    string `json:"owner"`
+			Repo     string `json:"repo"`
+			PRNumber int    `json:"prNumber"`
+		} `json:"sessions"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonError(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if len(body.Sessions) == 0 {
+		jsonError(w, "no sessions selected", http.StatusBadRequest)
+		return
+	}
+
+	refs := make([]store.TmuxRef, 0, len(body.Sessions))
+	names := make([]string, 0, len(body.Sessions))
+	for _, sess := range body.Sessions {
+		ref := store.TmuxRef{Owner: sess.Owner, Repo: sess.Repo, PRNumber: sess.PRNumber}
+		refs = append(refs, ref)
+
+		row, err := s.store.GetTmuxSession(r.Context(), ref.Owner, ref.Repo, ref.PRNumber)
+		if err != nil {
+			jsonError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if row != nil {
+			names = append(names, row.Name)
+		}
+	}
+
+	var killed []string
+	if tmux.Installed() {
+		killed = s.tmux.KillSessions(r.Context(), names)
+	}
+	if err := s.store.DeleteTmuxSessions(r.Context(), refs); err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("tmux sessions cleaned up", "removed", len(refs), "killed", len(killed))
+	jsonOK(w, struct {
+		Removed int `json:"removed"`
+		Killed  int `json:"killed"`
+	}{Removed: len(refs), Killed: len(killed)})
+}
+
 func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 	owner, repo, number, ok := prPath(w, r)
 	if !ok {
