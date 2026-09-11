@@ -817,9 +817,9 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .desc-file-stat {
   display: flex;
   gap: 6px;
-  justify-content: flex-end;
+  justify-content: space-between;
   flex: 0 0 auto;
-  min-width: 74px;
+  font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }

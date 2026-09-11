@@ -283,9 +283,9 @@ export function PRDetail(props: Props) {
                     <div class="desc-files-head">files affected</div>
                     <For each={groupByDir(d.files, (f) => f.Filename)}>
                       {(group) => {
-                        const addWidth = Math.max(
-                          ...group.files.map((f) => `+${f.Additions}`.length),
-                        )
+                        const statWidth =
+                          Math.max(...group.files.map((f) => `+${f.Additions}`.length)) +
+                          Math.max(...group.files.map((f) => `-${f.Deletions}`.length))
                         return (
                           <div class="desc-group">
                             <div class="desc-group-dir" title={group.dir || "/"}>
@@ -302,10 +302,8 @@ export function PRDetail(props: Props) {
                                 >
                                   <Icon of={fileIcon(f.Filename)} />
                                   <span class="desc-file-name">{basePart(f.Filename)}</span>
-                                  <span class="desc-file-stat">
-                                    <span class="additions" style={{ "min-width": `${addWidth}ch` }}>
-                                      +{f.Additions}
-                                    </span>
+                                  <span class="desc-file-stat" style={{ width: `calc(${statWidth}ch + 6px)` }}>
+                                    <span class="additions">+{f.Additions}</span>
                                     <span class="deletions">-{f.Deletions}</span>
                                   </span>
                                 </button>
