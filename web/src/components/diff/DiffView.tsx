@@ -19,7 +19,7 @@ import {
 import { diffUnsafeCSS } from "./diffCss"
 import { prefetchBody, toLoadedFiles } from "./loadFiles"
 import { api } from "../../api"
-import type { ConcernTarget, DiffSides, ReviewerThread } from "../../types"
+import type { ConcernTarget, DiffSides, FileTarget, ReviewerThread } from "../../types"
 import { theme } from "../../theme"
 import { highlightVersion } from "../../highlight"
 
@@ -29,6 +29,7 @@ type Props = {
   prNumber: number
   sides?: DiffSides
   focus: ConcernTarget | null
+  fileFocus?: FileTarget | null
   threads?: ReviewerThread[]
   onPickLine?: (file: string, line: number, side: "additions" | "deletions") => void
   onUnpickLine?: (file: string) => void
@@ -245,6 +246,20 @@ export function DiffView(props: Props) {
       side: target.side,
       align: "center",
     })
+  })
+
+  createEffect(() => {
+    const target = props.fileFocus
+    const v = view
+    if (!patchData() || !target || !v) return
+
+    const item = v.getItem(target.file)
+    if (!item) return
+    if (item.collapsed) {
+      v.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 })
+    }
+
+    v.scrollTo({ type: "item", id: target.file, align: "start" })
   })
 
   onMount(() => host.addEventListener("mouseover", warmOnHover))

@@ -21,7 +21,14 @@ import { TmuxModal } from "./TmuxModal"
 import { useModal } from "../modal"
 import { createDiffAnchor, prUrl, type DiffAnchor } from "../github"
 import { api, errText } from "../api"
-import type { ConcernTarget, RankedConcern, ReviewerNote, Tab, TmuxPick } from "../types"
+import type {
+  ConcernTarget,
+  FileTarget,
+  RankedConcern,
+  ReviewerNote,
+  Tab,
+  TmuxPick,
+} from "../types"
 
 type Props = {
   owner: string
@@ -33,6 +40,9 @@ type Props = {
 }
 
 const tabs: Tab[] = ["description", "files", "review"]
+
+const dirPart = (path: string) => path.slice(0, path.lastIndexOf("/") + 1)
+const basePart = (path: string) => path.slice(path.lastIndexOf("/") + 1)
 
 export function PRDetail(props: Props) {
   const detail = usePRDetail(
@@ -54,6 +64,8 @@ export function PRDetail(props: Props) {
   )
   const [filesMounted, setFilesMounted] = createSignal(false)
   const [focus, setFocus] = createSignal<ConcernTarget | null>(null)
+  const [fileFocus, setFileFocus] = createSignal<FileTarget | null>(null)
+  let fileFocusNonce = 0
   const prefetch = usePrefetch()
   const queryClient = useQueryClient()
 
@@ -128,6 +140,12 @@ export function PRDetail(props: Props) {
 
   const focusLine = (file: string, line: number, side: "additions" | "deletions", rank: number) => {
     setFocus({ file, line, side, rank })
+    prefetch.diff(props.owner, props.repo, props.prNumber)
+    props.onTabChange("files")
+  }
+
+  const focusFile = (file: string) => {
+    setFileFocus({ file, nonce: fileFocusNonce++ })
     prefetch.diff(props.owner, props.repo, props.prNumber)
     props.onTabChange("files")
   }
@@ -224,17 +242,57 @@ export function PRDetail(props: Props) {
 
       <div class="pr-tab-content">
         <Show when={props.tab === "description"}>
-          <div class="pr-description">
-            <Show when={detailData()} keyed>
-              {(d) => (
-                <Show when={d.pr.Body} fallback={<span class="muted">no description</span>}>
-                  <Markdown content={d.pr.Body} />
+          <div class="review-layout">
+            <div class="review-diff pr-description">
+              <div class="pr-description-body">
+                <Show when={detailData()} keyed>
+                  {(d) => (
+                    <Show when={d.pr.Body} fallback={<span class="muted">no description</span>}>
+                      <Markdown content={d.pr.Body} />
+                    </Show>
+                  )}
                 </Show>
-              )}
-            </Show>
-            <Show when={detail.isPending}>
-              <SkeletonLines />
-            </Show>
+                <Show when={detail.isPending}>
+                  <SkeletonLines />
+                </Show>
+              </div>
+            </div>
+            <aside class="review-rail desc-rail">
+              <Show when={detailData()} keyed>
+                {(d) => (
+                  <div class="desc-files">
+                    <div class="desc-files-head">
+                      <span>files affected</span>
+                      <span class="desc-files-count">{d.files.length}</span>
+                    </div>
+                    <For each={d.files}>
+                      {(f) => (
+                        <button
+                          class="desc-file-row"
+                          onClick={() => focusFile(f.Filename)}
+                          onMouseEnter={prefetchFiles}
+                          title={f.Filename}
+                        >
+                          <span class="desc-file-name">
+                            <span class="desc-file-dir">{dirPart(f.Filename)}</span>
+                            <span class="desc-file-base">{basePart(f.Filename)}</span>
+                          </span>
+                          <span class="desc-file-stat">
+                            <span class="additions">+{f.Additions}</span>
+                            <span class="deletions">-{f.Deletions}</span>
+                          </span>
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                )}
+              </Show>
+              <Show when={detail.isPending}>
+                <div class="desc-files-pending">
+                  <SkeletonLines />
+                </div>
+              </Show>
+            </aside>
           </div>
         </Show>
 
@@ -248,6 +306,7 @@ export function PRDetail(props: Props) {
                   prNumber={props.prNumber}
                   sides={diffSides(detailData()?.pr)}
                   focus={focus()}
+                  fileFocus={fileFocus()}
                   threads={threads() ?? []}
                   onPickLine={pickLine}
                   onUnpickLine={removePick}

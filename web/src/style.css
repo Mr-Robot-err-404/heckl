@@ -702,12 +702,98 @@ button.topbar-config:hover { background: none; color: var(--text); }
   flex-direction: column;
 }
 
-.pr-description {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 28px 24px;
-  overflow-y: auto;
-  height: 100%;
+.pr-description { overflow-y: auto; }
+
+.pr-description-body {
+  padding: 28px var(--gutter);
+  max-width: 900px;
+}
+
+.review-rail.desc-rail {
+  padding: 0 var(--gutter);
+  gap: 0;
+}
+
+.desc-files {
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(-1 * var(--gutter));
+}
+
+.desc-files-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--mantle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--subtext0);
+  padding: 14px var(--gutter) 10px;
+  border-bottom: 1px solid var(--surface0);
+  flex-shrink: 0;
+}
+
+.desc-files-count {
+  color: var(--overlay1);
+  font-weight: 500;
+}
+
+.desc-files-pending { padding: 14px var(--gutter); }
+
+.desc-file-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--surface0);
+  padding: 7px var(--gutter);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  min-width: 0;
+}
+.desc-file-row:hover { background: var(--surface0); }
+.desc-file-row:last-child { border-bottom: none; }
+
+.desc-file-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.desc-file-dir {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--overlay1);
+}
+
+.desc-file-base {
+  flex-shrink: 0;
+  color: var(--subtext1);
+}
+.desc-file-row:hover .desc-file-base { color: var(--text); }
+
+.desc-file-stat {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 11px;
 }
 
 .diffview-host { flex: 1; overflow: auto; height: 100%; }
@@ -2291,7 +2377,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   .pr-tab { padding: 0 10px 8px; }
   .pr-tab:first-child { padding-left: var(--gutter); }
 
-  .pr-description { padding: 16px 12px; }
+  .pr-description-body { padding: 16px 12px; }
   .review-page { padding: 16px var(--gutter) 48px; }
   .review-stage-detail { overflow-wrap: anywhere; }
 

@@ -100,6 +100,11 @@ export type ConcernTarget = {
   rank: number
 }
 
+export type FileTarget = {
+  file: string
+  nonce: number
+}
+
 export type ReviewerNote = {
   id: number
   body: string
