@@ -1316,48 +1316,27 @@ button.topbar-config:hover { background: none; color: var(--text); }
   mask-image: url(/opencode.png);
 }
 
-a:hover .brand-mark { background-color: var(--text); }
+.brand-mark.is-tmux {
+  width: 57px;
+  height: 15px;
+  -webkit-mask-image: url(/tmux.svg);
+  mask-image: url(/tmux.svg);
+}
+
+a:hover .brand-mark,
+.tmux-btn:hover .brand-mark { background-color: var(--text); }
 
 .tmux-btn {
   margin-bottom: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font: inherit;
   font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 3px;
+  padding: 0;
+  background: none;
+  border: none;
   cursor: pointer;
-  color: var(--subtext0);
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
-}
-.tmux-btn:hover {
-  color: var(--text);
-  background: var(--surface1);
-  border-color: var(--overlay0);
-}
-
-.tmux-btn.picked {
-  color: var(--base);
-  background: var(--green);
-  border-color: var(--green);
-}
-.tmux-btn.picked:hover {
-  background: var(--green);
-  border-color: var(--green);
-  filter: brightness(1.1);
-}
-
-.tmux-btn.live {
-  color: var(--base);
-  background: var(--blue);
-  border-color: var(--blue);
-}
-.tmux-btn.live:hover {
-  background: var(--blue);
-  border-color: var(--blue);
-  filter: brightness(1.1);
 }
 
 .pr-github-link,
@@ -1370,20 +1349,12 @@ a:hover .brand-mark { background-color: var(--text); }
 }
 
 .tmux-btn-count {
-  font-size: 10px;
-  border-radius: 8px;
-  padding: 1px 5px;
-  color: var(--base);
-  background: var(--overlay1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--overlay1);
 }
-.tmux-btn.picked .tmux-btn-count {
-  color: var(--green);
-  background: var(--base);
-}
-.tmux-btn.live .tmux-btn-count {
-  color: var(--blue);
-  background: var(--base);
-}
+.tmux-btn.picked .tmux-btn-count { color: var(--green); }
+.tmux-btn.live .tmux-btn-count { color: var(--blue); }
 
 .tmux-section {
   display: flex;

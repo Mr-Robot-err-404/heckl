@@ -208,9 +208,10 @@ export function PRDetail(props: Props) {
         <button
           class={`tmux-btn ${tmuxBadge().kind}`}
           title={live() ? "tmux session active" : "open selected lines in nvim"}
+          aria-label={live() ? "tmux session active" : "open selected lines in nvim"}
           onClick={openTmuxModal}
         >
-          tmux
+          <span class="brand-mark is-tmux" />
           <Show when={tmuxBadge().count}>
             <span class="tmux-btn-count">{tmuxBadge().count}</span>
           </Show>
