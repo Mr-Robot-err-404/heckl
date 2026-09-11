@@ -1443,7 +1443,7 @@ a:hover .brand-mark,
   font: inherit;
   font-size: 11px;
   padding: 0;
-  margin-right: -2px;
+  margin-right: 2px;
   background: none;
   border: none;
   cursor: pointer;
@@ -1461,7 +1461,7 @@ a:hover .brand-mark,
 .tmux-btn-count {
   position: absolute;
   top: 0;
-  right: -6px;
+  right: -7px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
