@@ -949,6 +949,14 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .markdown th { background: var(--surface0); color: var(--text); font-weight: 600; }
 .markdown tr:nth-child(even) td { background: var(--mantle); }
 .markdown img { max-width: 100%; height: auto; border-radius: 4px; margin: 8px 0; }
+
+.markdown-img-skeleton {
+  width: 100%;
+  max-width: 420px;
+  height: 180px;
+  border-radius: 4px;
+  margin: 8px 0;
+}
 .markdown a { color: var(--blue); text-decoration: none; }
 .markdown a:hover { text-decoration: underline; }
 .markdown hr { border: none; border-top: 1px solid var(--crust); margin: 16px 0; }

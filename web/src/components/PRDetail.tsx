@@ -9,6 +9,7 @@ import {
   resolved,
   tmuxSessionKey,
 } from "../queries"
+import { preloadMarkdownImages } from "../images"
 import { createReview, opencodeUrl } from "../review"
 import { DiffView } from "./diff/DiffView"
 import { diffSides } from "./diff/loadFiles"
@@ -77,6 +78,13 @@ export function PRDetail(props: Props) {
     () => props.prNumber,
   )
   const threads = resolved(comments)
+
+  createEffect(() => {
+    preloadMarkdownImages(detailData()?.pr.Body)
+    for (const thread of threads() ?? []) {
+      for (const note of thread.notes) preloadMarkdownImages(note.body)
+    }
+  })
   const review = createReview(
     () => props.owner,
     () => props.repo,

@@ -2,6 +2,7 @@ import DOMPurify from "dompurify"
 import { marked } from "marked"
 import { createEffect, createMemo } from "solid-js"
 import { highlightCode, highlightVersion } from "../highlight"
+import { assetSrc, preloadImage, readyImage } from "../images"
 import { theme } from "../theme"
 import { buildCopyButton } from "./copyButton"
 
@@ -9,28 +10,46 @@ type Props = {
   content: string
 }
 
-const GITHUB_ASSET_PROXY_HOSTS = [
-  "github.com",
-  "user-images.githubusercontent.com",
-  "private-user-images.githubusercontent.com",
-]
-
-function needsAssetProxy(src: string): boolean {
-  try {
-    return GITHUB_ASSET_PROXY_HOSTS.includes(new URL(src).host)
-  } catch {
-    return false
-  }
-}
-
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName === "IMG") {
     const src = node.getAttribute("src")
-    if (src && needsAssetProxy(src)) {
-      node.setAttribute("src", `/api/asset?url=${encodeURIComponent(src)}`)
-    }
+    if (src) node.setAttribute("src", assetSrc(src))
   }
 })
+
+function adopt(node: HTMLImageElement, from: HTMLImageElement): HTMLImageElement {
+  for (const attr of from.attributes) {
+    if (attr.name === "src") continue
+    node.setAttribute(attr.name, attr.value)
+  }
+  return node
+}
+
+export function hydrateImages(root: HTMLElement) {
+  for (const img of Array.from(root.querySelectorAll("img"))) {
+    const src = img.getAttribute("src")
+    if (!src) continue
+
+    const done = readyImage(src)
+    if (done) {
+      img.replaceWith(adopt(done, img))
+      continue
+    }
+
+    const slot = document.createElement("span")
+    slot.className = "skeleton markdown-img-skeleton"
+    img.replaceWith(slot)
+
+    preloadImage(src)
+      .then(() => {
+        const node = readyImage(src)
+        if (slot.isConnected && node) slot.replaceWith(adopt(node, img))
+      })
+      .catch(() => {
+        if (slot.isConnected) slot.replaceWith(img)
+      })
+  }
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -89,6 +108,7 @@ export function Markdown(props: Props) {
   createEffect(() => {
     root.innerHTML = html()
     attachCodeCopyButtons(root)
+    hydrateImages(root)
   })
 
   return <div ref={root} class="markdown" />
