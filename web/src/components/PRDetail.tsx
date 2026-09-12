@@ -16,7 +16,7 @@ import { Markdown } from "./Markdown"
 import { SkeletonLines } from "./Skeleton"
 import { ReviewPanel } from "./ReviewPanel"
 import { ReviewerComments } from "./ReviewerComments"
-import { ReviewPage } from "./ReviewPage"
+import { ReviewAgents, ReviewPage } from "./ReviewPage"
 import { TmuxModal } from "./TmuxModal"
 import { useModal } from "../modal"
 import { createDiffAnchor, prUrl, type DiffAnchor } from "../github"
@@ -371,7 +371,14 @@ export function PRDetail(props: Props) {
         </Show>
 
         <Show when={props.tab === "review"}>
-          <ReviewPage state={review} onFocusConcern={focusConcern} />
+          <div class="review-layout">
+            <div class="review-diff">
+              <ReviewPage state={review} onFocusConcern={focusConcern} />
+            </div>
+            <aside class="review-rail">
+              <ReviewAgents state={review} />
+            </aside>
+          </div>
         </Show>
       </div>
 

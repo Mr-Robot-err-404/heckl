@@ -48,20 +48,7 @@ export function ReviewPage(props: Props) {
   return (
     <div class="review-page">
       <div class="review-page-head">
-        <div class="review-head-start">
-          <Show when={s().review()?.opencodeSessionPath}>
-            <a
-              class="review-session-link"
-              href={opencodeUrl(s().review()?.opencodeSessionPath)}
-              target="_blank"
-              rel="noreferrer"
-              title="continue in opencode"
-              aria-label="continue in opencode"
-            >
-              <span class="brand-mark is-opencode" />
-            </a>
-          </Show>
-        </div>
+        <div class="review-head-start" />
         <div class="review-head-end">
           <Show
             when={s().busy()}
@@ -125,48 +112,6 @@ export function ReviewPage(props: Props) {
         <p class="review-idle">no review yet - run one to see the agent's read on this PR</p>
       </Show>
 
-      <Show when={s().busy() && s().review()}>
-        <div class="review-stages">
-          <For each={s().review()!.stages}>
-            {(stage) => <StageRow stage={stage} now={s().now()} />}
-          </For>
-        </div>
-      </Show>
-
-      <Show when={s().review() && agents().length > 0}>
-        <div class="agent-lanes">
-          <For each={agents()}>
-            {(agent) => (
-              <div class={`agent-lane is-${agent.status}`}>
-                <div class="agent-lane-head">
-                  <span class="agent-lane-name">{agentLabel(agent.name)}</span>
-                  <Show when={agent.opencodeSessionPath}>
-                    <a
-                      class="review-session-link"
-                      href={opencodeUrl(agent.opencodeSessionPath)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {agent.status === "running" ? "watch ↗" : "session ↗"}
-                    </a>
-                  </Show>
-                  <Show when={agent.status === "done" && agent.durationMs > 0}>
-                    <span class="review-stage-time">{formatMs(agent.durationMs)}</span>
-                  </Show>
-                  <AgentButton state={s()} agent={agent} />
-                </div>
-                <For each={agent.stages}>
-                  {(stage) => <StageRow stage={stage} now={s().now()} />}
-                </For>
-                <Show when={agent.error}>
-                  <div class="review-error">{agent.error}</div>
-                </Show>
-              </div>
-            )}
-          </For>
-        </div>
-      </Show>
-
       <Show when={s().review()?.status === "error"}>
         <div class="review-error">{s().review()?.error}</div>
       </Show>
@@ -213,6 +158,66 @@ export function ReviewPage(props: Props) {
             </section>
           )}
         </For>
+      </Show>
+    </div>
+  );
+}
+
+
+export function ReviewAgents(props: { state: ReviewState }) {
+  const s = () => props.state;
+  const agents = (): ReviewAgent[] => s().review()?.agents ?? [];
+
+  return (
+    <div class="review-agents">
+      <div class="review-panel-head">
+        <span class="review-panel-title">agents</span>
+      </div>
+
+      <Show when={s().busy() && s().review()}>
+        <div class="review-stages">
+          <For each={s().review()!.stages}>
+            {(stage) => <StageRow stage={stage} now={s().now()} />}
+          </For>
+        </div>
+      </Show>
+
+      <Show when={s().review() && agents().length > 0}>
+        <div class="agent-lanes">
+          <For each={agents()}>
+            {(agent) => (
+              <div class={`agent-lane is-${agent.status}`}>
+                <div class="agent-lane-head">
+                  <span class="agent-lane-name">{agentLabel(agent.name)}</span>
+                  <Show when={agent.opencodeSessionPath}>
+                    <a
+                      class="review-session-link"
+                      href={opencodeUrl(agent.opencodeSessionPath)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {agent.status === "running" ? "watch ↗" : "session ↗"}
+                    </a>
+                  </Show>
+                  <Show when={agent.status === "done" && agent.durationMs > 0}>
+                    <span class="review-stage-time">{formatMs(agent.durationMs)}</span>
+                  </Show>
+                  <AgentButton state={s()} agent={agent} />
+                </div>
+                <For each={agent.stages}>
+                  {(stage) => <StageRow stage={stage} now={s().now()} />}
+                </For>
+                <Show when={agent.error}>
+                  <div class="review-error">{agent.error}</div>
+                </Show>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+
+      <Show when={!s().review()}>
+        <p class="review-idle">no agents have run yet</p>
       </Show>
     </div>
   );

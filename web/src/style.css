@@ -1594,7 +1594,8 @@ a:hover .brand-mark,
   width: 100%;
   margin: 0 auto;
   padding: 24px var(--gutter) 64px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;
@@ -1603,6 +1604,12 @@ a:hover .brand-mark,
 }
 
 .review-page > * { flex-shrink: 0; }
+
+.review-agents {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
 .review-page-head {
   position: sticky;
