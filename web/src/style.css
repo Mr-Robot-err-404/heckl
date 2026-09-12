@@ -986,7 +986,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 7px;
   cursor: pointer;
   user-select: none;
 }
@@ -1155,7 +1155,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .reviewer-comments-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   cursor: pointer;
   user-select: none;
 }
@@ -2296,7 +2296,6 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 
 /* ── Icon button hit targets ── */
 .modal-close,
-.panel-collapse,
 .review-row-caret,
 .agent-rerun,
 .diff-header-btn,
@@ -2313,15 +2312,16 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 6px;
+  height: 14px;
   background: none;
   border: none;
-  padding: 2px;
-  margin-right: 6px;
+  padding: 0;
   color: var(--overlay1);
   cursor: pointer;
   transition: transform 0.15s;
 }
-.panel-collapse .bot-icon { width: 14px; height: 14px; }
+.panel-collapse .bot-icon { width: 14px; height: 14px; flex: none; }
 
 @media (max-width: 720px) {
   .topbar {
