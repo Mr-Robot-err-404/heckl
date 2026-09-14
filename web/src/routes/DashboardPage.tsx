@@ -28,6 +28,8 @@ export function DashboardPage() {
   return (
     <div class="dashboard">
       <div class="dashboard-cols">
+        <RecentPRPanel />
+
         <section class="dashboard-main">
           <div class="dashboard-head">
             <h1>history</h1>
@@ -36,36 +38,38 @@ export function DashboardPage() {
             </Show>
           </div>
 
-          <Show when={history.error}>
-            <div class="empty error">{String(history.error)}</div>
-          </Show>
+          <div class="dashboard-scroll">
+            <Show when={history.error}>
+              <div class="empty error">{String(history.error)}</div>
+            </Show>
 
-          <Show
-            when={rows().length > 0}
-            fallback={
-              <Show when={history.isPending} fallback={<div class="empty">no reviews yet</div>}>
-                <ul class="review-rows">
-                  <For each={skeletonRows}>
-                    {() => (
-                      <li class="review-row is-skeleton">
-                        <div class="review-row-top">
-                          <span class="skeleton skeleton-status" />
-                          <span class="skeleton skeleton-repo" />
-                          <span class="skeleton skeleton-pr" />
-                          <span class="skeleton skeleton-title" />
-                          <span class="skeleton skeleton-date" />
-                        </div>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </Show>
-            }
-          >
-            <ul class="review-rows" classList={{ "is-stale": history.isFetching }}>
-              <For each={rows()}>{(row) => <ReviewRow row={row} showRepo />}</For>
-            </ul>
-          </Show>
+            <Show
+              when={rows().length > 0}
+              fallback={
+                <Show when={history.isPending} fallback={<div class="empty">no reviews yet</div>}>
+                  <ul class="review-rows">
+                    <For each={skeletonRows}>
+                      {() => (
+                        <li class="review-row is-skeleton">
+                          <div class="review-row-top">
+                            <span class="skeleton skeleton-status" />
+                            <span class="skeleton skeleton-repo" />
+                            <span class="skeleton skeleton-pr" />
+                            <span class="skeleton skeleton-title" />
+                            <span class="skeleton skeleton-date" />
+                          </div>
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                </Show>
+              }
+            >
+              <ul class="review-rows" classList={{ "is-stale": history.isFetching }}>
+                <For each={rows()}>{(row) => <ReviewRow row={row} showRepo />}</For>
+              </ul>
+            </Show>
+          </div>
 
           <div class="pager">
             <button
@@ -88,7 +92,6 @@ export function DashboardPage() {
           </div>
         </section>
 
-        <RecentPRPanel />
       </div>
     </div>
   )

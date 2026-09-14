@@ -106,56 +106,58 @@ export function RecentPRPanel() {
         </details>
       </div>
 
-      <Show when={recent.error || saveFilter.error}>
-        <div class="empty error">{String(recent.error ?? saveFilter.error)}</div>
-      </Show>
-      <Show when={unavailable().length > 0}>
-        <div class="recent-pr-warning" title={unavailable().join(", ")}>
-          {unavailable().length} repositories unavailable
-        </div>
-      </Show>
+      <div class="dashboard-scroll">
+        <Show when={recent.error || saveFilter.error}>
+          <div class="empty error">{String(recent.error ?? saveFilter.error)}</div>
+        </Show>
+        <Show when={unavailable().length > 0}>
+          <div class="recent-pr-warning" title={unavailable().join(", ")}>
+            {unavailable().length} repositories unavailable
+          </div>
+        </Show>
 
-      <Show
-        when={rows().length > 0}
-        fallback={
-          <Show when={recent.isPending} fallback={<div class="empty recent-pr-empty">no recent pull requests</div>}>
-            <ul class="review-rows">
-              <For each={skeletonRows}>
-                {() => (
-                  <li class="recent-pr-row is-skeleton">
-                    <span class="skeleton skeleton-title" />
-                    <span class="skeleton skeleton-repo" />
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Show>
-        }
-      >
-        <ul class="review-rows" classList={{ "is-stale": recent.isFetching }}>
-          <For each={rows()}>
-            {(pr) => (
-              <li
-                class="recent-pr-row"
-                classList={{ "is-reviewing": isReviewing(pr) }}
-                onMouseEnter={() => prefetch.pr(pr.Owner, pr.Repo, pr.Number)}
-                onClick={() => open(pr)}
-              >
-                <div class="recent-pr-title">
-                  <Show when={pr.Draft}><span class="badge draft">draft</span></Show>
-                  <span>{pr.Title}</span>
-                </div>
-                <div class="recent-pr-meta">
-                  <span class="recent-pr-repo">{pr.Owner}/{pr.Repo}</span>
-                  <span>#{pr.Number}</span>
-                  <span>{pr.Author}</span>
-                  <span class="muted recent-pr-age">{relativeTime(pr.UpdatedAt)}</span>
-                </div>
-              </li>
-            )}
-          </For>
-        </ul>
-      </Show>
+        <Show
+          when={rows().length > 0}
+          fallback={
+            <Show when={recent.isPending} fallback={<div class="empty recent-pr-empty">no recent pull requests</div>}>
+              <ul class="review-rows">
+                <For each={skeletonRows}>
+                  {() => (
+                    <li class="recent-pr-row is-skeleton">
+                      <span class="skeleton skeleton-title" />
+                      <span class="skeleton skeleton-repo" />
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Show>
+          }
+        >
+          <ul class="review-rows" classList={{ "is-stale": recent.isFetching }}>
+            <For each={rows()}>
+              {(pr) => (
+                <li
+                  class="recent-pr-row"
+                  classList={{ "is-reviewing": isReviewing(pr) }}
+                  onMouseEnter={() => prefetch.pr(pr.Owner, pr.Repo, pr.Number)}
+                  onClick={() => open(pr)}
+                >
+                  <div class="recent-pr-title">
+                    <Show when={pr.Draft}><span class="badge draft">draft</span></Show>
+                    <span>{pr.Title}</span>
+                  </div>
+                  <div class="recent-pr-meta">
+                    <span class="recent-pr-repo">{pr.Owner}/{pr.Repo}</span>
+                    <span>#{pr.Number}</span>
+                    <span>{pr.Author}</span>
+                    <span class="muted recent-pr-age">{relativeTime(pr.UpdatedAt)}</span>
+                  </div>
+                </li>
+              )}
+            </For>
+          </ul>
+        </Show>
+      </div>
     </section>
   )
 }
