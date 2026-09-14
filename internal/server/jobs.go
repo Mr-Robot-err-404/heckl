@@ -9,7 +9,9 @@ import (
 
 const (
 	jobSweepWorktrees = "sweep_worktrees"
+	jobSweepSessions  = "sweep_opencode_sessions"
 	sweepInterval     = 12 * time.Hour
+	sessionInterval   = 7 * time.Hour
 	jobTick           = 15 * time.Minute
 	jobStartupDelay   = 30 * time.Second
 )
@@ -21,14 +23,30 @@ type job struct {
 }
 
 func (s *Server) jobs() []job {
-	return []job{{
-		name:     jobSweepWorktrees,
-		interval: sweepInterval,
-		run:      s.sweepWorktrees,
-	}}
+	return []job{
+		{
+			name:     jobSweepWorktrees,
+			interval: sweepInterval,
+			run:      s.sweepWorktrees,
+		},
+		{
+			name:     jobSweepSessions,
+			interval: sessionInterval,
+			run:      s.SweepOpencodeSessions,
+		},
+	}
 }
 
 func (s *Server) StartJobs(ctx context.Context) {
+	s.orchestrator.OnReviewDone(func() {
+		detail, err := s.SweepOpencodeSessions(ctx)
+		if err != nil {
+			slog.Error("sessions: sweep after review failed", "err", err)
+			return
+		}
+		slog.Info("sessions: swept after review", "detail", detail)
+	})
+
 	go func() {
 		select {
 		case <-time.After(jobStartupDelay):

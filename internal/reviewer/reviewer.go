@@ -230,6 +230,9 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfi
 		return fail(StageSession, fmt.Errorf("reviewer: create session (%s): %w", name, err))
 	}
 	res.sessionID = sess.ID
+	if err := r.store.TrackOpencodeSession(context.Background(), sess.ID, req.Owner, req.Repo, req.PRNumber, name); err != nil {
+		log.Warn("reviewer: track opencode session failed", "session_id", sess.ID, "err", err)
+	}
 	log = log.With("session_id", sess.ID)
 	emit(ProgressEvent{Agent: name, Stage: StageSession, Done: true, SessionID: sess.ID})
 	log.Info("reviewer: session created", "duration_ms", time.Since(t).Milliseconds())

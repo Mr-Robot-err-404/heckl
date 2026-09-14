@@ -36,6 +36,15 @@ type JobRun struct {
 	Detail     string
 }
 
+type OpencodeSession struct {
+	SessionID string
+	Owner     string
+	Repo      string
+	PrNumber  int64
+	Agent     string
+	CreatedAt string
+}
+
 type PrReviewSession struct {
 	ID                int64
 	Owner             string

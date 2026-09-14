@@ -96,6 +96,12 @@ func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscriptio
 
 func (o *Orchestrator) Active() []*Review { return o.runner.Active() }
 
+func (o *Orchestrator) OnReviewDone(fn func()) {
+	o.runner.mu.Lock()
+	o.runner.onDone = fn
+	o.runner.mu.Unlock()
+}
+
 func (o *Orchestrator) SubscribeAll() (*Subscription, []*Review, error) {
 	sub, err := o.hub.SubscribeAll()
 	if err != nil {

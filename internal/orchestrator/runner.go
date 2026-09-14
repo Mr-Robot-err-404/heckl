@@ -38,6 +38,7 @@ type Runner struct {
 
 	mu       sync.RWMutex
 	inFlight map[string]*activeRun
+	onDone   func()
 }
 
 func newRunner(ctx context.Context, logger *slog.Logger, source PRSource, rev *reviewer.Reviewer, st ReviewStore, publish func(string, *Review), path SessionPath) *Runner {
@@ -391,5 +392,10 @@ func (r *Runner) release(key string) {
 		active.cancel()
 		delete(r.inFlight, key)
 	}
+	done := r.onDone
 	r.mu.Unlock()
+
+	if done != nil {
+		go done()
+	}
 }

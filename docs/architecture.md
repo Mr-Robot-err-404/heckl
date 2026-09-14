@@ -172,6 +172,26 @@ The on-visit reaper works from the open PR set alone, so it cannot tell a
 superseded sha from a current one. The scheduled sweep can, because the PR list
 carries head shas.
 
+### opencode sessions
+
+The reviewer creates one opencode session per agent. They live in opencode's own
+sqlite db, not on heckl's disk, so this is list hygiene rather than space.
+
+**A session is dead when heckl can no longer navigate to it.** The only links are
+on the PR detail route, fed by `pr_review_sessions.opencode_session_id` and
+`review_agents.opencode_session_id`. `UpsertReviewAgent` overwrites the agent's
+id on a rerun, so the previous session becomes unreachable at that moment.
+
+Reachability alone is not enough to act on: heckl knows what it *references*, not
+what it *created*, and the difference is exactly the set worth deleting.
+`opencode_sessions` is that missing half, written at creation.
+`UnreachableOpencodeSessions` is then a plain mark-and-sweep, ledger minus
+referenced. Heckl never pattern-matches session titles, so it cannot touch a
+session it did not create.
+
+Swept on the 7h job and after every review completes, which is what collects a
+rerun's casualty promptly. Both call the same function; it is idempotent.
+
 ### Scheduled jobs
 
 `internal/server/jobs.go`. A worker ticks every 15 minutes (first run 30s after

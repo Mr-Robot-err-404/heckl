@@ -453,3 +453,22 @@ func (s *Store) RecordJobRun(ctx context.Context, name, status, detail string, t
 func (s *Store) ListJobRuns(ctx context.Context) ([]*JobRun, error) {
 	return s.queries.ListJobRuns(ctx)
 }
+
+func (s *Store) TrackOpencodeSession(ctx context.Context, sessionID, owner, repo string, prNumber int, agent string) error {
+	return s.queries.TrackOpencodeSession(ctx, TrackOpencodeSessionParams{
+		SessionID: sessionID,
+		Owner:     owner,
+		Repo:      repo,
+		PrNumber:  int64(prNumber),
+		Agent:     agent,
+		CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func (s *Store) UnreachableOpencodeSessions(ctx context.Context) ([]*OpencodeSession, error) {
+	return s.queries.UnreachableOpencodeSessions(ctx)
+}
+
+func (s *Store) ForgetOpencodeSession(ctx context.Context, sessionID string) error {
+	return s.queries.ForgetOpencodeSession(ctx, sessionID)
+}
