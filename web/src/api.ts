@@ -17,6 +17,7 @@ import type {
   TmuxRow,
   TmuxSession,
 } from "./types"
+import { reconnectingEventStream } from "./eventStream"
 
 const BASE = "/api"
 
@@ -123,17 +124,14 @@ export const api = {
       review: (review: Review) => void
       connected: (connected: boolean) => void
     }) => {
-      const source = new EventSource(`${BASE}/reviews/stream`)
-      source.addEventListener("snapshot", (e) => {
-        on.connected(true)
-        on.snapshot((JSON.parse(e.data) as Review[] | null) ?? [])
-      })
-      source.addEventListener("review", (e) => {
-        on.connected(true)
-        on.review(JSON.parse(e.data) as Review)
-      })
-      source.addEventListener("error", () => on.connected(false))
-      return () => source.close()
+      return reconnectingEventStream(
+        `${BASE}/reviews/stream`,
+        {
+          snapshot: (data) => on.snapshot((JSON.parse(data) as Review[] | null) ?? []),
+          review: (data) => on.review(JSON.parse(data) as Review),
+        },
+        on.connected,
+      )
     },
   },
   theme: {
@@ -176,15 +174,12 @@ export const api = {
         connected: (connected: boolean) => void
       },
     ) => {
-      const source = new EventSource(`${BASE}/review/${owner}/${repo}/${number}/stream`)
-      const handle = (e: MessageEvent) => {
-        on.connected(true)
-        on.state(JSON.parse(e.data) as Review | null)
-      }
-      source.addEventListener("snapshot", handle)
-      source.addEventListener("review", handle)
-      source.addEventListener("error", () => on.connected(false))
-      return () => source.close()
+      const handle = (data: string) => on.state(JSON.parse(data) as Review | null)
+      return reconnectingEventStream(
+        `${BASE}/review/${owner}/${repo}/${number}/stream`,
+        { snapshot: handle, review: handle },
+        on.connected,
+      )
     },
   },
 }

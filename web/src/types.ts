@@ -26,6 +26,7 @@ export type PR = {
   Body: string
   State: string
   Author: string
+  AuthorAvatar: string
   HtmlUrl: string
   Draft: boolean
   CreatedAt: string

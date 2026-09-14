@@ -142,3 +142,14 @@ export function BellIcon() {
     </svg>
   )
 }
+
+export function TmuxIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M2.75 1h10.5C14.22 1 15 1.78 15 2.75v10.5c0 .97-.78 1.75-1.75 1.75H2.75C1.78 15 1 14.22 1 13.25V2.75C1 1.78 1.78 1 2.75 1ZM2.5 11.5v1.75c0 .14.11.25.25.25h10.5c.14 0 .25-.11.25-.25V8.5H8.75v3h-1.5v-9h-4.5a.25.25 0 0 0-.25.25v8.75Zm6.25-4.5h4.75V2.75a.25.25 0 0 0-.25-.25h-4.5V7Z"
+      />
+    </svg>
+  )
+}

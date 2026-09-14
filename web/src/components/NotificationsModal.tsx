@@ -2,7 +2,7 @@ import { createMemo, createSignal, For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
 import { resolved, useNotifications, usePrefetch, useReadNotifications } from "../queries"
 import { relativeTime } from "../review"
-import { CloseIcon } from "./icons"
+import { BellIcon, CloseIcon } from "./icons"
 import type { Notification } from "../types"
 
 const reasonLabels: Record<string, string> = {
@@ -71,7 +71,12 @@ export function NotificationsModal(props: { onClose: () => void }) {
                 when={!notifications.isPending}
                 fallback={<div class="empty">checking github...</div>}
               >
-                <div class="empty">nothing waiting on you</div>
+                <Show when={notifications.isSuccess}>
+                  <div class="empty deliberate-empty">
+                    <BellIcon />
+                    <span>Notifications up to date</span>
+                  </div>
+                </Show>
               </Show>
             }
           >

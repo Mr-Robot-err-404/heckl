@@ -233,9 +233,28 @@ export function PRDetail(props: Props) {
           <Show when={detailData()} keyed>
             {(d) => (
               <span class="pr-stats">
-                <span class="additions">+{d.files.reduce((n, f) => n + f.Additions, 0)}</span>
-                <span class="deletions">-{d.files.reduce((n, f) => n + f.Deletions, 0)}</span>
-                <span class="muted">{d.pr.Author}</span>
+                <img
+                  class="pr-author-avatar"
+                  src={d.pr.AuthorAvatar}
+                  alt={d.pr.Author}
+                  title={d.pr.Author}
+                  loading="lazy"
+                />
+                <Show when={d.pr.headRef && d.pr.baseRef}>
+                  <span
+                    class="pr-branches"
+                    title={`${d.pr.headRef} -> ${d.pr.baseRef}`}
+                    aria-label={`source ${d.pr.headRef}, target ${d.pr.baseRef}`}
+                  >
+                    <span>{d.pr.headRef}</span>
+                    <span class="pr-branch-arrow" aria-hidden="true">-&gt;</span>
+                    <span>{d.pr.baseRef}</span>
+                  </span>
+                </Show>
+                <span class="pr-diff-stat">
+                  <span class="additions">+{d.files.reduce((n, f) => n + f.Additions, 0)}</span>
+                  <span class="deletions">-{d.files.reduce((n, f) => n + f.Deletions, 0)}</span>
+                </span>
               </span>
             )}
           </Show>

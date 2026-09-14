@@ -2,6 +2,7 @@ import { createMemo, createSignal, For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
 import { resolved, useCleanupTmux, usePrefetch, useTmuxSessions } from "../queries"
 import { relativeTime } from "../review"
+import { TmuxIcon } from "./icons"
 import type { TmuxRef, TmuxRow } from "../types"
 
 const refOf = (row: TmuxRow): TmuxRef => ({
@@ -74,8 +75,11 @@ export function TmuxPanel() {
       <Show
         when={rows().length > 0}
         fallback={
-          <Show when={!sessions.isPending}>
-            <div class="empty">no tmux sessions</div>
+          <Show when={sessions.isSuccess}>
+            <div class="empty deliberate-empty tmux-empty">
+              <TmuxIcon />
+              <span>no tmux sessions</span>
+            </div>
           </Show>
         }
       >
