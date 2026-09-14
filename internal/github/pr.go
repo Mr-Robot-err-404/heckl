@@ -72,9 +72,13 @@ type PRFile struct {
 	Patch     string `json:"patch"`
 }
 
+// PRPageSize is the single page ListRepoPRs asks for. A result of exactly this
+// length means the list is truncated and should not be treated as complete.
+const PRPageSize = 100
+
 func (c *Client) ListRepoPRs(owner, repo string) ([]PR, error) {
 	var prs []PR
-	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls?state=open&per_page=100", owner, repo), &prs)
+	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls?state=open&per_page=%d", owner, repo, PRPageSize), &prs)
 	return prs, err
 }
 

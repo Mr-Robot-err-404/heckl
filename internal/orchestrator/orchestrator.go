@@ -94,6 +94,8 @@ func (o *Orchestrator) Subscribe(owner, repo string, prNumber int) (*Subscriptio
 	return o.hub.Subscribe(key, seed)
 }
 
+func (o *Orchestrator) Active() []*Review { return o.runner.Active() }
+
 func (o *Orchestrator) SubscribeAll() (*Subscription, []*Review, error) {
 	sub, err := o.hub.SubscribeAll()
 	if err != nil {

@@ -144,7 +144,33 @@ or a manually removed directory leaves a record that fails every later `add`. A
 tree whose `rev-parse HEAD` does not match is torn down, not reused. Worktree
 links are absolute and stored twice, so a moved data dir silently re-clones.
 
-Worktrees are never reaped.
+### Reaping
+
+A worktree has exactly two consumers: a running review, which reads through
+`opencode.ReadOnlyPermission(worktree)`, and a tmux session with nvim open in
+it. Diff rendering and blob expansion read the **clone**, and review results are
+rows in sqlite, so neither keeps a worktree alive. Once the review finishes and
+no session points at it, the directory is dead weight.
+
+Two triggers, both in `internal/server/reap.go`, both on their own goroutine
+with `context.Background()` so a slow sweep never holds up a response:
+
+- **PR closed**, swept on a repo's PR list request. A worktree whose PR is absent
+  from the open set is reaped. `ListRepoPRs` fetches one page, so a result of
+  exactly `github.PRPageSize` means the set may be truncated and the sweep is
+  skipped rather than risk deleting a live PR's worktree.
+- **tmux sessions killed**, swept after `POST /api/tmux/cleanup`.
+
+A PR is pinned by an active review or a live tmux session. `reviewing` is
+re-checked immediately before each delete, since a review can start after the
+sweep began and yanking the directory from under a running agent is the one
+failure this must not cause. `reapSessions` also asks tmux directly via the
+deterministic session name, because the row is already deleted by then and a
+failed `kill` would otherwise leave a live session unpinned.
+
+Reaping is by PR, not by sha, so a force-push that leaves a superseded worktree
+still accumulates until that PR closes. The clone's promisor packs are never
+reaped at all.
 
 ### Blob prefetch
 

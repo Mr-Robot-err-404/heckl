@@ -182,6 +182,8 @@ func (s *Server) handleCleanupTmuxSessions(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	go s.reapSessions(refs)
+
 	slog.Info("tmux sessions cleaned up", "removed", len(refs), "killed", len(killed))
 	jsonOK(w, struct {
 		Removed int `json:"removed"`

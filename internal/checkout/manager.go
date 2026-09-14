@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -76,6 +77,50 @@ func (m *Manager) Worktree(ctx context.Context, owner, repo string, prNumber int
 		return "", fmt.Errorf("checkout: worktree %s/%s #%d: %w", owner, repo, prNumber, err)
 	}
 	return dir, nil
+}
+
+type Worktree struct {
+	PRNumber int
+	Path     string
+}
+
+// Worktrees lists every checkout on disk for a repo, keyed by the PR it was
+// made for. A PR has more than one when its head moved and the older sha was
+// never reaped.
+func (m *Manager) Worktrees(owner, repo string) ([]Worktree, error) {
+	dir := filepath.Join(m.stateDir, "worktrees", owner, repo)
+	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]Worktree, 0, len(entries))
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		name, _, ok := strings.Cut(e.Name(), "-")
+		if !ok {
+			continue
+		}
+		number, err := strconv.Atoi(name)
+		if err != nil {
+			continue
+		}
+		out = append(out, Worktree{PRNumber: number, Path: filepath.Join(dir, e.Name())})
+	}
+	return out, nil
+}
+
+// Remove tears down a single worktree and drops git's record of it.
+func (m *Manager) Remove(ctx context.Context, owner, repo, dir string) error {
+	unlock := m.lockFor(owner + "/" + repo)
+	defer unlock()
+
+	return removeWorktree(ctx, m.repoPath(owner, repo), dir)
 }
 
 var ErrPathMissing = errors.New("checkout: path not found at revision")

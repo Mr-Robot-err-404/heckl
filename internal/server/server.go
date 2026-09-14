@@ -237,8 +237,18 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("github: list prs", "owner", owner, "repo", repo, "count", len(remote), "duration_ms", time.Since(start).Milliseconds())
 
 	numbers := make([]int, 0, len(remote))
+	open := make(map[int]bool, len(remote))
 	for _, pr := range remote {
 		numbers = append(numbers, pr.Number)
+		open[pr.Number] = true
+	}
+
+	// ListRepoPRs asks for one page, so a full page means the open set may be
+	// incomplete and reaping on absence could delete a live PR's worktree.
+	if len(remote) < github.PRPageSize {
+		go s.reapClosed(owner, repo, open)
+	} else {
+		slog.Warn("reap: skipped, open pr list may be truncated", "owner", owner, "repo", repo)
 	}
 
 	var (
