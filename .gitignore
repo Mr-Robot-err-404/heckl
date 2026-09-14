@@ -7,3 +7,6 @@ bin/
 web/dist/
 cmd/heckl/dist/
 data/
+
+.opencode/agents/heckl*.md
+.opencode/tools
