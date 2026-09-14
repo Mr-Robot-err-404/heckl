@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Mr-Robot-err-404/heckl/internal/checkout"
+	"github.com/Mr-Robot-err-404/heckl/internal/github"
 	"github.com/Mr-Robot-err-404/heckl/internal/orchestrator"
 	"github.com/Mr-Robot-err-404/heckl/internal/store"
 	"github.com/Mr-Robot-err-404/heckl/internal/tmux"
@@ -72,6 +73,44 @@ func (s *Server) removeWorktrees(ctx context.Context, owner, repo string, trees 
 		removed++
 	}
 	return removed
+}
+
+// sweepRepo also reaps worktrees left behind by a force-push.
+func (s *Server) sweepRepo(ctx context.Context, owner, repo string, pinned map[string]bool) (int, error) {
+	trees, err := s.checkout.Worktrees(owner, repo)
+	if err != nil {
+		return 0, err
+	}
+	if len(trees) == 0 {
+		return 0, nil
+	}
+
+	prs, err := s.gh.ListRepoPRs(owner, repo)
+	if err != nil {
+		return 0, err
+	}
+	if len(prs) >= github.PRPageSize {
+		slog.Warn("reap: skipped, open pr list may be truncated", "owner", owner, "repo", repo)
+		return 0, nil
+	}
+
+	head := make(map[int]string, len(prs))
+	for _, pr := range prs {
+		head[pr.Number] = checkout.SHALabel(pr.HeadSHA())
+	}
+
+	var stale []checkout.Worktree
+	for _, tree := range trees {
+		if pinned[orchestrator.PRKey(owner, repo, tree.PRNumber)] {
+			continue
+		}
+		current, open := head[tree.PRNumber]
+		if open && current == tree.SHA {
+			continue
+		}
+		stale = append(stale, tree)
+	}
+	return s.removeWorktrees(ctx, owner, repo, stale), nil
 }
 
 // reapClosed requires open to be the complete set of open PR numbers.

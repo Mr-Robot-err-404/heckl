@@ -28,6 +28,14 @@ type Concern struct {
 	CreatedAt string
 }
 
+type JobRun struct {
+	Name       string
+	LastRunAt  string
+	DurationMs int64
+	Status     string
+	Detail     string
+}
+
 type PrReviewSession struct {
 	ID                int64
 	Owner             string

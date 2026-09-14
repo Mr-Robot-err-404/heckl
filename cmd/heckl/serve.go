@@ -82,6 +82,7 @@ func runServe() {
 		fatal(err.Error())
 	}
 	srv.Static(http.FS(dist))
+	srv.StartJobs(context.Background())
 
 	ln, err := net.Listen("tcp", cfg.Server.Addr)
 	if err != nil {

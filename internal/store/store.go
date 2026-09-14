@@ -422,3 +422,34 @@ func nullInt64ToIntPtr(v sql.NullInt64) *int {
 	n := int(v.Int64)
 	return &n
 }
+
+func (s *Store) LastJobRun(ctx context.Context, name string) (time.Time, error) {
+	row, err := s.queries.GetJobRun(ctx, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	at, err := time.Parse(time.RFC3339, row.LastRunAt)
+	if err != nil {
+		return time.Time{}, nil
+	}
+	return at, nil
+}
+
+func (s *Store) RecordJobRun(ctx context.Context, name, status, detail string, took time.Duration) error {
+	_, err := s.queries.RecordJobRun(ctx, RecordJobRunParams{
+		Name:       name,
+		LastRunAt:  time.Now().UTC().Format(time.RFC3339),
+		DurationMs: took.Milliseconds(),
+		Status:     status,
+		Detail:     detail,
+	})
+	return err
+}
+
+func (s *Store) ListJobRuns(ctx context.Context) ([]*JobRun, error) {
+	return s.queries.ListJobRuns(ctx)
+}

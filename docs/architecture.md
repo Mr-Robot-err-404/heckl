@@ -168,9 +168,29 @@ failure this must not cause. `reapSessions` also asks tmux directly via the
 deterministic session name, because the row is already deleted by then and a
 failed `kill` would otherwise leave a live session unpinned.
 
-Reaping is by PR, not by sha, so a force-push that leaves a superseded worktree
-still accumulates until that PR closes. The clone's promisor packs are never
-reaped at all.
+The on-visit reaper works from the open PR set alone, so it cannot tell a
+superseded sha from a current one. The scheduled sweep can, because the PR list
+carries head shas.
+
+### Scheduled jobs
+
+`internal/server/jobs.go`. A worker ticks every 15 minutes (first run 30s after
+start) and runs any job whose interval has elapsed. `sweep_worktrees` walks every
+tracked repo every 12 hours, reaping worktrees whose PR has closed **or** whose
+sha is no longer the head.
+
+**`job_runs` stores `last_run_at`, not `next_run_at`.** Dueness is derived from an
+interval in code. Storing the next run would mean a write after each run that,
+if lost to a crash, stalls the job permanently with nothing to surface it.
+Deriving it cannot stall: a crash mid-sweep just leaves the job due again, and
+the sweep is idempotent. It also needs no seed row, since an absent row reads as
+"never run", and an interval change applies immediately rather than waiting for
+every stored schedule to drain.
+
+No cron or systemd timer: both would need the server up anyway, and a machine
+that was asleep through the window would simply miss it.
+
+The clone's promisor packs are never reaped.
 
 ### Blob prefetch
 

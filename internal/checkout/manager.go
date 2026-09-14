@@ -47,11 +47,8 @@ func (m *Manager) repoPath(owner, repo string) string {
 }
 
 func (m *Manager) worktreePath(owner, repo string, prNumber int, headSHA string) string {
-	label := headSHA
-	if len(label) > shaLabelLen {
-		label = label[:shaLabelLen]
-	}
-	return filepath.Join(m.stateDir, "worktrees", owner, repo, fmt.Sprintf("%d-%s", prNumber, label))
+	return filepath.Join(m.stateDir, "worktrees", owner, repo,
+		fmt.Sprintf("%d-%s", prNumber, SHALabel(headSHA)))
 }
 
 func (m *Manager) Worktree(ctx context.Context, owner, repo string, prNumber int, headSHA string) (string, error) {
@@ -81,7 +78,16 @@ func (m *Manager) Worktree(ctx context.Context, owner, repo string, prNumber int
 
 type Worktree struct {
 	PRNumber int
+	SHA      string
 	Path     string
+}
+
+// SHALabel is the sha prefix used in worktree directory names.
+func SHALabel(sha string) string {
+	if len(sha) > shaLabelLen {
+		return sha[:shaLabelLen]
+	}
+	return sha
 }
 
 // Worktrees lists every checkout on disk for a repo, keyed by the PR it was
@@ -102,7 +108,7 @@ func (m *Manager) Worktrees(owner, repo string) ([]Worktree, error) {
 		if !e.IsDir() {
 			continue
 		}
-		name, _, ok := strings.Cut(e.Name(), "-")
+		name, sha, ok := strings.Cut(e.Name(), "-")
 		if !ok {
 			continue
 		}
@@ -110,7 +116,11 @@ func (m *Manager) Worktrees(owner, repo string) ([]Worktree, error) {
 		if err != nil {
 			continue
 		}
-		out = append(out, Worktree{PRNumber: number, Path: filepath.Join(dir, e.Name())})
+		out = append(out, Worktree{
+			PRNumber: number,
+			SHA:      sha,
+			Path:     filepath.Join(dir, e.Name()),
+		})
 	}
 	return out, nil
 }
