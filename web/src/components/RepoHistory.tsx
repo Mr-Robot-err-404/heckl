@@ -50,7 +50,7 @@ export function RepoHistory(props: Props) {
         }
       >
         <ul class="review-rows compact">
-          <For each={rows()}>{(row) => <ReviewRow row={row} />}</For>
+          <For each={rows()}>{(row) => <ReviewRow row={row} showDetails />}</For>
         </ul>
       </Show>
 

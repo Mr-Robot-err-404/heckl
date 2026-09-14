@@ -135,9 +135,8 @@ export function TmuxPanel() {
                 <span class={`pill pill-${row.live ? "live" : "gone"}`}>
                   {row.live ? "live" : "stale"}
                 </span>
-                <span class="tmux-row-pr" title={row.session}>
-                  {row.repo} <span class="muted">#{row.prNumber}</span>
-                </span>
+                <span class="tmux-repo" title={row.repo}>{row.repo}</span>
+                <span class="tmux-pr muted" title={`#${row.prNumber}`}>#{row.prNumber}</span>
                 <span class="tmux-age muted">{relativeTime(row.createdAt)}</span>
                 <span class="tmux-windows" title={`${row.windows} windows`}>
                   {row.windows}

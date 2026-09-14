@@ -28,8 +28,6 @@ export function DashboardPage() {
   return (
     <div class="dashboard">
       <div class="dashboard-cols">
-        <TmuxPanel />
-
         <section class="dashboard-main">
           <div class="dashboard-head">
             <h1>history</h1>
@@ -50,8 +48,13 @@ export function DashboardPage() {
                   <For each={skeletonRows}>
                     {() => (
                       <li class="review-row is-skeleton">
-                        <span class="skeleton skeleton-title" />
-                        <span class="skeleton skeleton-meta" />
+                        <div class="review-row-top">
+                          <span class="skeleton skeleton-status" />
+                          <span class="skeleton skeleton-repo" />
+                          <span class="skeleton skeleton-pr" />
+                          <span class="skeleton skeleton-title" />
+                          <span class="skeleton skeleton-date" />
+                        </div>
                       </li>
                     )}
                   </For>
@@ -60,7 +63,7 @@ export function DashboardPage() {
             }
           >
             <ul class="review-rows" classList={{ "is-stale": history.isFetching }}>
-              <For each={rows()}>{(row) => <ReviewRow row={row} showRepo collapsible />}</For>
+              <For each={rows()}>{(row) => <ReviewRow row={row} showRepo />}</For>
             </ul>
           </Show>
 
@@ -84,6 +87,8 @@ export function DashboardPage() {
             </button>
           </div>
         </section>
+
+        <TmuxPanel />
       </div>
     </div>
   )

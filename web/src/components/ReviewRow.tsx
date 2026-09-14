@@ -1,9 +1,8 @@
-import { createSignal, For, Show } from "solid-js"
+import { For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
-import { formatMs, relativeTime } from "../review"
+import { relativeTime } from "../review"
 import { usePrefetch } from "../queries"
 import type { Review, ReviewHistoryRow } from "../types"
-import { ChevronIcon } from "./icons"
 
 export type Severity = "critical" | "warning" | "low"
 
@@ -22,7 +21,7 @@ export type Row = {
   title: string
   concerns: Concerns | null
   note: string
-  meta: string
+  date: string
 }
 
 const severities: Severity[] = ["critical", "warning", "low"]
@@ -39,7 +38,7 @@ export function activeRow(review: Review): Row {
     title: review.summary || `reviewing #${review.prNumber}`,
     concerns: null,
     note: stage ? `${stage.name}…` : "starting…",
-    meta: "",
+    date: "",
   }
 }
 
@@ -64,19 +63,13 @@ export function historyRow(session: ReviewHistoryRow): Row {
           },
         },
     note: failed ? (session.error ?? "") : "",
-    meta: [relativeTime(session.createdAt), session.durationMs ? formatMs(session.durationMs) : ""]
-      .filter(Boolean)
-      .join(" · "),
+    date: relativeTime(session.createdAt),
   }
 }
 
-export function ReviewRow(props: { row: Row; showRepo?: boolean; collapsible?: boolean }) {
+export function ReviewRow(props: { row: Row; showRepo?: boolean; showDetails?: boolean }) {
   const navigate = useNavigate()
   const prefetch = usePrefetch()
-  const [expanded, setExpanded] = createSignal(false)
-
-  const hasSub = () => !!props.row.concerns || !!props.row.note
-  const showSub = () => hasSub() && (!props.collapsible || expanded())
 
   const warm = () =>
     prefetch.pr(props.row.owner, props.row.repo, props.row.prNumber)
@@ -95,68 +88,53 @@ export function ReviewRow(props: { row: Row; showRepo?: boolean; collapsible?: b
   return (
     <li
       class={`review-row is-${props.row.status}`}
-      classList={{ expanded: props.collapsible && expanded() }}
       onMouseEnter={warm}
       onClick={open}
     >
       <div class="review-row-top">
-        <Show when={props.collapsible && hasSub()}>
-          <button
-            class="review-row-caret"
-            classList={{ collapsed: !expanded() }}
-            aria-expanded={expanded()}
-            aria-label={expanded() ? "collapse review detail" : "expand review detail"}
-            onClick={(e) => {
-              e.stopPropagation()
-              setExpanded(!expanded())
-            }}
-          >
-            <ChevronIcon />
-          </button>
-        </Show>
         <span class={`pill pill-${props.row.status}`}>{props.row.label}</span>
-        <span class="review-row-pr">
-          <Show when={props.showRepo}>
-            {props.row.owner}/{props.row.repo}{" "}
-          </Show>
-          <span class="muted">#{props.row.prNumber}</span>
-        </span>
+        <Show when={props.showRepo}>
+          <span class="review-row-repo" title={`${props.row.owner}/${props.row.repo}`}>
+            {props.row.owner}/{props.row.repo}
+          </span>
+        </Show>
+        <span class="review-row-pr muted">#{props.row.prNumber}</span>
         <span class="review-row-title">{props.row.title}</span>
-        <span class="review-row-meta muted">{props.row.meta}</span>
+        <span class="review-row-date muted">{props.row.date}</span>
       </div>
 
-      <Show when={showSub()}>
-      <div class="review-row-sub">
-        <Show when={props.row.concerns} keyed>
-          {(concerns) => (
-            <Show
-              when={concerns.total > 0}
-              fallback={<span class="sev-none">no concerns</span>}
-            >
-              <span class="sev-list">
-                <For each={severities}>
-                  {(severity, i) => (
-                    <>
-                      <Show when={i() > 0}>
-                        <span class="sev-sep">|</span>
-                      </Show>
-                      <span
-                        class={`sev sev-${severity}`}
-                        classList={{ "is-zero": concerns.counts[severity] === 0 }}
-                      >
-                        {concerns.counts[severity]} {severity}
-                      </span>
-                    </>
-                  )}
-                </For>
-              </span>
-            </Show>
-          )}
-        </Show>
-        <Show when={props.row.note}>
-          <span class="review-row-note">{props.row.note}</span>
-        </Show>
-      </div>
+      <Show when={props.showDetails && (!!props.row.concerns || !!props.row.note)}>
+        <div class="review-row-sub">
+          <Show when={props.row.concerns} keyed>
+            {(concerns) => (
+              <Show
+                when={concerns.total > 0}
+                fallback={<span class="sev-none">no concerns</span>}
+              >
+                <span class="sev-list">
+                  <For each={severities}>
+                    {(severity, i) => (
+                      <>
+                        <Show when={i() > 0}>
+                          <span class="sev-sep">|</span>
+                        </Show>
+                        <span
+                          class={`sev sev-${severity}`}
+                          classList={{ "is-zero": concerns.counts[severity] === 0 }}
+                        >
+                          {concerns.counts[severity]} {severity}
+                        </span>
+                      </>
+                    )}
+                  </For>
+                </span>
+              </Show>
+            )}
+          </Show>
+          <Show when={props.row.note}>
+            <span class="review-row-note">{props.row.note}</span>
+          </Show>
+        </div>
       </Show>
     </li>
   )
