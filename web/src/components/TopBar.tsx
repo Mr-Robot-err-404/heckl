@@ -17,6 +17,7 @@ import { AgentConfigModal } from "./AgentConfigModal";
 import { BellIcon, BotIcon, PaletteIcon, TmuxIcon } from "./icons";
 import { NotificationsModal } from "./NotificationsModal";
 import { ThemeModal } from "./ThemeModal";
+import { TmuxSessionsModal } from "./TmuxSessionsModal";
 import { useModal } from "../modal";
 
 export function TopBar() {
@@ -227,7 +228,7 @@ export function TopBar() {
           title="tmux sessions"
           aria-label="tmux sessions"
           onMouseEnter={() => prefetch.tmux()}
-          onClick={() => navigate({ to: "/tmux" })}
+          onClick={() => modal.open("tmux-sessions")}
         >
           <TmuxIcon />
         </button>
@@ -261,6 +262,9 @@ export function TopBar() {
       </Show>
       <Show when={modal.isOpen("theme")}>
         <ThemeModal onClose={modal.close} />
+      </Show>
+      <Show when={modal.isOpen("tmux-sessions")}>
+        <TmuxSessionsModal onClose={modal.close} />
       </Show>
     </header>
   );

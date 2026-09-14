@@ -2009,10 +2009,10 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .recent-pr-warning { margin: -8px 0 8px; color: var(--yellow); font-size: 10px; }
 .recent-pr-empty { min-height: 220px; font-size: 12px; }
 
-.tmux-page {
-  width: min(820px, 100%);
-  margin: 0 auto;
-  padding: 24px var(--gutter) 40px;
+.modal-tmux-sessions { width: min(760px, 92vw); }
+.modal-tmux-sessions .modal-body { gap: 0; }
+.modal-tmux-sessions .tmux-row {
+  grid-template-columns: 13px 42px minmax(140px, 1fr) 48px 62px 24px;
 }
 
 .tmux-actions {
@@ -2041,6 +2041,23 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   padding: 9px 12px;
   font-size: 12px;
 }
+
+.tmux-row-details {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr) 64px;
+  gap: 10px;
+  min-width: 0;
+  color: var(--overlay1);
+  font-size: 10px;
+}
+.tmux-row-details > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tmux-row-details code { color: var(--subtext0); }
 
 .tmux-row.is-head {
   border-left: 2px solid transparent;
@@ -2515,7 +2532,6 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   .modal-narrow { width: 94vw; }
 
   .dashboard { padding: 16px 12px 32px; }
-  .tmux-page { padding: 16px 12px 32px; }
   .recent-pr-title > span:last-child { white-space: normal; }
   .pr-list-page { padding: 16px 0 24px; }
 

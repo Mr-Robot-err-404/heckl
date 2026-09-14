@@ -13,7 +13,7 @@ const refOf = (row: TmuxRow): TmuxRef => ({
 
 const keyOf = (row: TmuxRow) => `${row.owner}/${row.repo}/${row.prNumber}`
 
-export function TmuxPanel() {
+export function TmuxPanel(props: { hideHeading?: boolean } = {}) {
   const sessions = useTmuxSessions()
   const data = resolved(sessions)
   const cleanup = useCleanupTmux()
@@ -58,12 +58,14 @@ export function TmuxPanel() {
 
   return (
     <section class="tmux-panel" classList={{ "is-selecting": selecting() }}>
-      <div class="dashboard-head">
-        <h1>tmux</h1>
-        <Show when={rows().length > 0}>
-          <span class="muted">{rows().length}</span>
-        </Show>
-      </div>
+      <Show when={!props.hideHeading}>
+        <div class="dashboard-head">
+          <h1>tmux</h1>
+          <Show when={rows().length > 0}>
+            <span class="muted">{rows().length}</span>
+          </Show>
+        </div>
+      </Show>
 
       <Show when={sessions.error}>
         <div class="empty error">{String(sessions.error)}</div>
@@ -139,12 +141,19 @@ export function TmuxPanel() {
                 <span class={`pill pill-${row.live ? "live" : "gone"}`}>
                   {row.live ? "live" : "stale"}
                 </span>
-                <span class="tmux-repo" title={row.repo}>{row.repo}</span>
+                <span class="tmux-repo" title={`${row.owner}/${row.repo}\n${row.worktree}\n${row.headSha}`}>
+                  {row.owner}/{row.repo}
+                </span>
                 <span class="tmux-pr muted" title={`#${row.prNumber}`}>#{row.prNumber}</span>
                 <span class="tmux-age muted">{relativeTime(row.createdAt)}</span>
                 <span class="tmux-windows" title={`${row.windows} windows`}>
                   {row.windows}
                 </span>
+                <div class="tmux-row-details">
+                  <code>{row.attach}</code>
+                  <span title={row.worktree}>{row.worktree}</span>
+                  <span title={row.headSha}>{row.headSha.slice(0, 8)}</span>
+                </div>
               </li>
             )}
           </For>
