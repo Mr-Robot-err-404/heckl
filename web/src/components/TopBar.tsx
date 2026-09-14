@@ -14,7 +14,7 @@ import {
 } from "../queries";
 import { useActiveReviews } from "../activeReviews";
 import { AgentConfigModal } from "./AgentConfigModal";
-import { BellIcon, BotIcon, PaletteIcon } from "./icons";
+import { BellIcon, BotIcon, PaletteIcon, TmuxIcon } from "./icons";
 import { NotificationsModal } from "./NotificationsModal";
 import { ThemeModal } from "./ThemeModal";
 import { useModal } from "../modal";
@@ -222,6 +222,15 @@ export function TopBar() {
         {(list) => <span class="topbar-pr-title">{list.length} open pull requests</span>}
       </Show>
       <div class="topbar-right">
+        <button
+          class="topbar-btn topbar-config"
+          title="tmux sessions"
+          aria-label="tmux sessions"
+          onMouseEnter={() => prefetch.tmux()}
+          onClick={() => navigate({ to: "/tmux" })}
+        >
+          <TmuxIcon />
+        </button>
         <button
           class="topbar-btn topbar-config topbar-bell"
           title="notifications"

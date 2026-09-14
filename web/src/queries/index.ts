@@ -1,6 +1,6 @@
 import { createQuery, createMutation, useQueryClient } from "@tanstack/solid-query"
 import { api } from "../api"
-import type { DiffSides, Notification } from "../types"
+import type { DiffSides, Notification, RecentPRFilter } from "../types"
 
 const keepPrevious = <T,>(prev: T | undefined) => prev
 
@@ -63,6 +63,7 @@ export function useAddRepo() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["repos"] })
       client.invalidateQueries({ queryKey: ["orgs"] })
+      client.invalidateQueries({ queryKey: recentPRsKey })
     },
   }))
 }
@@ -75,7 +76,47 @@ export function useRemoveRepo() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["repos"] })
       client.invalidateQueries({ queryKey: ["orgs"] })
+      client.invalidateQueries({ queryKey: recentPRsKey })
     },
+  }))
+}
+
+export const recentPRsKey = ["recent-prs"] as const
+export const recentPRFilterKey = ["recent-prs", "filter"] as const
+
+export function recentPRsOptions() {
+  return {
+    queryKey: recentPRsKey,
+    queryFn: api.recentPRs.list,
+  }
+}
+
+export function useRecentPRs() {
+  return createQuery(recentPRsOptions)
+}
+
+export function useRecentPRFilter() {
+  return createQuery(() => ({
+    queryKey: recentPRFilterKey,
+    queryFn: api.recentPRs.filter,
+    staleTime: Infinity,
+  }))
+}
+
+export function useSaveRecentPRFilter() {
+  const client = useQueryClient()
+  return createMutation(() => ({
+    mutationFn: api.recentPRs.saveFilter,
+    onMutate: async (filter: RecentPRFilter) => {
+      await client.cancelQueries({ queryKey: recentPRFilterKey })
+      const previous = client.getQueryData<RecentPRFilter>(recentPRFilterKey)
+      client.setQueryData(recentPRFilterKey, filter)
+      return { previous }
+    },
+    onError: (_error, _filter, context) =>
+      client.setQueryData(recentPRFilterKey, context?.previous),
+    onSuccess: (filter) => client.setQueryData(recentPRFilterKey, filter),
+    onSettled: () => client.invalidateQueries({ queryKey: recentPRsKey, exact: true }),
   }))
 }
 
@@ -270,6 +311,8 @@ export function usePrefetch() {
       run(diffOptions(owner, repo, number)),
     agentConfig: () => run(agentConfigOptions()),
     historyPage: (page: number) => run(historyOptions(page)),
+    recentPRs: () => run(recentPRsOptions()),
+    tmux: () => run({ queryKey: tmuxListKey, queryFn: api.tmux.list, staleTime: 0 }),
     repoHistory: (owner: string, repo: string, limit: number) =>
       run(repoHistoryOptions(owner, repo, limit)),
     pr: (owner: string, repo: string, number: number) => {

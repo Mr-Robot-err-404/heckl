@@ -7,6 +7,8 @@ import type {
   Notification,
   PR,
   PRDetail,
+  RecentPRFilter,
+  RecentPRPage,
   Repo,
   Review,
   ReviewHistoryPage,
@@ -82,6 +84,12 @@ export const api = {
       get<PRDetail>(`/prs/${owner}/${repo}/${number}`),
     comments: (owner: string, repo: string, number: number) =>
       get<ReviewerThread[]>(`/prs/${owner}/${repo}/${number}/comments`),
+  },
+  recentPRs: {
+    list: () => get<RecentPRPage>("/recent-prs"),
+    filter: () => get<RecentPRFilter>("/recent-prs/filter"),
+    saveFilter: (filter: RecentPRFilter) =>
+      put<RecentPRFilter>("/recent-prs/filter", filter),
   },
   diff: {
     get: (owner: string, repo: string, number: number) =>

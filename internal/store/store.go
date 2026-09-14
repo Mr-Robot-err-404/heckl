@@ -70,6 +70,24 @@ func (s *Store) SetTheme(ctx context.Context, name string) error {
 	})
 }
 
+func (s *Store) GetRecentPRFilter(ctx context.Context) (string, error) {
+	value, err := s.queries.GetRecentPRFilter(ctx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func (s *Store) SetRecentPRFilter(ctx context.Context, value string) error {
+	return s.queries.SetRecentPRFilter(ctx, SetRecentPRFilterParams{
+		Value:     value,
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
 func (s *Store) ListAgentConfigs(ctx context.Context) (map[string]AgentConfig, error) {
 	rows, err := s.queries.ListAgents(ctx)
 	if err != nil {

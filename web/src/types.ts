@@ -43,6 +43,16 @@ export type PR = {
   review?: PRReviewSummary
 }
 
+export type RecentPRFilter = {
+  organizations: string[]
+  repositories: string[]
+}
+
+export type RecentPRPage = {
+  pullRequests: PR[]
+  unavailable?: string[]
+}
+
 export type PRFile = {
   Sha: string
   Filename: string

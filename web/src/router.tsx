@@ -3,6 +3,7 @@ import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/so
 import { PRListPage } from "./routes/PRListPage"
 import { PRDetailPage } from "./routes/PRDetailPage"
 import { DashboardPage } from "./routes/DashboardPage"
+import { TmuxPage } from "./routes/TmuxPage"
 import { TopBar } from "./components/TopBar"
 import { ActiveReviewsProvider } from "./activeReviews"
 import { validateModal } from "./modal"
@@ -40,6 +41,12 @@ const repoRoute = createRoute({
   component: PRListPage,
 })
 
+const tmuxRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/tmux",
+  component: TmuxPage,
+})
+
 const prRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/$owner/$repo/$pr",
@@ -49,7 +56,7 @@ const prRoute = createRoute({
   component: PRDetailPage,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, repoRoute, prRoute])
+const routeTree = rootRoute.addChildren([indexRoute, tmuxRoute, repoRoute, prRoute])
 
 export const router = createRouter({ routeTree })
 

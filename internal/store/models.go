@@ -59,6 +59,12 @@ type PrReviewSession struct {
 	CreatedAt         string
 }
 
+type RecentPrFilter struct {
+	ID        int64
+	Value     string
+	UpdatedAt string
+}
+
 type Repo struct {
 	ID      int64
 	Owner   string

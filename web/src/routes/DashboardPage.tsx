@@ -3,7 +3,7 @@ import { useNavigate, useSearch } from "@tanstack/solid-router"
 import { useActiveReviews } from "../activeReviews"
 import { useReviewHistory, usePrefetch, resolved } from "../queries"
 import { ReviewRow, activeRow, historyRow, type Row } from "../components/ReviewRow"
-import { TmuxPanel } from "../components/TmuxPanel"
+import { RecentPRPanel } from "../components/RecentPRPanel"
 
 const skeletonRows = Array.from({ length: 8 })
 
@@ -88,7 +88,7 @@ export function DashboardPage() {
           </div>
         </section>
 
-        <TmuxPanel />
+        <RecentPRPanel />
       </div>
     </div>
   )
