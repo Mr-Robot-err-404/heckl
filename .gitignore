@@ -3,9 +3,7 @@ bin/
 *.db-shm
 *.db-wal
 
-web/node_modules/
+*/node_modules/
 web/dist/
 cmd/heckl/dist/
 data/
-
-.opencode/
