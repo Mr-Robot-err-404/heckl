@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -8,7 +9,7 @@ import (
 
 const reviewFetchConcurrency = 24
 
-func (c *Client) Viewer() (string, error) {
+func (c *Client) Viewer(ctx context.Context) (string, error) {
 	c.viewerMu.Lock()
 	defer c.viewerMu.Unlock()
 
@@ -17,26 +18,26 @@ func (c *Client) Viewer() (string, error) {
 	}
 
 	var u User
-	if err := c.decode("/user", &u); err != nil {
+	if err := c.decode(ctx, "/user", &u); err != nil {
 		return "", err
 	}
 	c.viewer = u.Login
 	return c.viewer, nil
 }
 
-func (c *Client) ListPRReviews(owner, repo string, number int) ([]Review, error) {
+func (c *Client) ListPRReviews(ctx context.Context, owner, repo string, number int) ([]Review, error) {
 	var reviews []Review
-	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls/%d/reviews?per_page=100", owner, repo, number), &reviews)
+	err := c.decode(ctx, fmt.Sprintf("/repos/%s/%s/pulls/%d/reviews?per_page=100", owner, repo, number), &reviews)
 	return reviews, err
 }
 
-func (c *Client) ListPRReviewComments(owner, repo string, number int) ([]ReviewComment, error) {
+func (c *Client) ListPRReviewComments(ctx context.Context, owner, repo string, number int) ([]ReviewComment, error) {
 	var comments []ReviewComment
-	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls/%d/comments?per_page=100", owner, repo, number), &comments)
+	err := c.decode(ctx, fmt.Sprintf("/repos/%s/%s/pulls/%d/comments?per_page=100", owner, repo, number), &comments)
 	return comments, err
 }
 
-func (c *Client) ReviewsForPRs(owner, repo string, numbers []int) map[int][]Review {
+func (c *Client) ReviewsForPRs(ctx context.Context, owner, repo string, numbers []int) map[int][]Review {
 	out := make(map[int][]Review, len(numbers))
 
 	var mu sync.Mutex
@@ -50,7 +51,7 @@ func (c *Client) ReviewsForPRs(owner, repo string, numbers []int) map[int][]Revi
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			reviews, err := c.ListPRReviews(owner, repo, n)
+			reviews, err := c.ListPRReviews(ctx, owner, repo, n)
 			if err != nil {
 				slog.Warn("github: list pr reviews failed", "owner", owner, "repo", repo, "number", n, "err", err)
 				return

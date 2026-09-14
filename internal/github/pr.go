@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -76,27 +77,27 @@ type PRFile struct {
 // length means the list is truncated and should not be treated as complete.
 const PRPageSize = 100
 
-func (c *Client) ListRepoPRs(owner, repo string) ([]PR, error) {
+func (c *Client) ListRepoPRs(ctx context.Context, owner, repo string) ([]PR, error) {
 	var prs []PR
-	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls?state=open&per_page=%d", owner, repo, PRPageSize), &prs)
+	err := c.decode(ctx, fmt.Sprintf("/repos/%s/%s/pulls?state=open&per_page=%d", owner, repo, PRPageSize), &prs)
 	return prs, err
 }
 
-func (c *Client) GetPR(owner, repo string, number int) (*PR, error) {
+func (c *Client) GetPR(ctx context.Context, owner, repo string, number int) (*PR, error) {
 	var pr PR
-	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls/%d", owner, repo, number), &pr)
+	err := c.decode(ctx, fmt.Sprintf("/repos/%s/%s/pulls/%d", owner, repo, number), &pr)
 	return &pr, err
 }
 
-func (c *Client) GetPRFiles(owner, repo string, number int) ([]PRFile, error) {
+func (c *Client) GetPRFiles(ctx context.Context, owner, repo string, number int) ([]PRFile, error) {
 	var files []PRFile
-	err := c.decode(fmt.Sprintf("/repos/%s/%s/pulls/%d/files?per_page=100", owner, repo, number), &files)
+	err := c.decode(ctx, fmt.Sprintf("/repos/%s/%s/pulls/%d/files?per_page=100", owner, repo, number), &files)
 	return files, err
 }
 
-func (c *Client) GetPRDiff(owner, repo string, number int) ([]byte, error) {
+func (c *Client) GetPRDiff(ctx context.Context, owner, repo string, number int) ([]byte, error) {
 	path := fmt.Sprintf("/repos/%s/%s/pulls/%d", owner, repo, number)
-	resp, err := c.doAccept("GET", path, "application/vnd.github.diff")
+	resp, err := c.doAccept(ctx, "GET", path, "application/vnd.github.diff")
 	if err != nil {
 		return nil, err
 	}

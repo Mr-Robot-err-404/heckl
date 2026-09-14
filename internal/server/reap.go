@@ -85,7 +85,7 @@ func (s *Server) sweepRepo(ctx context.Context, owner, repo string, pinned map[s
 		return 0, nil
 	}
 
-	prs, err := s.gh.ListRepoPRs(owner, repo)
+	prs, err := s.gh.ListRepoPRs(ctx, owner, repo)
 	if err != nil {
 		return 0, err
 	}

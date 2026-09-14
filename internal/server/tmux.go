@@ -222,7 +222,7 @@ func (s *Server) handleTmuxSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := s.gh.GetPR(owner, repo, number)
+	pr, err := s.gh.GetPR(r.Context(), owner, repo, number)
 	if err != nil {
 		jsonError(w, err.Error(), http.StatusBadGateway)
 		return

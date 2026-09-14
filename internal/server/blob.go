@@ -71,7 +71,7 @@ func (s *Server) sides(w http.ResponseWriter, r *http.Request, owner, repo strin
 		return base, head, true
 	}
 
-	pr, err := s.gh.GetPR(owner, repo, number)
+	pr, err := s.gh.GetPR(r.Context(), owner, repo, number)
 	if err != nil {
 		slog.Error("blob: get pr failed", "owner", owner, "repo", repo, "number", number, "err", err)
 		jsonError(w, err.Error(), http.StatusBadGateway)

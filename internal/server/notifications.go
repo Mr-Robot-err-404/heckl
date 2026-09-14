@@ -38,7 +38,7 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 		known[strings.ToLower(repo.Owner+"/"+repo.Name)] = true
 	}
 
-	notifications, err := s.gh.ListNotifications()
+	notifications, err := s.gh.ListNotifications(r.Context())
 	if err != nil {
 		jsonError(w, err.Error(), http.StatusBadGateway)
 		return
@@ -82,7 +82,7 @@ func (s *Server) handleReadNotifications(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	s.gh.MarkThreadsRead(body.IDs)
+	s.gh.MarkThreadsRead(r.Context(), body.IDs)
 	slog.Info("notifications marked read", "count", len(body.IDs))
 	jsonOK(w, struct {
 		Read int `json:"read"`

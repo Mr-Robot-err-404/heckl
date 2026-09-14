@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -30,14 +31,14 @@ func New(token string) *Client {
 	}
 }
 
-func (c *Client) Warm() {
-	go c.Viewer()
+func (c *Client) Warm(ctx context.Context) {
+	go c.Viewer(ctx)
 }
 
 func (c *Client) Token() string { return c.token }
 
-func (c *Client) doAccept(method, path, accept string) (*http.Response, error) {
-	req, err := http.NewRequest(method, baseURL+path, nil)
+func (c *Client) doAccept(ctx context.Context, method, path, accept string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, baseURL+path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +48,12 @@ func (c *Client) doAccept(method, path, accept string) (*http.Response, error) {
 	return c.http.Do(req)
 }
 
-func (c *Client) do(method, path string) (*http.Response, error) {
-	return c.doAccept(method, path, "application/vnd.github+json")
+func (c *Client) do(ctx context.Context, method, path string) (*http.Response, error) {
+	return c.doAccept(ctx, method, path, "application/vnd.github+json")
 }
 
-func (c *Client) decode(path string, out any) error {
-	resp, err := c.do("GET", path)
+func (c *Client) decode(ctx context.Context, path string, out any) error {
+	resp, err := c.do(ctx, "GET", path)
 	if err != nil {
 		return err
 	}

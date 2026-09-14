@@ -65,7 +65,7 @@ func runServe() {
 	}
 
 	gh := github.New(tok.Value)
-	gh.Warm()
+	gh.Warm(context.Background())
 	co := checkout.New(cfg.Server.DataDir)
 	rev := reviewer.New(oc, co, db)
 	sessionPath := func(id string) string { return opencode.SessionPath(cfg.OpenCode.ProjectDir, id) }

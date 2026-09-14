@@ -192,7 +192,7 @@ func (r *Runner) run(ctx context.Context, key, owner, repo string, prNumber int,
 	defer r.release(key)
 
 	t := time.Now()
-	pr, diff, err := r.fetch(owner, repo, prNumber)
+	pr, diff, err := r.fetch(ctx, owner, repo, prNumber)
 	if err != nil {
 		r.settle(key, sessionID, StageFetch, cancelCause(ctx, err), log)
 		return
@@ -294,12 +294,12 @@ func (r *Runner) restore(key string, sessionID int64) {
 	})
 }
 
-func (r *Runner) fetch(owner, repo string, prNumber int) (*github.PR, []byte, error) {
-	pr, err := r.source.GetPR(owner, repo, prNumber)
+func (r *Runner) fetch(ctx context.Context, owner, repo string, prNumber int) (*github.PR, []byte, error) {
+	pr, err := r.source.GetPR(ctx, owner, repo, prNumber)
 	if err != nil {
 		return nil, nil, fmt.Errorf("fetch pr: %w", err)
 	}
-	diff, err := r.source.GetPRDiff(owner, repo, prNumber)
+	diff, err := r.source.GetPRDiff(ctx, owner, repo, prNumber)
 	if err != nil {
 		return nil, nil, fmt.Errorf("fetch diff: %w", err)
 	}

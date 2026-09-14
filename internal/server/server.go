@@ -228,7 +228,7 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	repo := r.PathValue("repo")
 
 	start := time.Now()
-	remote, err := s.gh.ListRepoPRs(owner, repo)
+	remote, err := s.gh.ListRepoPRs(r.Context(), owner, repo)
 	if err != nil {
 		slog.Error("github: list prs failed", "owner", owner, "repo", repo, "err", err)
 		jsonError(w, err.Error(), http.StatusBadGateway)
@@ -259,7 +259,7 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	)
 
 	wg.Go(func() {
-		login, err := s.gh.Viewer()
+		login, err := s.gh.Viewer(r.Context())
 		if err != nil {
 			slog.Warn("github: viewer lookup failed", "err", err)
 			return
@@ -267,7 +267,7 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 		viewer = login
 	})
 	wg.Go(func() {
-		reviews = s.gh.ReviewsForPRs(owner, repo, numbers)
+		reviews = s.gh.ReviewsForPRs(r.Context(), owner, repo, numbers)
 	})
 	wg.Go(func() {
 		stored, err := s.store.RepoReviewSummary(r.Context(), owner, repo)
@@ -313,10 +313,10 @@ func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
 		commentsErr error
 	)
 	wg.Go(func() {
-		reviews, reviewsErr = s.gh.ListPRReviews(owner, repo, number)
+		reviews, reviewsErr = s.gh.ListPRReviews(r.Context(), owner, repo, number)
 	})
 	wg.Go(func() {
-		comments, commentsErr = s.gh.ListPRReviewComments(owner, repo, number)
+		comments, commentsErr = s.gh.ListPRReviewComments(r.Context(), owner, repo, number)
 	})
 	wg.Wait()
 
@@ -360,10 +360,10 @@ func (s *Server) handleGetPR(w http.ResponseWriter, r *http.Request) {
 		filesErr error
 	)
 	wg.Go(func() {
-		pr, prErr = s.gh.GetPR(owner, repo, number)
+		pr, prErr = s.gh.GetPR(r.Context(), owner, repo, number)
 	})
 	wg.Go(func() {
-		files, filesErr = s.gh.GetPRFiles(owner, repo, number)
+		files, filesErr = s.gh.GetPRFiles(r.Context(), owner, repo, number)
 	})
 	wg.Wait()
 
@@ -469,7 +469,7 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	diff, err := s.gh.GetPRDiff(owner, repo, number)
+	diff, err := s.gh.GetPRDiff(r.Context(), owner, repo, number)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return

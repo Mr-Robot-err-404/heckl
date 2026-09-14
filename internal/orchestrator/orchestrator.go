@@ -17,8 +17,8 @@ import (
 type storeConcern = store.ReviewConcern
 
 type PRSource interface {
-	GetPR(owner, repo string, number int) (*github.PR, error)
-	GetPRDiff(owner, repo string, number int) ([]byte, error)
+	GetPR(ctx context.Context, owner, repo string, number int) (*github.PR, error)
+	GetPRDiff(ctx context.Context, owner, repo string, number int) ([]byte, error)
 }
 
 type ReviewStore interface {

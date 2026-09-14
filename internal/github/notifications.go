@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -45,14 +46,14 @@ func (n Notification) PRNumber() int {
 	return number
 }
 
-func (c *Client) ListNotifications() ([]Notification, error) {
+func (c *Client) ListNotifications(ctx context.Context) ([]Notification, error) {
 	var notifications []Notification
-	err := c.decode("/notifications?participating=true&per_page=100", &notifications)
+	err := c.decode(ctx, "/notifications?participating=true&per_page=100", &notifications)
 	return notifications, err
 }
 
-func (c *Client) MarkThreadRead(id string) error {
-	resp, err := c.do("PATCH", "/notifications/threads/"+id)
+func (c *Client) MarkThreadRead(ctx context.Context, id string) error {
+	resp, err := c.do(ctx, "PATCH", "/notifications/threads/"+id)
 	if err != nil {
 		return err
 	}
@@ -63,7 +64,7 @@ func (c *Client) MarkThreadRead(id string) error {
 	return nil
 }
 
-func (c *Client) MarkThreadsRead(ids []string) {
+func (c *Client) MarkThreadsRead(ctx context.Context, ids []string) {
 	sem := make(chan struct{}, markReadConcurrency)
 	var wg sync.WaitGroup
 
@@ -74,7 +75,7 @@ func (c *Client) MarkThreadsRead(ids []string) {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			if err := c.MarkThreadRead(id); err != nil {
+			if err := c.MarkThreadRead(ctx, id); err != nil {
 				slog.Warn("notifications: mark read failed", "thread", id, "err", err)
 			}
 		}()
