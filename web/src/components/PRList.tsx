@@ -19,7 +19,14 @@ function timeAgo(iso: string): string {
   return `${Math.floor(d / 30)}mo ago`
 }
 
-const skeletonRows = Array.from({ length: 6 })
+const skeletonRows = [
+  { titleWidth: "68%", reviewers: Array.from({ length: 3 }) },
+  { titleWidth: "52%", reviewers: Array.from({ length: 2 }) },
+  { titleWidth: "76%", reviewers: Array.from({ length: 4 }) },
+  { titleWidth: "61%", reviewers: Array.from({ length: 1 }) },
+  { titleWidth: "44%", reviewers: Array.from({ length: 2 }) },
+  { titleWidth: "71%", reviewers: Array.from({ length: 3 }) },
+]
 
 export function PRList(props: Props) {
   const navigate = useNavigate()
@@ -36,22 +43,22 @@ export function PRList(props: Props) {
   return (
     <div class="repo-page">
       <div class="pr-list-page">
-        <div class="pr-list-meta">
-          <Show when={rows()} keyed>
-            {(list) => <span>{list.length} open pull requests</span>}
-          </Show>
-          <Show when={prs.isFetching && !prs.isPending}>
-            <span class="muted">refreshing…</span>
-          </Show>
-        </div>
         <ul class="pr-list">
           <Show when={prs.isPending}>
             <For each={skeletonRows}>
-              {() => (
+              {(row) => (
                 <li class="pr-row is-skeleton">
                   <div class="pr-row-main">
-                    <span class="skeleton skeleton-title" />
-                    <span class="skeleton skeleton-meta" />
+                    <span class="skeleton skeleton-title" style={{ width: row.titleWidth }} />
+                    <div class="pr-row-meta">
+                      <span class="skeleton skeleton-number" />
+                      <span class="skeleton skeleton-author" />
+                    </div>
+                  </div>
+                  <div class="pr-status skeleton-reviewers">
+                    <For each={row.reviewers}>
+                      {() => <span class="skeleton skeleton-avatar" />}
+                    </For>
                   </div>
                 </li>
               )}
@@ -82,7 +89,6 @@ export function PRList(props: Props) {
                   </div>
                 </div>
                 <PRStatus pr={pr} reviewing={isReviewing(pr.Number)} />
-                <div class="pr-row-arrow">→</div>
               </li>
             )}
           </For>

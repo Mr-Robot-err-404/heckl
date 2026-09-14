@@ -5,6 +5,7 @@ import {
   useAddRepo,
   useOrgs,
   useRepos,
+  usePRs,
   usePRDetail,
   useNotifications,
   usePrefetch,
@@ -49,12 +50,17 @@ export function TopBar() {
     () => params().repo ?? "",
     () => prNumber(),
   );
+  const prs = usePRs(
+    () => prNumber() == null ? (params().owner ?? "") : "",
+    () => prNumber() == null ? (params().repo ?? "") : "",
+  );
 
   let selectRef: HTMLSelectElement | undefined;
 
   const orgData = resolved(orgs);
   const repoData = resolved(repos);
   const detailData = resolved(prDetail);
+  const prData = resolved(prs);
 
   const reposByOrg = () => {
     const orgList = orgData() ?? [];
@@ -211,6 +217,9 @@ export function TopBar() {
       </div>
       <Show when={detailData()} keyed>
         {(d) => <span class="topbar-pr-title">{d.pr.Title}</span>}
+      </Show>
+      <Show when={prNumber() == null && selectedKey() && prData()} keyed>
+        {(list) => <span class="topbar-pr-title">{list.length} open pull requests</span>}
       </Show>
       <div class="topbar-right">
         <button

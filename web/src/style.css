@@ -597,13 +597,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
   }
 }
 
-.pr-list-meta {
-  font-size: 12px;
-  color: var(--subtext0);
-  padding: 0 var(--gutter) 12px;
-  border-bottom: 1px solid var(--crust);
-}
-
 .pr-list {
   list-style: none;
   display: flex;
@@ -621,7 +614,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
 }
 
 .pr-row:hover .pr-row-title { color: var(--green); }
-.pr-row:hover .pr-row-arrow { opacity: 1; color: var(--green); }
 
 .pr-row-main { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
 
@@ -639,13 +631,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
   gap: 12px;
   font-size: 11px;
   color: var(--subtext0);
-}
-
-.pr-row-arrow {
-  color: var(--overlay0);
-  opacity: 0;
-  transition: opacity 0.1s;
-  flex-shrink: 0;
 }
 
 .pr-number { color: var(--overlay1); }
@@ -2208,10 +2193,18 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   animation: skeleton-sweep 1.1s ease-in-out infinite;
 }
 
-.skeleton-title { height: 13px; width: 62%; }
-.skeleton-meta { height: 10px; width: 28%; }
+.skeleton-title { height: 18px; }
+.skeleton-meta { width: 28%; height: 10px; }
+.skeleton-number { width: 32px; height: 11px; }
+.skeleton-author { width: 68px; height: 11px; }
+.skeleton-avatar { width: 24px; height: 24px; border-radius: 50%; }
+.skeleton-reviewers { gap: 4px; }
 
-.pr-row.is-skeleton,
+.pr-row.is-skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
 .review-row.is-skeleton {
   cursor: default;
   pointer-events: none;
@@ -2378,14 +2371,11 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   .modal-narrow { width: 94vw; }
 
   .dashboard { padding: 16px 12px 32px; }
-  .pr-list-meta { padding: 0 12px 10px; }
   .pr-list-page { padding: 16px 0 24px; }
 
   .pr-row { padding: 12px; gap: 8px; flex-wrap: wrap; }
   .pr-row-main { flex-basis: 100%; }
   .pr-row-title { white-space: normal; }
-  .pr-row-arrow { display: none; }
-
   .review-row-top { flex-wrap: wrap; gap: 6px 8px; }
   .review-row-title { flex-basis: 100%; white-space: normal; overflow: visible; }
   .review-row-meta { margin-left: auto; }
