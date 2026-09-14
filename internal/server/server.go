@@ -149,17 +149,18 @@ func (s *Server) routes() {
 }
 
 type prResponse struct {
-	Owner     string `json:"Owner"`
-	Repo      string `json:"Repo"`
-	Number    int    `json:"Number"`
-	Title     string `json:"Title"`
-	Body      string `json:"Body"`
-	State     string `json:"State"`
-	Author    string `json:"Author"`
-	HtmlUrl   string `json:"HtmlUrl"`
-	Draft     bool   `json:"Draft"`
-	CreatedAt string `json:"CreatedAt"`
-	UpdatedAt string `json:"UpdatedAt"`
+	Owner        string `json:"Owner"`
+	Repo         string `json:"Repo"`
+	Number       int    `json:"Number"`
+	Title        string `json:"Title"`
+	Body         string `json:"Body"`
+	State        string `json:"State"`
+	Author       string `json:"Author"`
+	AuthorAvatar string `json:"AuthorAvatar"`
+	HtmlUrl      string `json:"HtmlUrl"`
+	Draft        bool   `json:"Draft"`
+	CreatedAt    string `json:"CreatedAt"`
+	UpdatedAt    string `json:"UpdatedAt"`
 
 	BaseSha string `json:"baseSha,omitempty"`
 	BaseRef string `json:"baseRef,omitempty"`
@@ -205,21 +206,22 @@ type prFileResponse struct {
 
 func toPRResponse(owner, repo string, pr github.PR) prResponse {
 	return prResponse{
-		Owner:     owner,
-		Repo:      repo,
-		Number:    pr.Number,
-		Title:     pr.Title,
-		Body:      pr.Body,
-		State:     pr.State,
-		Author:    pr.User.Login,
-		HtmlUrl:   pr.HTMLURL,
-		Draft:     pr.Draft,
-		CreatedAt: pr.CreatedAt,
-		UpdatedAt: pr.UpdatedAt,
-		BaseSha:   pr.Base.SHA,
-		BaseRef:   pr.Base.Ref,
-		HeadSha:   pr.Head.SHA,
-		HeadRef:   pr.Head.Ref,
+		Owner:        owner,
+		Repo:         repo,
+		Number:       pr.Number,
+		Title:        pr.Title,
+		Body:         pr.Body,
+		State:        pr.State,
+		Author:       pr.User.Login,
+		AuthorAvatar: pr.User.AvatarURL,
+		HtmlUrl:      pr.HTMLURL,
+		Draft:        pr.Draft,
+		CreatedAt:    pr.CreatedAt,
+		UpdatedAt:    pr.UpdatedAt,
+		BaseSha:      pr.Base.SHA,
+		BaseRef:      pr.Base.Ref,
+		HeadSha:      pr.Head.SHA,
+		HeadRef:      pr.Head.Ref,
 	}
 }
 
