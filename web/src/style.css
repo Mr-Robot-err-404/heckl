@@ -620,6 +620,8 @@ button.topbar-config:hover { background: none; color: var(--text); }
   padding: 24px 0 32px;
 }
 
+.repo-page-head { padding: 0 var(--gutter); }
+
 @media (max-width: 1100px) {
   .repo-page {
     flex-direction: column;
@@ -1718,9 +1720,7 @@ button.review-concern-loc:hover { text-decoration: underline; }
 
 /* ── Dashboard (history) ── */
 .dashboard {
-  max-width: 1340px;
-  margin: 0 auto;
-  padding: 24px var(--gutter) 40px;
+  padding: 24px 0 40px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1914,7 +1914,6 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .dashboard-cols {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px;
   align-items: stretch;
   flex: 1;
   min-height: 0;
@@ -1926,6 +1925,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  padding: 0 var(--gutter);
 }
 
 .dashboard-scroll {
@@ -2177,28 +2177,12 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .repo-history {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
   background: var(--sunken);
   border-left: 1px solid var(--crust);
   padding: 24px var(--gutter) 20px;
-}
-
-.repo-history-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.repo-history-head h2 {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--subtext0);
-  margin: 0;
 }
 
 .repo-history-empty {
@@ -2229,6 +2213,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .review-rows.compact .review-row-top { gap: 8px; }
 
 .load-more { align-self: center; }
+.repo-history .load-more { margin-top: 10px; }
 
 /* ── PR row status cluster ── */
 .pr-status {
@@ -2531,7 +2516,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   .modal { width: 94vw; max-height: 88vh; padding: 12px; }
   .modal-narrow { width: 94vw; }
 
-  .dashboard { padding: 16px 12px 32px; }
+  .dashboard { padding: 16px 0 32px; }
   .recent-pr-title > span:last-child { white-space: normal; }
   .pr-list-page { padding: 16px 0 24px; }
 

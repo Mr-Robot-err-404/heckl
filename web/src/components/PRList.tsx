@@ -43,6 +43,9 @@ export function PRList(props: Props) {
   return (
     <div class="repo-page">
       <div class="pr-list-page">
+        <div class="dashboard-head repo-page-head">
+          <h1>{props.owner}/{props.repo}</h1>
+        </div>
         <ul class="pr-list">
           <Show when={prs.isPending}>
             <For each={skeletonRows}>

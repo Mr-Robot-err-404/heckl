@@ -30,8 +30,8 @@ export function RepoHistory(props: Props) {
 
   return (
     <aside class="repo-history">
-      <div class="repo-history-head">
-        <h2>reviews</h2>
+      <div class="dashboard-head">
+        <h1>agent reviews</h1>
         <Show when={activeHere().length > 0}>
           <span class="badge running">{activeHere().length} running</span>
         </Show>
