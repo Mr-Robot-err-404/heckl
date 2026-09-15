@@ -24,6 +24,30 @@ export function ChevronIcon() {
   )
 }
 
+export function ChevronLeftIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m10 3-5 5 5 5" />
+    </svg>
+  )
+}
+
+export function ChevronRightIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m6 3 5 5-5 5" />
+    </svg>
+  )
+}
+
+export function FilterIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path fill="currentColor" d="M1.75 2.5A.75.75 0 0 1 2.5 1.75h11a.75.75 0 0 1 .58 1.23L9.5 8.48v4.27a.75.75 0 0 1-.42.67l-2 1A.75.75 0 0 1 6 13.75V8.48l-4.08-5.5a.75.75 0 0 1-.17-.48Zm2.24.75 3.36 4.52a.75.75 0 0 1 .15.45v4.32l.5-.25V8.22a.75.75 0 0 1 .17-.48l3.84-4.49H3.99Z" />
+    </svg>
+  )
+}
+
 export function ChevronsRightIcon() {
   return (
     <svg class="bot-icon" viewBox="0 0 24 24" aria-hidden="true">

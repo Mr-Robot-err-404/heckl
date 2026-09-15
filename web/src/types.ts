@@ -235,6 +235,9 @@ export type Notification = {
   repo: string
   prNumber: number
   updatedAt: string
+  state?: "open" | "draft" | "closed" | "merged"
+  activityActor?: string
+  activityBody?: string
 }
 
 export type TmuxRef = {

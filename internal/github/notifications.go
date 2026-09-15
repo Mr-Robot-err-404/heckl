@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,9 +13,10 @@ import (
 const markReadConcurrency = 8
 
 type NotificationSubject struct {
-	Title string `json:"title"`
-	URL   string `json:"url"`
-	Type  string `json:"type"`
+	Title            string `json:"title"`
+	URL              string `json:"url"`
+	LatestCommentURL string `json:"latest_comment_url"`
+	Type             string `json:"type"`
 }
 
 type NotificationRepo struct {
@@ -50,6 +52,29 @@ func (c *Client) ListNotifications(ctx context.Context) ([]Notification, error) 
 	var notifications []Notification
 	err := c.decode(ctx, "/notifications?participating=true&per_page=100", &notifications)
 	return notifications, err
+}
+
+type NotificationActivity struct {
+	User      User   `json:"user"`
+	Body      string `json:"body"`
+	HTMLURL   string `json:"html_url"`
+	CreatedAt string `json:"created_at"`
+}
+
+func (c *Client) GetNotificationActivity(ctx context.Context, rawURL string) (*NotificationActivity, error) {
+	if rawURL == "" {
+		return nil, nil
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme != "https" || u.Host != "api.github.com" || !strings.HasPrefix(u.Path, "/repos/") {
+		return nil, fmt.Errorf("github: invalid notification activity URL")
+	}
+
+	var activity NotificationActivity
+	if err := c.decode(ctx, u.RequestURI(), &activity); err != nil {
+		return nil, err
+	}
+	return &activity, nil
 }
 
 func (c *Client) MarkThreadRead(ctx context.Context, id string) error {

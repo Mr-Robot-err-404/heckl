@@ -11,6 +11,7 @@ import {
 } from "../queries"
 import { relativeTime } from "../review"
 import type { PR, RecentPRFilter } from "../types"
+import { FilterIcon } from "./icons"
 
 const skeletonRows = Array.from({ length: 6 })
 
@@ -60,8 +61,11 @@ export function RecentPRPanel() {
           <span class="muted">{rows().length}</span>
         </Show>
         <details class="recent-pr-filter">
-          <summary class="topbar-btn">
-            filter<Show when={filterCount() > 0}> ({filterCount()})</Show>
+          <summary class="topbar-btn icon-btn" title="filter pull requests" aria-label="filter pull requests">
+            <FilterIcon />
+            <Show when={filterCount() > 0}>
+              <span class="filter-count">{filterCount()}</span>
+            </Show>
           </summary>
           <div class="recent-pr-filter-menu">
             <div class="recent-pr-filter-title">hide activity from</div>

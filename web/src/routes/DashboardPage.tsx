@@ -4,6 +4,7 @@ import { useActiveReviews } from "../activeReviews"
 import { useReviewHistory, usePrefetch, resolved } from "../queries"
 import { ReviewRow, activeRow, historyRow, type Row } from "../components/ReviewRow"
 import { RecentPRPanel } from "../components/RecentPRPanel"
+import { ChevronLeftIcon, ChevronRightIcon } from "../components/icons"
 
 const skeletonRows = Array.from({ length: 8 })
 
@@ -73,21 +74,25 @@ export function DashboardPage() {
 
           <div class="pager">
             <button
-              class="topbar-btn"
+              class="topbar-btn icon-btn"
+              title="previous page"
+              aria-label="previous page"
               disabled={page() === 0}
               onMouseEnter={() => page() > 0 && prefetch.historyPage(page() - 1)}
               onClick={() => goto(-1)}
             >
-              prev
+              <ChevronLeftIcon />
             </button>
             <span class="muted">page {page() + 1}</span>
             <button
-              class="topbar-btn"
+              class="topbar-btn icon-btn"
+              title="next page"
+              aria-label="next page"
               disabled={!historyData()?.hasMore}
               onMouseEnter={() => historyData()?.hasMore && prefetch.historyPage(page() + 1)}
               onClick={() => goto(1)}
             >
-              next
+              <ChevronRightIcon />
             </button>
           </div>
         </section>

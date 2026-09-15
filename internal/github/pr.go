@@ -46,17 +46,18 @@ type PRHead struct {
 }
 
 type PR struct {
-	Number    int    `json:"number"`
-	Title     string `json:"title"`
-	State     string `json:"state"`
-	Body      string `json:"body"`
-	HTMLURL   string `json:"html_url"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	User      User   `json:"user"`
-	Draft     bool   `json:"draft"`
-	Head      PRHead `json:"head"`
-	Base      PRHead `json:"base"`
+	Number    int     `json:"number"`
+	Title     string  `json:"title"`
+	State     string  `json:"state"`
+	Body      string  `json:"body"`
+	HTMLURL   string  `json:"html_url"`
+	CreatedAt string  `json:"created_at"`
+	UpdatedAt string  `json:"updated_at"`
+	MergedAt  *string `json:"merged_at"`
+	User      User    `json:"user"`
+	Draft     bool    `json:"draft"`
+	Head      PRHead  `json:"head"`
+	Base      PRHead  `json:"base"`
 
 	RequestedReviewers []User `json:"requested_reviewers"`
 }

@@ -6,8 +6,12 @@ import { BellIcon, CloseIcon } from "./icons"
 import type { Notification } from "../types"
 
 const reasonLabels: Record<string, string> = {
-  review_requested: "review",
-  team_mention: "mention",
+  assign: "assigned",
+  author: "author",
+  comment: "commented",
+  mention: "mentioned",
+  review_requested: "review requested",
+  team_mention: "team mentioned",
 }
 
 const reasonLabel = (reason: string) => reasonLabels[reason] ?? reason
@@ -116,11 +120,27 @@ export function NotificationsModal(props: { onClose: () => void }) {
                       onChange={() => toggle(row.id)}
                     />
                     <span class="notification-reason">{reasonLabel(row.reason)}</span>
-                    <span class="notification-title" title={row.title}>
-                      {row.title}
-                    </span>
+                    <div class="notification-content">
+                      <div class="notification-title" title={row.title}>{row.title}</div>
+                      <Show when={row.activityActor || row.activityBody}>
+                        <div class="notification-activity">
+                          <Show when={row.activityActor}>
+                            <span class="notification-actor">{row.activityActor}</span>
+                          </Show>
+                          <Show when={row.activityBody}>
+                            <span>{row.activityBody}</span>
+                          </Show>
+                        </div>
+                      </Show>
+                    </div>
                     <span class="notification-repo muted">
                       {row.repo} #{row.prNumber}
+                    </span>
+                    <span
+                      class="notification-state"
+                      classList={{ [`is-${row.state}`]: row.state !== undefined }}
+                    >
+                      {row.state ?? ""}
                     </span>
                     <span class="tmux-age muted">{relativeTime(row.updatedAt)}</span>
                   </li>
