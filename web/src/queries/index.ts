@@ -138,9 +138,11 @@ export function repoHistoryOptions(owner: string, repo: string, limit: number) {
   }
 }
 
+export const prsKey = (owner: string, repo: string) => ["prs", owner, repo] as const
+
 export function prsOptions(owner: string, repo: string) {
   return {
-    queryKey: ["prs", owner, repo],
+    queryKey: prsKey(owner, repo),
     queryFn: () => api.prs.list(owner, repo),
   }
 }

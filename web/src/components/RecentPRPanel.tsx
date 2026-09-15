@@ -1,17 +1,15 @@
 import { For, Show } from "solid-js"
-import { useNavigate } from "@tanstack/solid-router"
 import { useActiveReviews } from "../activeReviews"
 import {
   resolved,
-  usePrefetch,
   useRecentPRFilter,
   useRecentPRs,
   useRepos,
   useSaveRecentPRFilter,
 } from "../queries"
-import { relativeTime } from "../review"
 import type { PR, RecentPRFilter } from "../types"
 import { FilterIcon } from "./icons"
+import { PRRow } from "./PRRow"
 
 const skeletonRows = Array.from({ length: 6 })
 
@@ -23,8 +21,6 @@ export function RecentPRPanel() {
   const repos = useRepos()
   const repoData = resolved(repos)
   const saveFilter = useSaveRecentPRFilter()
-  const navigate = useNavigate()
-  const prefetch = usePrefetch()
   const { active } = useActiveReviews()
 
   const rows = () => recentData()?.pullRequests ?? []
@@ -45,13 +41,6 @@ export function RecentPRPanel() {
       [kind]: values.includes(value) ? values.filter((item) => item !== value) : [...values, value],
     })
   }
-
-  const open = (pr: PR) =>
-    navigate({
-      to: "/$owner/$repo/$pr",
-      params: { owner: pr.Owner, repo: pr.Repo, pr: String(pr.Number) },
-      search: { tab: "description" },
-    })
 
   return (
     <section class="recent-pr-panel">
@@ -137,26 +126,10 @@ export function RecentPRPanel() {
             </Show>
           }
         >
-          <ul class="review-rows" classList={{ "is-stale": recent.isFetching }}>
+          <ul class="pr-list" classList={{ "is-stale": recent.isFetching }}>
             <For each={rows()}>
               {(pr) => (
-                <li
-                  class="recent-pr-row"
-                  classList={{ "is-reviewing": isReviewing(pr) }}
-                  onMouseEnter={() => prefetch.pr(pr.Owner, pr.Repo, pr.Number)}
-                  onClick={() => open(pr)}
-                >
-                  <div class="recent-pr-title">
-                    <Show when={pr.Draft}><span class="badge draft">draft</span></Show>
-                    <span>{pr.Title}</span>
-                  </div>
-                  <div class="recent-pr-meta">
-                    <span class="recent-pr-repo">{pr.Owner}/{pr.Repo}</span>
-                    <span>#{pr.Number}</span>
-                    <span>{pr.Author}</span>
-                    <span class="muted recent-pr-age">{relativeTime(pr.UpdatedAt)}</span>
-                  </div>
-                </li>
+                <PRRow pr={pr} reviewing={isReviewing(pr)} showRepo />
               )}
             </For>
           </ul>

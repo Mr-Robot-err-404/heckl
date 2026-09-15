@@ -18,6 +18,7 @@ type ReviewerNote struct {
 type ReviewerThread struct {
 	User  User           `json:"user"`
 	Bot   bool           `json:"bot,omitempty"`
+	State string         `json:"state,omitempty"`
 	Notes []ReviewerNote `json:"notes"`
 }
 
@@ -63,8 +64,10 @@ func GroupReviewerNotes(reviews []Review, comments []ReviewComment) []ReviewerTh
 		})
 	}
 
+	latest := latestActionableReviews(reviews)
 	out := make([]ReviewerThread, 0, len(byAuthor))
 	for _, thread := range byAuthor {
+		thread.State = latest[thread.User.Login].State
 		sort.SliceStable(thread.Notes, func(i, j int) bool {
 			return thread.Notes[i].CreatedAt < thread.Notes[j].CreatedAt
 		})

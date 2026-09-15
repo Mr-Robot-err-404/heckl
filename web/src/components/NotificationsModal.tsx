@@ -2,7 +2,7 @@ import { createMemo, createSignal, For, Show } from "solid-js"
 import { useNavigate } from "@tanstack/solid-router"
 import { resolved, useNotifications, usePrefetch, useReadNotifications } from "../queries"
 import { relativeTime } from "../review"
-import { BellIcon, CloseIcon } from "./icons"
+import { BellIcon, BranchIcon, CloseIcon } from "./icons"
 import type { Notification } from "../types"
 
 const reasonLabels: Record<string, string> = {
@@ -136,12 +136,17 @@ export function NotificationsModal(props: { onClose: () => void }) {
                     <span class="notification-repo muted">
                       {row.repo} #{row.prNumber}
                     </span>
-                    <span
-                      class="notification-state"
-                      classList={{ [`is-${row.state}`]: row.state !== undefined }}
-                    >
-                      {row.state ?? ""}
-                    </span>
+                    <Show when={row.state}>
+                      {(state) => (
+                        <span
+                          class={`notification-state is-${state()}`}
+                          title={state()}
+                          aria-label={state()}
+                        >
+                          <BranchIcon />
+                        </span>
+                      )}
+                    </Show>
                     <span class="tmux-age muted">{relativeTime(row.updatedAt)}</span>
                   </li>
                 )}

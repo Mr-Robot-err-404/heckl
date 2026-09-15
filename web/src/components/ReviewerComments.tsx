@@ -64,6 +64,11 @@ function Thread(props: { thread: ReviewerThread; onFocusNote: (note: ReviewerNot
           <img class="reviewer-avatar" src={props.thread.user.avatar} alt="" />
         </Show>
         <span class="reviewer-login">{props.thread.user.login}</span>
+        <Show when={props.thread.state}>
+          <span class={`reviewer-state is-${props.thread.state?.toLowerCase()}`}>
+            {stateLabels[props.thread.state ?? ""] ?? props.thread.state}
+          </span>
+        </Show>
         <span class="reviewer-count">{props.thread.notes.length}</span>
       </button>
 

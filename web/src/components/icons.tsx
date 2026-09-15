@@ -167,6 +167,19 @@ export function BellIcon() {
   )
 }
 
+export function BranchIcon() {
+  return (
+    <svg class="bot-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="18" r="3" />
+        <circle cx="6" cy="6" r="3" />
+        <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+        <line x1="6" y1="9" x2="6" y2="21" />
+      </g>
+    </svg>
+  )
+}
+
 export function TmuxIcon() {
   return (
     <svg class="bot-icon" viewBox="0 0 16 16" aria-hidden="true">

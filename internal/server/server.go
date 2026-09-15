@@ -186,6 +186,7 @@ type userResponse struct {
 type reviewerThreadResponse struct {
 	User  userResponse          `json:"user"`
 	Bot   bool                  `json:"bot,omitempty"`
+	State string                `json:"state,omitempty"`
 	Notes []github.ReviewerNote `json:"notes"`
 }
 
@@ -209,22 +210,23 @@ type prFileResponse struct {
 
 func toPRResponse(owner, repo string, pr github.PR) prResponse {
 	return prResponse{
-		Owner:        owner,
-		Repo:         repo,
-		Number:       pr.Number,
-		Title:        pr.Title,
-		Body:         pr.Body,
-		State:        pr.State,
-		Author:       pr.User.Login,
-		AuthorAvatar: pr.User.AvatarURL,
-		HtmlUrl:      pr.HTMLURL,
-		Draft:        pr.Draft,
-		CreatedAt:    pr.CreatedAt,
-		UpdatedAt:    pr.UpdatedAt,
-		BaseSha:      pr.Base.SHA,
-		BaseRef:      pr.Base.Ref,
-		HeadSha:      pr.Head.SHA,
-		HeadRef:      pr.Head.Ref,
+		Owner:              owner,
+		Repo:               repo,
+		Number:             pr.Number,
+		Title:              pr.Title,
+		Body:               pr.Body,
+		State:              pr.State,
+		Author:             pr.User.Login,
+		AuthorAvatar:       pr.User.AvatarURL,
+		HtmlUrl:            pr.HTMLURL,
+		Draft:              pr.Draft,
+		CreatedAt:          pr.CreatedAt,
+		UpdatedAt:          pr.UpdatedAt,
+		BaseSha:            pr.Base.SHA,
+		BaseRef:            pr.Base.Ref,
+		HeadSha:            pr.Head.SHA,
+		HeadRef:            pr.Head.Ref,
+		RequestedReviewers: toUsers(pr.RequestedReviewers),
 	}
 }
 
@@ -241,10 +243,8 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Debug("github: list prs", "owner", owner, "repo", repo, "count", len(remote), "duration_ms", time.Since(start).Milliseconds())
 
-	numbers := make([]int, 0, len(remote))
 	open := make(map[int]bool, len(remote))
 	for _, pr := range remote {
-		numbers = append(numbers, pr.Number)
 		open[pr.Number] = true
 	}
 
@@ -256,48 +256,11 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("reap: skipped, open pr list may be truncated", "owner", owner, "repo", repo)
 	}
 
-	var (
-		wg        sync.WaitGroup
-		viewer    string
-		reviews   map[int][]github.Review
-		summaries map[int]*store.RepoReviewSummary
-	)
-
-	wg.Go(func() {
-		login, err := s.gh.Viewer(r.Context())
-		if err != nil {
-			slog.Warn("github: viewer lookup failed", "err", err)
-			return
-		}
-		viewer = login
-	})
-	wg.Go(func() {
-		reviews = s.gh.ReviewsForPRs(r.Context(), owner, repo, numbers)
-	})
-	wg.Go(func() {
-		stored, err := s.store.RepoReviewSummary(r.Context(), owner, repo)
-		if err != nil {
-			slog.Error("store: repo review summary failed", "owner", owner, "repo", repo, "err", err)
-			stored = map[int]*store.RepoReviewSummary{}
-		}
-		summaries = stored
-	})
-	wg.Wait()
-
 	out := make([]prResponse, 0, len(remote))
 	for _, pr := range remote {
-		item := toPRResponse(owner, repo, pr)
-		item.RequestedReviewers = toUsers(pr.RequestedReviewers)
-
-		verdict := github.Verdict(reviews[pr.Number], viewer)
-		item.Approvals = toUsers(verdict.Approvals)
-		item.ChangesRequested = toUsers(verdict.ChangesRequested)
-		item.ViewerApproved = verdict.ViewerApproved
-		item.ViewerHasReviewed = verdict.ViewerHasReviewed
-		item.Review = summaries[pr.Number]
-
-		out = append(out, item)
+		out = append(out, toPRResponse(owner, repo, pr))
 	}
+	s.enrichPRs(r.Context(), out)
 
 	jsonOK(w, out)
 }
@@ -341,6 +304,7 @@ func (s *Server) handlePRComments(w http.ResponseWriter, r *http.Request) {
 		out = append(out, reviewerThreadResponse{
 			User:  userResponse{Login: t.User.Login, Avatar: t.User.AvatarURL},
 			Bot:   t.Bot,
+			State: t.State,
 			Notes: t.Notes,
 		})
 	}

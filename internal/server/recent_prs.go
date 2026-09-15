@@ -175,6 +175,7 @@ func (s *Server) handleListRecentPRs(w http.ResponseWriter, r *http.Request) {
 	if len(response.PullRequests) > recentPRLimit {
 		response.PullRequests = response.PullRequests[:recentPRLimit]
 	}
+	s.enrichPRs(r.Context(), response.PullRequests)
 	sort.Strings(response.Unavailable)
 	jsonOK(w, response)
 }

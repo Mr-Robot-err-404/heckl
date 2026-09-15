@@ -1,7 +1,7 @@
 import { createContext, createSignal, onCleanup, useContext, type JSX } from "solid-js"
 import { useQueryClient } from "@tanstack/solid-query"
 import { api } from "./api"
-import { historyQueryKey } from "./queries"
+import { historyQueryKey, prsKey, recentPRsKey } from "./queries"
 import type { Review } from "./types"
 
 export function reviewKey(owner: string, repo: string, prNumber: number) {
@@ -42,7 +42,11 @@ export function ActiveReviewsProvider(props: { children: JSX.Element }) {
         else next[key] = review
         return next
       })
-      if (isFinished(review)) client.invalidateQueries({ queryKey: historyQueryKey })
+      if (isFinished(review)) {
+        client.invalidateQueries({ queryKey: historyQueryKey })
+        client.invalidateQueries({ queryKey: prsKey(review.owner, review.repo) })
+        client.invalidateQueries({ queryKey: recentPRsKey, exact: true })
+      }
     },
   })
   onCleanup(close)

@@ -74,18 +74,7 @@ type ReviewVerdict struct {
 }
 
 func Verdict(reviews []Review, viewer string) ReviewVerdict {
-	latest := make(map[string]Review, len(reviews))
-	for _, review := range reviews {
-		switch review.State {
-		case "APPROVED", "CHANGES_REQUESTED", "DISMISSED":
-		default:
-			continue
-		}
-		if prev, ok := latest[review.User.Login]; ok && prev.SubmittedAt > review.SubmittedAt {
-			continue
-		}
-		latest[review.User.Login] = review
-	}
+	latest := latestActionableReviews(reviews)
 
 	verdict := ReviewVerdict{Approvals: []User{}, ChangesRequested: []User{}}
 	for login, review := range latest {
@@ -103,4 +92,20 @@ func Verdict(reviews []Review, viewer string) ReviewVerdict {
 		}
 	}
 	return verdict
+}
+
+func latestActionableReviews(reviews []Review) map[string]Review {
+	latest := make(map[string]Review, len(reviews))
+	for _, review := range reviews {
+		switch review.State {
+		case "APPROVED", "CHANGES_REQUESTED", "DISMISSED":
+		default:
+			continue
+		}
+		if prev, ok := latest[review.User.Login]; ok && prev.SubmittedAt > review.SubmittedAt {
+			continue
+		}
+		latest[review.User.Login] = review
+	}
+	return latest
 }
