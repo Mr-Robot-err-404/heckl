@@ -1673,7 +1673,19 @@ a:hover .brand-mark,
 
 
 .concern-modal-title { color: var(--text); font-size: 16px; }
-.concern-modal-location { color: var(--blue); font-size: 12px; overflow-wrap: anywhere; }
+.concern-modal-location {
+  width: fit-content;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--blue);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.concern-modal-location:hover { text-decoration: underline; }
 .concern-modal-body { color: var(--subtext1); font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ── Dashboard (history) ── */

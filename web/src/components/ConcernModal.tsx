@@ -61,11 +61,10 @@ export function ConcernModal(props: Props) {
         </div>
         <div class="modal-body">
           <h2 class="concern-modal-title">{props.concern.title}</h2>
-          <p class="concern-modal-location">{props.concern.file}{props.concern.line != null ? `:${props.concern.line}` : ""}</p>
+          <button class="concern-modal-location" onClick={props.onFocus}>
+            {props.concern.file}{props.concern.line != null ? `:${props.concern.line}` : ""} →
+          </button>
           <p class="concern-modal-body">{props.concern.body}</p>
-        </div>
-        <div class="modal-foot">
-          <button class="review-run" onClick={props.onFocus}>show in diff</button>
         </div>
       </div>
     </div>
