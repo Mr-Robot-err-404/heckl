@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { useQueryClient } from "@tanstack/solid-query";
 import {
@@ -17,7 +17,6 @@ import { Markdown } from "./Markdown";
 import { SkeletonLines } from "./Skeleton";
 import { ReviewPanel } from "./ReviewPanel";
 import { ReviewerComments } from "./ReviewerComments";
-import { ReviewAgents } from "./ReviewPage";
 import { ConcernModal } from "./ConcernModal";
 import { TmuxModal } from "./TmuxModal";
 import { useModal } from "../modal";
@@ -92,6 +91,7 @@ export function PRDetail(props: Props) {
     () => props.prNumber,
   );
   const [filesMounted, setFilesMounted] = createSignal(false);
+  const [diffFullscreen, setDiffFullscreen] = createSignal(false);
   const [sideTab, setSideTab] = createSignal<"files" | "review">("files");
   const [openConcern, setOpenConcern] = createSignal<RankedConcern | null>(null);
   const [focus, setFocus] = createSignal<ConcernTarget | null>(null);
@@ -167,6 +167,24 @@ export function PRDetail(props: Props) {
 
   createEffect(() => {
     if (props.tab === "files") setFilesMounted(true);
+    else setDiffFullscreen(false);
+  });
+
+  onMount(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.target instanceof Element && event.target.closest("input, textarea, select, button, a, [contenteditable], [role='dialog']")) return;
+      if (event.key.toLowerCase() === "f" && props.tab === "files") {
+        event.preventDefault();
+        if (event.target instanceof HTMLElement && event.target.closest(".diffview-host")) event.target.blur();
+        setDiffFullscreen((value) => !value);
+      } else if (event.key === "Escape" && diffFullscreen()) {
+        event.preventDefault();
+        setDiffFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    onCleanup(() => window.removeEventListener("keydown", onKeyDown));
   });
 
   const focusLine = (file: string, line: number, side: "additions" | "deletions", rank: number) => {
@@ -218,7 +236,7 @@ export function PRDetail(props: Props) {
   };
 
   return (
-    <div class="pr-detail">
+    <div class="pr-detail" classList={{ "diff-fullscreen": diffFullscreen() }}>
       <div class="pr-tabs">
         <div class="pr-tabs-main">
           <For each={tabs}>
@@ -409,7 +427,6 @@ export function PRDetail(props: Props) {
               </Show>
             </Show>
             <Show when={sideTab() === "review"}>
-              <ReviewAgents state={review} />
               <ReviewPanel
                 state={review}
                 activeRank={focus()?.rank}

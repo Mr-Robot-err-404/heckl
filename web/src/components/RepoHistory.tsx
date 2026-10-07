@@ -25,7 +25,7 @@ export function RepoHistory(props: Props) {
     active().filter((r) => r.owner === props.owner && r.repo === props.repo)
 
   const rows = (): Row[] => {
-    const stored = (history.isSuccess ? historyData()?.sessions ?? [] : []).map(historyRow)
+    const stored = (historyData()?.sessions ?? []).map(historyRow)
     return page() === 0 ? [...activeHere().map(activeRow), ...stored] : stored
   }
 
@@ -64,7 +64,7 @@ export function RepoHistory(props: Props) {
           class="topbar-btn icon-btn"
           title="next page"
           aria-label="next page"
-          disabled={history.isFetching || !historyData()?.hasMore}
+          disabled={!historyData()?.hasMore}
           onMouseEnter={() => historyData()?.hasMore && prefetch.repoHistory(props.owner, props.repo, page() + 1)}
           onClick={() => setPage((n) => n + 1)}
         >

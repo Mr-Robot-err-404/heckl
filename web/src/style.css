@@ -845,6 +845,17 @@ button.topbar-config:hover { background: none; color: var(--text); }
 }
 .diff-tab-panel.hidden { display: none; }
 
+.pr-detail.diff-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--base);
+}
+.pr-detail.diff-fullscreen .pr-tabs,
+.pr-detail.diff-fullscreen .pr-sidebar { display: none; }
+.pr-detail.diff-fullscreen .review-layout { display: flex; }
+.pr-detail.diff-fullscreen .review-diff { flex: 1; min-height: 0; }
+
 /* ── Diff header buttons ── */
 .diff-header-btn {
   display: inline-flex;
