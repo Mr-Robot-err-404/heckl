@@ -351,6 +351,7 @@ export function PRDetail(props: Props) {
                 focus={focus()}
                 fileFocus={fileFocus()}
                 threads={threads() ?? []}
+                active={props.tab === "files"}
                 onPickLine={pickLine}
                 onUnpickLine={removePick}
               />

@@ -842,8 +842,61 @@ button.topbar-config:hover { background: none; color: var(--text); }
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 .diff-tab-panel.hidden { display: none; }
+
+.diff-search {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: min(460px, calc(100% - 24px));
+  padding: 5px 7px;
+  border: 1px solid var(--surface2);
+  border-radius: 6px;
+  background: var(--mantle);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--sunken) 80%, transparent);
+}
+.diff-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+.diff-search input::placeholder { color: var(--overlay1); }
+.diff-search-count {
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: center;
+  color: var(--subtext0);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.diff-search button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--subtext0);
+  cursor: pointer;
+}
+.diff-search button:hover:not(:disabled) { background: var(--surface1); color: var(--text); }
+.diff-search button:disabled { opacity: 0.4; cursor: default; }
 
 .pr-detail.diff-fullscreen {
   position: fixed;

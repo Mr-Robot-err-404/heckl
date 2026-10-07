@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount, Show, untrack } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show, untrack } from "solid-js"
 import {
   CodeView,
   parsePatchFiles,
@@ -22,6 +22,8 @@ import { api } from "../../api"
 import type { ConcernTarget, DiffSides, FileTarget, ReviewerThread } from "../../types"
 import { theme } from "../../theme"
 import { highlightVersion } from "../../highlight"
+import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../icons"
+import { searchDiff } from "./search"
 
 type Props = {
   owner: string
@@ -33,6 +35,7 @@ type Props = {
   threads?: ReviewerThread[]
   onPickLine?: (file: string, line: number, side: "additions" | "deletions") => void
   onUnpickLine?: (file: string) => void
+  active: boolean
 }
 
 function sameAnnotations(a: DiffAnnotation[] | undefined, b: DiffAnnotation[]): boolean {
@@ -65,7 +68,9 @@ function hoveredExpandFile(event: Event): string | undefined {
 export function DiffView(props: Props) {
   const queryClient = useQueryClient()
   let host!: HTMLDivElement
+  let searchInput: HTMLInputElement | undefined
   let view: CodeView<NoteMetadata> | null = null
+  let selectionBeforeSearch: ReturnType<CodeView<NoteMetadata>["getSelectedLines"]> = null
   let selectedFile: string | null = null
   let fileIds: string[] = []
   let highlightSeen = highlightVersion()
@@ -78,6 +83,58 @@ export function DiffView(props: Props) {
   const patchData = resolved(diff)
   const [rendered, setRendered] = createSignal(false)
   const [parsedFiles, setParsedFiles] = createSignal<FileDiffMetadata[]>([])
+  const [searchOpen, setSearchOpen] = createSignal(false)
+  const [query, setQuery] = createSignal("")
+  const [matchIndex, setMatchIndex] = createSignal(0)
+  const matches = createMemo(() => searchDiff(parsedFiles(), query().trim()))
+  const currentIndex = () => Math.min(matchIndex(), Math.max(0, matches().length - 1))
+  let searchSelection: { file: string; line: number; side: "additions" | "deletions" } | null = null
+
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setQuery("")
+    if (searchSelection && view?.getSelectedLines()?.id === searchSelection.file &&
+      view?.getSelectedLines()?.range.start === searchSelection.line &&
+      view?.getSelectedLines()?.range.side === searchSelection.side) {
+      view.setSelectedLines(selectionBeforeSearch, { notify: false })
+    }
+    searchSelection = null
+    selectionBeforeSearch = null
+    searchInput?.blur()
+  }
+
+  const moveMatch = (step: number) => {
+    const length = matches().length
+    if (length) setMatchIndex((index) => (Math.min(index, length - 1) + step + length) % length)
+  }
+
+  createEffect(() => {
+    if (!props.active && searchOpen()) closeSearch()
+  })
+
+  createEffect(() => {
+    if (!searchOpen() || !rendered()) return
+    const match = matches()[currentIndex()]
+    const v = view
+    if (!match || !v) {
+      if (searchSelection && v?.getSelectedLines()?.id === searchSelection.file &&
+        v?.getSelectedLines()?.range.start === searchSelection.line &&
+        v?.getSelectedLines()?.range.side === searchSelection.side) {
+        v.setSelectedLines(selectionBeforeSearch, { notify: false })
+      }
+      searchSelection = null
+      return
+    }
+    const item = v.getItem(match.file)
+    if (!item) return
+    if (item.collapsed) v.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 })
+    v.setSelectedLines(
+      { id: match.file, range: { start: match.line, end: match.line, side: match.side } },
+      { notify: false },
+    )
+    searchSelection = match
+    v.scrollTo({ type: "line", id: match.file, lineNumber: match.line, side: match.side, align: "center" })
+  })
 
   const notes = () => annotationsByFile(props.threads ?? [])
 
@@ -126,7 +183,10 @@ export function DiffView(props: Props) {
     props.owner
     props.repo
     props.prNumber
-    setRendered(false)
+    untrack(() => {
+      setRendered(false)
+      closeSearch()
+    })
   })
 
   createEffect(() => {
@@ -158,6 +218,8 @@ export function DiffView(props: Props) {
 
     view?.cleanUp()
     selectedFile = null
+    searchSelection = null
+    selectionBeforeSearch = null
     view = new CodeView<NoteMetadata>({
       theme: shiki,
       hunkSeparators: "line-info",
@@ -262,7 +324,26 @@ export function DiffView(props: Props) {
     v.scrollTo({ type: "item", id: target.file, align: "start" })
   })
 
-  onMount(() => host.addEventListener("mouseover", warmOnHover))
+  onMount(() => {
+    host.addEventListener("mouseover", warmOnHover)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && searchOpen()) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        closeSearch()
+        return
+      }
+      if (!props.active || event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return
+      if (event.target instanceof Element && event.target.closest("input, textarea, select, button, a, [contenteditable], [role='dialog']")) return
+      if (event.key !== "/") return
+      event.preventDefault()
+      selectionBeforeSearch = view?.getSelectedLines() ?? null
+      setSearchOpen(true)
+      requestAnimationFrame(() => searchInput?.focus())
+    }
+    window.addEventListener("keydown", onKeyDown, true)
+    onCleanup(() => window.removeEventListener("keydown", onKeyDown, true))
+  })
 
   onCleanup(() => {
     host.removeEventListener("mouseover", warmOnHover)
@@ -272,6 +353,29 @@ export function DiffView(props: Props) {
 
   return (
     <>
+      <Show when={searchOpen()}>
+        <div class="diff-search" role="search" onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault()
+            moveMatch(event.shiftKey ? -1 : 1)
+          }
+        }}>
+          <input
+            ref={searchInput}
+            type="text"
+            value={query()}
+            placeholder="Search diff"
+            aria-label="Search diff"
+            onInput={(event) => { setMatchIndex(0); setQuery(event.currentTarget.value) }}
+          />
+          <span class="diff-search-count" aria-live="polite">
+            {query().trim() ? (matches().length ? `${currentIndex() + 1} / ${matches().length}` : "0 / 0") : ""}
+          </span>
+          <button title="previous match (Shift+Enter)" aria-label="previous match" disabled={!matches().length} onClick={() => moveMatch(-1)}><ChevronLeftIcon /></button>
+          <button title="next match (Enter)" aria-label="next match" disabled={!matches().length} onClick={() => moveMatch(1)}><ChevronRightIcon /></button>
+          <button title="close search (Esc)" aria-label="close search" onClick={closeSearch}><CloseIcon /></button>
+        </div>
+      </Show>
       {diff.isError && (
         <div class="muted" style="padding:16px">{String(diff.error)}</div>
       )}
