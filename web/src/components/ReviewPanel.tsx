@@ -2,7 +2,7 @@ import { createSignal, For, Show } from "solid-js";
 import { agentLabel, fileName, formatMs, type ReviewState } from "../review";
 import type { RankedConcern } from "../types";
 import { AgentPicker } from "./AgentPicker";
-import { ChevronIcon, PlayIcon, RerunIcon, StopIcon } from "./icons";
+import { ChevronIcon, DetailsIcon, PlayIcon, RerunIcon, StopIcon } from "./icons";
 import { AgentButton } from "./ReviewPage";
 
 type Props = {
@@ -196,8 +196,8 @@ function ConcernRow(props: { concern: RankedConcern; active: boolean; onFocus: (
           </Show>
         </span>
       </button>
-      <button class="concern-row-details" onClick={props.onOpen} aria-label={`read ${props.concern.title}`} title="read details">
-        details
+      <button class="agent-rerun concern-row-details" onClick={props.onOpen} aria-label={`read ${props.concern.title}`} title="read details">
+        <DetailsIcon />
       </button>
     </li>
   );

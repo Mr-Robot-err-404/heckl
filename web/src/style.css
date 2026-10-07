@@ -1050,11 +1050,9 @@ button.topbar-config:hover { background: none; color: var(--text); }
   letter-spacing: 0.05em;
   cursor: pointer;
 }
-.pr-sidebar-tab + .pr-sidebar-tab { border-left: 1px solid var(--surface1); }
-.pr-sidebar-tab:hover { color: var(--blue); background: var(--surface0); }
+.pr-sidebar-tab:hover { color: var(--blue); }
 .pr-sidebar-tab.active {
   color: var(--blue);
-  background: var(--surface0);
   border-bottom-color: var(--blue);
 }
 
@@ -1405,16 +1403,10 @@ button.topbar-config:hover { background: none; color: var(--text); }
 
 .concern-row-details {
   flex-shrink: 0;
-  border: 1px solid var(--surface2);
-  border-radius: 3px;
-  background: none;
   color: var(--blue);
-  padding: 3px 6px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 10px;
 }
-.concern-row-details:hover { background: var(--surface1); }
+.concern-row-details .bot-icon { width: 14px; height: 14px; }
+.concern-row-details:hover:not(:disabled) { color: var(--blue); border-color: var(--blue); }
 
 
 .concern-row-title {
