@@ -10,7 +10,6 @@ import {
   useNotifications,
   usePrefetch,
   resolved,
-  historyPageSize,
 } from "../queries";
 import { useActiveReviews } from "../activeReviews";
 import { AgentConfigModal } from "./AgentConfigModal";
@@ -186,7 +185,7 @@ export function TopBar() {
                         value={`${repo.Owner}/${repo.Name}`}
                         onMouseEnter={() => {
                           prefetch.prs(repo.Owner, repo.Name);
-                          prefetch.repoHistory(repo.Owner, repo.Name, historyPageSize);
+                          prefetch.repoHistory(repo.Owner, repo.Name, 0);
                         }}
                       >
                         {repo.Name}

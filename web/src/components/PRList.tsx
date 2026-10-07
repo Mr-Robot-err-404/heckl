@@ -29,40 +29,53 @@ export function PRList(props: Props) {
     )
 
   return (
-    <div class="repo-page">
-      <div class="pr-list-page">
-        <div class="dashboard-head repo-page-head">
-          <h1>{props.owner}/{props.repo}</h1>
-        </div>
-        <ul class="pr-list">
-          <Show when={prs.isPending}>
-            <For each={skeletonRows}>
-              {(row) => (
-                <li class="pr-row is-skeleton">
-                  <div class="pr-row-main">
-                    <span class="skeleton skeleton-title" style={{ width: row.titleWidth }} />
-                    <div class="pr-row-meta">
-                      <span class="skeleton skeleton-number" />
-                      <span class="skeleton skeleton-author" />
-                    </div>
-                  </div>
-                  <div class="pr-status skeleton-reviewers">
-                    <For each={row.reviewers}>
-                      {() => <span class="skeleton skeleton-avatar" />}
+    <div class="dashboard">
+      <div class="dashboard-cols">
+        <section class="recent-pr-panel">
+          <div class="dashboard-head">
+            <h1>{props.owner}/{props.repo}</h1>
+          </div>
+          <div class="dashboard-scroll">
+            <Show when={prs.error}>
+              <div class="empty error">{String(prs.error)}</div>
+            </Show>
+            <Show when={prs.isPending && !rows()}>
+              <ul class="pr-list">
+                <For each={skeletonRows}>
+                  {(row) => (
+                    <li class="pr-row is-skeleton">
+                      <div class="pr-row-main">
+                        <span class="skeleton skeleton-title" style={{ width: row.titleWidth }} />
+                        <div class="pr-row-meta">
+                          <span class="skeleton skeleton-number" />
+                          <span class="skeleton skeleton-author" />
+                        </div>
+                      </div>
+                      <div class="pr-status skeleton-reviewers">
+                        <For each={row.reviewers}>
+                          {() => <span class="skeleton skeleton-avatar" />}
+                        </For>
+                      </div>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Show>
+            <Show when={rows()}>
+              {(list) => (
+                <Show when={list().length > 0} fallback={<div class="empty">no pull requests</div>}>
+                  <ul class="pr-list" classList={{ "is-stale": prs.isFetching }}>
+                    <For each={list()}>
+                      {(pr) => <PRRow pr={pr} reviewing={isReviewing(pr.Number)} />}
                     </For>
-                  </div>
-                </li>
+                  </ul>
+                </Show>
               )}
-            </For>
-          </Show>
-          <For each={rows()}>
-            {(pr) => (
-              <PRRow pr={pr} reviewing={isReviewing(pr.Number)} />
-            )}
-          </For>
-        </ul>
+            </Show>
+          </div>
+        </section>
+        <RepoHistory owner={props.owner} repo={props.repo} />
       </div>
-      <RepoHistory owner={props.owner} repo={props.repo} />
     </div>
   )
 }

@@ -131,10 +131,10 @@ export function historyOptions(page: number) {
   }
 }
 
-export function repoHistoryOptions(owner: string, repo: string, limit: number) {
+export function repoHistoryOptions(owner: string, repo: string, page: number) {
   return {
-    queryKey: [...historyQueryKey, owner, repo, limit],
-    queryFn: () => api.reviews.history({ owner, repo, limit, offset: 0 }),
+    queryKey: [...historyQueryKey, owner, repo, page],
+    queryFn: () => api.reviews.history({ owner, repo, limit: historyPageSize, offset: page * historyPageSize }),
   }
 }
 
@@ -194,10 +194,10 @@ export function useReviewHistory(page: () => number) {
 export function useRepoReviewHistory(
   owner: () => string,
   repo: () => string,
-  limit: () => number,
+  page: () => number,
 ) {
   return createQuery(() => ({
-    ...repoHistoryOptions(owner(), repo(), limit()),
+    ...repoHistoryOptions(owner(), repo(), page()),
     enabled: !!owner() && !!repo(),
     placeholderData: keepPrevious,
   }))
@@ -315,8 +315,8 @@ export function usePrefetch() {
     historyPage: (page: number) => run(historyOptions(page)),
     recentPRs: () => run(recentPRsOptions()),
     tmux: () => run({ queryKey: tmuxListKey, queryFn: api.tmux.list, staleTime: 0 }),
-    repoHistory: (owner: string, repo: string, limit: number) =>
-      run(repoHistoryOptions(owner, repo, limit)),
+    repoHistory: (owner: string, repo: string, page: number) =>
+      run(repoHistoryOptions(owner, repo, page)),
     pr: (owner: string, repo: string, number: number) => {
       run(prDetailOptions(owner, repo, number))
       run(diffOptions(owner, repo, number))
