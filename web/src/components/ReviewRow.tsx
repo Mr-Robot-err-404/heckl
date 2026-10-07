@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/solid-router"
 import { relativeTime } from "../review"
 import { usePrefetch } from "../queries"
 import type { Review, ReviewHistoryRow } from "../types"
+import { CheckIcon, CloseIcon } from "./icons"
 
 export type Severity = "critical" | "warning" | "low"
 
@@ -67,7 +68,7 @@ export function historyRow(session: ReviewHistoryRow): Row {
   }
 }
 
-export function ReviewRow(props: { row: Row; showRepo?: boolean; showDetails?: boolean }) {
+export function ReviewRow(props: { row: Row; showRepo?: boolean; showDetails?: boolean; compact?: boolean }) {
   const navigate = useNavigate()
   const prefetch = usePrefetch()
 
@@ -87,12 +88,21 @@ export function ReviewRow(props: { row: Row; showRepo?: boolean; showDetails?: b
 
   return (
     <li
-      class={`review-row is-${props.row.status}`}
+      class={`review-row is-${props.row.status} ${props.compact ? "is-compact" : ""}`}
       onMouseEnter={warm}
       onClick={open}
     >
       <div class="review-row-top">
-        <span class={`pill pill-${props.row.status}`}>{props.row.label}</span>
+        <Show
+          when={props.compact}
+          fallback={<span class={`pill pill-${props.row.status}`}>{props.row.label}</span>}
+        >
+          <span class={`review-status-icon is-${props.row.status}`} role="img" aria-label={props.row.label} title={props.row.label}>
+            <Show when={props.row.status === "done"}><CheckIcon /></Show>
+            <Show when={props.row.status === "running"}><span class="review-status-running" /></Show>
+            <Show when={props.row.status === "error"}><CloseIcon /></Show>
+          </span>
+        </Show>
         <Show when={props.showRepo}>
           <span class="review-row-repo" title={`${props.row.owner}/${props.row.repo}`}>
             {props.row.owner}/{props.row.repo}
@@ -100,7 +110,9 @@ export function ReviewRow(props: { row: Row; showRepo?: boolean; showDetails?: b
         </Show>
         <span class="review-row-pr muted">#{props.row.prNumber}</span>
         <span class="review-row-title">{props.row.title}</span>
-        <span class="review-row-date muted">{props.row.date}</span>
+        <Show when={!props.compact}>
+          <span class="review-row-date muted">{props.row.date}</span>
+        </Show>
       </div>
 
       <Show when={props.showDetails && (!!props.row.concerns || !!props.row.note)}>

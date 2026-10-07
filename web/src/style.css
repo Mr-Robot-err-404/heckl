@@ -1690,7 +1690,6 @@ a:hover .brand-mark,
 
 /* ── Dashboard (history) ── */
 .dashboard {
-  padding: 24px 0 40px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1788,19 +1787,27 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 
 .dashboard-main .review-row-top {
   display: grid;
-  grid-template-columns: 58px minmax(0, 160px) 48px minmax(120px, 1fr) 68px;
+  grid-template-columns: 14px auto minmax(0, 1fr);
   align-items: center;
-  column-gap: 10px;
+  column-gap: 8px;
 }
+
+.dashboard-main .review-row { padding: 9px 10px; }
+
+.review-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+.review-status-icon .bot-icon { width: 14px; height: 14px; }
+.review-status-icon.is-done { color: var(--green); }
+.review-status-icon.is-running { color: var(--orange); }
+.review-status-icon.is-error { color: var(--red); }
+.review-status-running { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
 
 .review-row-pr { white-space: nowrap; }
-.dashboard-main .review-row-repo {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .review-row-title {
   flex: 1;
   min-width: 0;
@@ -1883,7 +1890,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 
 .dashboard-cols {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
   align-items: stretch;
   flex: 1;
   min-height: 0;
@@ -1897,6 +1904,15 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   min-height: 0;
   padding: 0 var(--gutter);
 }
+
+.dashboard-main {
+  padding-top: 24px;
+  padding-bottom: 20px;
+  background: var(--mantle);
+}
+.recent-pr-panel { padding-top: 24px; padding-bottom: 40px; }
+.dashboard-main .review-rows { border: none; border-radius: 0; }
+.dashboard-main .review-row { min-width: 0; }
 
 .dashboard-scroll {
   flex: 1;
@@ -2309,6 +2325,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 
 .skeleton-title { height: 18px; }
 .skeleton-status { width: 48px; height: 16px; }
+.skeleton-review-icon { width: 14px; height: 14px; border-radius: 50%; }
 .skeleton-repo { width: 75%; height: 11px; }
 .skeleton-pr { width: 34px; height: 11px; }
 .skeleton-date { width: 52px; height: 10px; }
@@ -2497,16 +2514,8 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   .review-row-title { flex-basis: 100%; white-space: normal; overflow: visible; }
   .review-row-date { margin-left: auto; }
 
-  .dashboard-main .review-row-top {
-    grid-template-columns: 54px minmax(0, 1fr) 40px 58px;
-    gap: 6px 8px;
-  }
-  .dashboard-main .review-row-date { margin-left: 0; }
-  .dashboard-main .review-row-title {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    white-space: normal;
-  }
+  .dashboard-main .review-row-top { grid-template-columns: 14px auto minmax(0, 1fr); }
+  .dashboard-main .review-row-title { white-space: nowrap; }
 
   .repo-history { padding: 16px 12px; }
   .repo-history .review-rows.compact { margin: 0 -12px; }

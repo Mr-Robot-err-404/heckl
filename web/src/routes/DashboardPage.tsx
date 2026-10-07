@@ -1,7 +1,7 @@
 import { For, Show } from "solid-js"
 import { useNavigate, useSearch } from "@tanstack/solid-router"
 import { useActiveReviews } from "../activeReviews"
-import { useReviewHistory, usePrefetch, resolved } from "../queries"
+import { useReviewHistory, usePrefetch, useRecentPRs, resolved } from "../queries"
 import { ReviewRow, activeRow, historyRow, type Row } from "../components/ReviewRow"
 import { RecentPRPanel } from "../components/RecentPRPanel"
 import { ChevronLeftIcon, ChevronRightIcon } from "../components/icons"
@@ -16,11 +16,26 @@ export function DashboardPage() {
   const page = () => search().page
   const history = useReviewHistory(page)
   const historyData = resolved(history)
+  const recent = useRecentPRs()
+  const recentData = resolved(recent)
   const prefetch = usePrefetch()
 
   const rows = (): Row[] => {
-    const stored = (historyData()?.sessions ?? []).map(historyRow)
-    return page() === 0 ? [...active().map(activeRow), ...stored] : stored
+    const titles = new Map(
+      (recentData()?.pullRequests ?? []).map((pr) => [`${pr.Owner}/${pr.Repo}/${pr.Number}`, pr.Title]),
+    )
+    const titleFor = (owner: string, repo: string, number: number) =>
+      titles.get(`${owner}/${repo}/${number}`) ?? "Title unavailable"
+    const stored = (historyData()?.sessions ?? []).map((session) => ({
+      ...historyRow(session),
+      title: titleFor(session.owner, session.repo, session.prNumber),
+    }))
+    return page() === 0
+      ? [...active().map((review) => ({
+          ...activeRow(review),
+          title: titleFor(review.owner, review.repo, review.prNumber),
+        })), ...stored]
+      : stored
   }
 
   const goto = (delta: number) =>
@@ -33,7 +48,7 @@ export function DashboardPage() {
 
         <section class="dashboard-main">
           <div class="dashboard-head">
-            <h1>history</h1>
+            <h1>agent reviews</h1>
             <Show when={active().length > 0}>
               <span class="badge running">{active().length} in progress</span>
             </Show>
@@ -53,11 +68,9 @@ export function DashboardPage() {
                       {() => (
                         <li class="review-row is-skeleton">
                           <div class="review-row-top">
-                            <span class="skeleton skeleton-status" />
-                            <span class="skeleton skeleton-repo" />
+                            <span class="skeleton skeleton-review-icon" />
                             <span class="skeleton skeleton-pr" />
                             <span class="skeleton skeleton-title" />
-                            <span class="skeleton skeleton-date" />
                           </div>
                         </li>
                       )}
@@ -67,7 +80,7 @@ export function DashboardPage() {
               }
             >
               <ul class="review-rows" classList={{ "is-stale": history.isFetching }}>
-                <For each={rows()}>{(row) => <ReviewRow row={row} showRepo />}</For>
+                <For each={rows()}>{(row) => <ReviewRow row={row} compact />}</For>
               </ul>
             </Show>
           </div>
