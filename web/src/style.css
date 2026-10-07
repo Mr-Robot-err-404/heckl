@@ -744,7 +744,8 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .deletions { color: var(--red); }
 
 .pr-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
   align-items: stretch;
   border-bottom: 1px solid var(--crust);
   flex-shrink: 0;
@@ -752,16 +753,14 @@ button.topbar-config:hover { background: none; color: var(--text); }
 }
 
 .pr-tabs-main {
-  flex: 3 1 0;
   min-width: 0;
   display: flex;
   align-items: stretch;
 }
 
 .pr-tabs-side {
-  flex: 1 1 0;
-  min-width: 260px;
-  max-width: 560px;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -794,7 +793,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
   flex-direction: column;
 }
 
-.pr-description { overflow-y: auto; }
+.pr-description { flex: 1; min-height: 0; overflow-y: auto; }
 
 .pr-description-body {
   padding: var(--gutter) var(--gutter) 28px;
@@ -1030,19 +1029,54 @@ button.topbar-config:hover { background: none; color: var(--text); }
 /* ── Agent review panel ── */
 .review-layout {
   flex: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
   min-height: 0;
   overflow: hidden;
 }
 
 .review-diff { flex: 3 1 0; min-width: 0; display: flex; flex-direction: column; }
 
-.review-rail {
-  flex: 1 1 0;
-  min-width: 260px;
-  max-width: 560px;
+.pr-sidebar {
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   border-left: 1px solid var(--surface1);
   background: var(--mantle);
+}
+
+.pr-sidebar-tabs {
+  display: flex;
+  flex-shrink: 0;
+  height: 36px;
+  border-bottom: 1px solid var(--surface1);
+}
+
+.pr-sidebar-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--subtext0);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pr-sidebar-tab + .pr-sidebar-tab { border-left: 1px solid var(--surface1); }
+.pr-sidebar-tab:hover { color: var(--blue); background: var(--surface0); }
+.pr-sidebar-tab.active {
+  color: var(--blue);
+  background: var(--surface0);
+  border-bottom-color: var(--blue);
+}
+
+.review-rail {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--gutter);
   display: flex;
@@ -2598,9 +2632,9 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 
   .agent-rerun .bot-icon { width: 14px; height: 14px; }
 
-  .review-layout { flex-direction: column; }
+  .review-layout { display: flex; flex-direction: column; }
 
-  .review-rail {
+  .pr-sidebar {
     order: -1;
     flex: 0 1 auto;
     width: 100%;
@@ -2609,6 +2643,9 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
     max-height: 40vh;
     border-left: none;
     border-bottom: 1px solid var(--surface1);
+  }
+
+  .review-rail {
     padding: 10px 12px;
   }
 

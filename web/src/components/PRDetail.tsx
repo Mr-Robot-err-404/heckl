@@ -1,6 +1,6 @@
-import { createEffect, createSignal, For, Show } from "solid-js"
-import { createStore, produce } from "solid-js/store"
-import { useQueryClient } from "@tanstack/solid-query"
+import { createEffect, createSignal, For, Show } from "solid-js";
+import { createStore, produce } from "solid-js/store";
+import { useQueryClient } from "@tanstack/solid-query";
 import {
   usePRComments,
   usePRDetail,
@@ -8,21 +8,21 @@ import {
   useTmuxSession,
   resolved,
   tmuxSessionKey,
-} from "../queries"
-import { preloadMarkdownImages } from "../images"
-import { createReview, opencodeUrl } from "../review"
-import { DiffView } from "./diff/DiffView"
-import { diffSides } from "./diff/loadFiles"
-import { Markdown } from "./Markdown"
-import { SkeletonLines } from "./Skeleton"
-import { ReviewPanel } from "./ReviewPanel"
-import { ReviewerComments } from "./ReviewerComments"
-import { ReviewAgents, ReviewPage } from "./ReviewPage"
-import { TmuxModal } from "./TmuxModal"
-import { useModal } from "../modal"
-import { createDiffAnchor, prUrl, type DiffAnchor } from "../github"
-import { api, errText } from "../api"
-import { dirIcon, fileIcon, iconViewBox, type Icon as FileIcon } from "../fileIcons"
+} from "../queries";
+import { preloadMarkdownImages } from "../images";
+import { createReview, opencodeUrl } from "../review";
+import { DiffView } from "./diff/DiffView";
+import { diffSides } from "./diff/loadFiles";
+import { Markdown } from "./Markdown";
+import { SkeletonLines } from "./Skeleton";
+import { ReviewPanel } from "./ReviewPanel";
+import { ReviewerComments } from "./ReviewerComments";
+import { ReviewAgents, ReviewPage } from "./ReviewPage";
+import { TmuxModal } from "./TmuxModal";
+import { useModal } from "../modal";
+import { createDiffAnchor, prUrl, type DiffAnchor } from "../github";
+import { api, errText } from "../api";
+import { dirIcon, fileIcon, iconViewBox, type Icon as FileIcon } from "../fileIcons";
 import type {
   ConcernTarget,
   FileTarget,
@@ -30,39 +30,39 @@ import type {
   ReviewerNote,
   Tab,
   TmuxPick,
-} from "../types"
+} from "../types";
 
 type Props = {
-  owner: string
-  repo: string
-  prNumber: number
-  tab: Tab
-  onTabChange: (tab: Tab) => void
-  onBack: () => void
-}
+  owner: string;
+  repo: string;
+  prNumber: number;
+  tab: Tab;
+  onTabChange: (tab: Tab) => void;
+  onBack: () => void;
+};
 
-const tabs: Tab[] = ["description", "files", "review"]
+const tabs: Tab[] = ["description", "files", "review"];
 
 const Icon = (props: { of: FileIcon }) => (
   <svg class={`nf nf-${props.of[1]}`} viewBox={iconViewBox} aria-hidden="true">
     <path d={props.of[0]} fill="currentColor" />
   </svg>
-)
+);
 
-const dirPart = (path: string) => path.slice(0, path.lastIndexOf("/") + 1)
-const basePart = (path: string) => path.slice(path.lastIndexOf("/") + 1)
+const dirPart = (path: string) => path.slice(0, path.lastIndexOf("/") + 1);
+const basePart = (path: string) => path.slice(path.lastIndexOf("/") + 1);
 
 function groupByDir<T>(files: T[], path: (f: T) => string): { dir: string; files: T[] }[] {
-  const groups = new Map<string, T[]>()
+  const groups = new Map<string, T[]>();
   for (const f of files) {
-    const dir = dirPart(path(f))
-    const existing = groups.get(dir)
-    if (existing) existing.push(f)
-    else groups.set(dir, [f])
+    const dir = dirPart(path(f));
+    const existing = groups.get(dir);
+    if (existing) existing.push(f);
+    else groups.set(dir, [f]);
   }
   return [...groups.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([dir, files]) => ({ dir, files }))
+    .map(([dir, files]) => ({ dir, files }));
 }
 
 export function PRDetail(props: Props) {
@@ -70,146 +70,147 @@ export function PRDetail(props: Props) {
     () => props.owner,
     () => props.repo,
     () => props.prNumber,
-  )
-  const detailData = resolved(detail)
+  );
+  const detailData = resolved(detail);
   const comments = usePRComments(
     () => props.owner,
     () => props.repo,
     () => props.prNumber,
-  )
-  const threads = resolved(comments)
+  );
+  const threads = resolved(comments);
 
   createEffect(() => {
-    preloadMarkdownImages(detailData()?.pr.Body)
+    preloadMarkdownImages(detailData()?.pr.Body);
     for (const thread of threads() ?? []) {
-      for (const note of thread.notes) preloadMarkdownImages(note.body)
+      for (const note of thread.notes) preloadMarkdownImages(note.body);
     }
-  })
+  });
   const review = createReview(
     () => props.owner,
     () => props.repo,
     () => props.prNumber,
-  )
-  const [filesMounted, setFilesMounted] = createSignal(false)
-  const [focus, setFocus] = createSignal<ConcernTarget | null>(null)
-  const [fileFocus, setFileFocus] = createSignal<FileTarget | null>(null)
-  let fileFocusNonce = 0
-  const prefetch = usePrefetch()
-  const queryClient = useQueryClient()
+  );
+  const [filesMounted, setFilesMounted] = createSignal(false);
+  const [sideTab, setSideTab] = createSignal<"files" | "review">("files");
+  const [focus, setFocus] = createSignal<ConcernTarget | null>(null);
+  const [fileFocus, setFileFocus] = createSignal<FileTarget | null>(null);
+  let fileFocusNonce = 0;
+  const prefetch = usePrefetch();
+  const queryClient = useQueryClient();
 
-  const [picks, setPicks] = createStore<{ items: TmuxPick[] }>({ items: [] })
-  const modal = useModal()
-  const [tmuxBusy, setTmuxBusy] = createSignal(false)
-  const [tmuxError, setTmuxError] = createSignal("")
+  const [picks, setPicks] = createStore<{ items: TmuxPick[] }>({ items: [] });
+  const modal = useModal();
+  const [tmuxBusy, setTmuxBusy] = createSignal(false);
+  const [tmuxError, setTmuxError] = createSignal("");
 
   const tmuxSession = useTmuxSession(
     () => props.owner,
     () => props.repo,
     () => props.prNumber,
-  )
-  const live = () => (tmuxSession.isSuccess ? (tmuxSession.data ?? null) : null)
+  );
+  const live = () => (tmuxSession.isSuccess ? (tmuxSession.data ?? null) : null);
 
   const tmuxBadge = () => {
-    if (picks.items.length > 0) return { kind: "picked", count: picks.items.length }
-    if (live()) return { kind: "live", count: live()!.windows }
-    return { kind: "", count: 0 }
-  }
+    if (picks.items.length > 0) return { kind: "picked", count: picks.items.length };
+    if (live()) return { kind: "live", count: live()!.windows };
+    return { kind: "", count: 0 };
+  };
 
   const pickLine = (file: string, line: number, side: "additions" | "deletions") => {
-    const pinned = side === "deletions" ? undefined : line
-    const i = picks.items.findIndex((p) => p.file === file)
+    const pinned = side === "deletions" ? undefined : line;
+    const i = picks.items.findIndex((p) => p.file === file);
     setPicks(
       produce((s) => {
-        if (i === -1) s.items.push({ file, line: pinned })
-        else s.items[i].line = pinned
+        if (i === -1) s.items.push({ file, line: pinned });
+        else s.items[i].line = pinned;
       }),
-    )
-  }
+    );
+  };
 
   const removePick = (file: string) => {
     setPicks(
       produce((s) => {
-        const i = s.items.findIndex((p) => p.file === file)
-        if (i !== -1) s.items.splice(i, 1)
+        const i = s.items.findIndex((p) => p.file === file);
+        if (i !== -1) s.items.splice(i, 1);
       }),
-    )
-  }
+    );
+  };
 
   const openTmuxModal = () => {
-    setTmuxError("")
-    modal.open("tmux")
-  }
+    setTmuxError("");
+    modal.open("tmux");
+  };
 
   const confirmTmux = async () => {
-    if (picks.items.length === 0) return
-    setTmuxBusy(true)
-    setTmuxError("")
+    if (picks.items.length === 0) return;
+    setTmuxBusy(true);
+    setTmuxError("");
     try {
       await api.tmux.open(
         props.owner,
         props.repo,
         props.prNumber,
         picks.items.map((p) => ({ ...p })),
-      )
-      setPicks("items", [])
+      );
+      setPicks("items", []);
       await queryClient.invalidateQueries({
         queryKey: tmuxSessionKey(props.owner, props.repo, props.prNumber),
-      })
+      });
     } catch (e) {
-      setTmuxError(errText(e))
+      setTmuxError(errText(e));
     } finally {
-      setTmuxBusy(false)
+      setTmuxBusy(false);
     }
-  }
+  };
 
   createEffect(() => {
-    if (props.tab === "files") setFilesMounted(true)
-  })
+    if (props.tab === "files") setFilesMounted(true);
+  });
 
   const focusLine = (file: string, line: number, side: "additions" | "deletions", rank: number) => {
-    setFocus({ file, line, side, rank })
-    prefetch.diff(props.owner, props.repo, props.prNumber)
-    props.onTabChange("files")
-  }
+    setFocus({ file, line, side, rank });
+    prefetch.diff(props.owner, props.repo, props.prNumber);
+    props.onTabChange("files");
+  };
 
   const focusFile = (file: string) => {
-    setFileFocus({ file, nonce: fileFocusNonce++ })
-    prefetch.diff(props.owner, props.repo, props.prNumber)
-    props.onTabChange("files")
-  }
+    setFileFocus({ file, nonce: fileFocusNonce++ });
+    prefetch.diff(props.owner, props.repo, props.prNumber);
+    props.onTabChange("files");
+  };
 
   const focusConcern = (concern: RankedConcern) => {
-    if (concern.line == null || concern.side == null) return
-    focusLine(concern.file, concern.line, concern.side, concern.rank)
-  }
+    if (concern.line == null || concern.side == null) return;
+    focusLine(concern.file, concern.line, concern.side, concern.rank);
+  };
 
   const focusNote = (note: ReviewerNote) => {
-    if (!note.file || note.line == null || note.side == null) return
-    focusLine(note.file, note.line, note.side, 0)
-  }
+    if (!note.file || note.line == null || note.side == null) return;
+    focusLine(note.file, note.line, note.side, 0);
+  };
 
   const anchorTarget = (): DiffAnchor | null => {
-    if (props.tab !== "files") return null
+    if (props.tab !== "files") return null;
 
-    const f = focus()
-    if (f) return { file: f.file, line: f.line, side: f.side }
+    const f = focus();
+    if (f) return { file: f.file, line: f.line, side: f.side };
 
-    const picked = picks.items.filter((p) => p.line != null)
-    const pick = picked[picked.length - 1]
-    return pick ? { file: pick.file, line: pick.line!, side: "additions" } : null
-  }
+    const picked = picks.items.filter((p) => p.line != null);
+    const pick = picked[picked.length - 1];
+    return pick ? { file: pick.file, line: pick.line!, side: "additions" } : null;
+  };
 
-  const anchor = createDiffAnchor(anchorTarget)
+  const anchor = createDiffAnchor(anchorTarget);
 
   const githubUrl = () => {
-    const base = prUrl(props.owner, props.repo, props.prNumber)
-    if (props.tab !== "files") return base
-    return `${base}/files${anchor() ?? ""}`
-  }
+    const base = prUrl(props.owner, props.repo, props.prNumber);
+    if (props.tab !== "files") return base;
+    return `${base}/files${anchor() ?? ""}`;
+  };
 
   const prefetchFiles = () => {
-    prefetch.diff(props.owner, props.repo, props.prNumber)
-  }
+    prefetch.diff(props.owner, props.repo, props.prNumber);
+  };
 
   return (
     <div class="pr-detail">
@@ -247,7 +248,9 @@ export function PRDetail(props: Props) {
                     aria-label={`source ${d.pr.headRef}, target ${d.pr.baseRef}`}
                   >
                     <span>{d.pr.headRef}</span>
-                    <span class="pr-branch-arrow" aria-hidden="true">-&gt;</span>
+                    <span class="pr-branch-arrow" aria-hidden="true">
+                      -&gt;
+                    </span>
                     <span>{d.pr.baseRef}</span>
                   </span>
                 </Show>
@@ -299,10 +302,10 @@ export function PRDetail(props: Props) {
         </div>
       </div>
 
-      <div class="pr-tab-content">
-        <Show when={props.tab === "description"}>
-          <div class="review-layout">
-            <div class="review-diff pr-description">
+      <div class="review-layout">
+        <div class="review-diff pr-tab-content">
+          <Show when={props.tab === "description"}>
+            <div class="pr-description">
               <div class="pr-description-body">
                 <Show when={detailData()} keyed>
                   {(d) => (
@@ -316,7 +319,50 @@ export function PRDetail(props: Props) {
                 </Show>
               </div>
             </div>
-            <aside class="review-rail desc-rail">
+          </Show>
+
+          <Show when={filesMounted()}>
+            <div class={`diff-tab-panel ${props.tab === "files" ? "" : "hidden"}`}>
+              <DiffView
+                owner={props.owner}
+                repo={props.repo}
+                prNumber={props.prNumber}
+                sides={diffSides(detailData()?.pr)}
+                focus={focus()}
+                fileFocus={fileFocus()}
+                threads={threads() ?? []}
+                onPickLine={pickLine}
+                onUnpickLine={removePick}
+              />
+            </div>
+          </Show>
+
+          <Show when={props.tab === "review"}>
+            <ReviewPage state={review} onFocusConcern={focusConcern} />
+          </Show>
+        </div>
+
+        <div class="pr-sidebar">
+          <div class="pr-sidebar-tabs" aria-label="sidebar views">
+            <button
+              class="pr-sidebar-tab"
+              classList={{ active: sideTab() === "files" }}
+              aria-pressed={sideTab() === "files"}
+              onClick={() => setSideTab("files")}
+            >
+              Files affected
+            </button>
+            <button
+              class="pr-sidebar-tab"
+              classList={{ active: sideTab() === "review" }}
+              aria-pressed={sideTab() === "review"}
+              onClick={() => setSideTab("review")}
+            >
+              Review activity
+            </button>
+          </div>
+          <aside class="review-rail" classList={{ "desc-rail": sideTab() === "files" }}>
+            <Show when={sideTab() === "files"}>
               <Show when={detailData()} keyed>
                 {(d) => (
                   <div class="desc-files">
@@ -325,7 +371,7 @@ export function PRDetail(props: Props) {
                       {(group) => {
                         const statWidth =
                           Math.max(...group.files.map((f) => `+${f.Additions}`.length)) +
-                          Math.max(...group.files.map((f) => `-${f.Deletions}`.length))
+                          Math.max(...group.files.map((f) => `-${f.Deletions}`.length));
                         return (
                           <div class="desc-group">
                             <div class="desc-group-dir" title={group.dir || "/"}>
@@ -342,7 +388,10 @@ export function PRDetail(props: Props) {
                                 >
                                   <Icon of={fileIcon(f.Filename)} />
                                   <span class="desc-file-name">{basePart(f.Filename)}</span>
-                                  <span class="desc-file-stat" style={{ width: `calc(${statWidth}ch + 6px)` }}>
+                                  <span
+                                    class="desc-file-stat"
+                                    style={{ width: `calc(${statWidth}ch + 6px)` }}
+                                  >
                                     <span class="additions">+{f.Additions}</span>
                                     <span class="deletions">-{f.Deletions}</span>
                                   </span>
@@ -350,7 +399,7 @@ export function PRDetail(props: Props) {
                               )}
                             </For>
                           </div>
-                        )
+                        );
                       }}
                     </For>
                   </div>
@@ -361,52 +410,22 @@ export function PRDetail(props: Props) {
                   <SkeletonLines />
                 </div>
               </Show>
-            </aside>
-          </div>
-        </Show>
-
-        <Show when={filesMounted()}>
-          <div class={`diff-tab-panel ${props.tab === "files" ? "" : "hidden"}`}>
-            <div class="review-layout">
-              <div class="review-diff">
-                <DiffView
-                  owner={props.owner}
-                  repo={props.repo}
-                  prNumber={props.prNumber}
-                  sides={diffSides(detailData()?.pr)}
-                  focus={focus()}
-                  fileFocus={fileFocus()}
-                  threads={threads() ?? []}
-                  onPickLine={pickLine}
-                  onUnpickLine={removePick}
-                />
-              </div>
-              <aside class="review-rail">
-                <ReviewPanel
-                  state={review}
-                  activeRank={focus()?.rank}
-                  onFocusConcern={focusConcern}
-                />
-                <ReviewerComments
-                  threads={threads() ?? []}
-                  pending={comments.isPending}
-                  onFocusNote={focusNote}
-                />
-              </aside>
-            </div>
-          </div>
-        </Show>
-
-        <Show when={props.tab === "review"}>
-          <div class="review-layout">
-            <div class="review-diff">
-              <ReviewPage state={review} onFocusConcern={focusConcern} />
-            </div>
-            <aside class="review-rail">
+            </Show>
+            <Show when={sideTab() === "review"}>
               <ReviewAgents state={review} />
-            </aside>
-          </div>
-        </Show>
+              <ReviewPanel
+                state={review}
+                activeRank={focus()?.rank}
+                onFocusConcern={focusConcern}
+              />
+              <ReviewerComments
+                threads={threads() ?? []}
+                pending={comments.isPending}
+                onFocusNote={focusNote}
+              />
+            </Show>
+          </aside>
+        </div>
       </div>
 
       <Show when={modal.isOpen("tmux")}>
@@ -421,5 +440,5 @@ export function PRDetail(props: Props) {
         />
       </Show>
     </div>
-  )
+  );
 }
