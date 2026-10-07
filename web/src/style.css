@@ -1792,7 +1792,8 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   column-gap: 8px;
 }
 
-.dashboard-main .review-row { padding: 9px 10px; }
+.dashboard-main .review-row { padding: 9px 0; }
+.dashboard-main .review-row-top { padding: 0 var(--gutter); }
 
 .review-status-icon {
   display: inline-flex;
@@ -1906,10 +1907,10 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 }
 
 .dashboard-main {
-  padding-top: 24px;
-  padding-bottom: 20px;
+  padding: 24px 0 20px;
   background: var(--mantle);
 }
+.dashboard-main .dashboard-head { padding: 0 var(--gutter); }
 .recent-pr-panel { padding-top: 24px; padding-bottom: 40px; }
 .dashboard-main .review-rows { border: none; border-radius: 0; }
 .dashboard-main .review-row { min-width: 0; }
