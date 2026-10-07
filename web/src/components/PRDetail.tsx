@@ -17,7 +17,8 @@ import { Markdown } from "./Markdown";
 import { SkeletonLines } from "./Skeleton";
 import { ReviewPanel } from "./ReviewPanel";
 import { ReviewerComments } from "./ReviewerComments";
-import { ReviewAgents, ReviewPage } from "./ReviewPage";
+import { ReviewAgents } from "./ReviewPage";
+import { ConcernModal } from "./ConcernModal";
 import { TmuxModal } from "./TmuxModal";
 import { useModal } from "../modal";
 import { createDiffAnchor, prUrl, type DiffAnchor } from "../github";
@@ -41,7 +42,7 @@ type Props = {
   onBack: () => void;
 };
 
-const tabs: Tab[] = ["description", "files", "review"];
+const tabs: Tab[] = ["description", "files"];
 
 const Icon = (props: { of: FileIcon }) => (
   <svg class={`nf nf-${props.of[1]}`} viewBox={iconViewBox} aria-hidden="true">
@@ -92,6 +93,7 @@ export function PRDetail(props: Props) {
   );
   const [filesMounted, setFilesMounted] = createSignal(false);
   const [sideTab, setSideTab] = createSignal<"files" | "review">("files");
+  const [openConcern, setOpenConcern] = createSignal<RankedConcern | null>(null);
   const [focus, setFocus] = createSignal<ConcernTarget | null>(null);
   const [fileFocus, setFileFocus] = createSignal<FileTarget | null>(null);
   let fileFocusNonce = 0;
@@ -180,7 +182,10 @@ export function PRDetail(props: Props) {
   };
 
   const focusConcern = (concern: RankedConcern) => {
-    if (concern.line == null || concern.side == null) return;
+    if (concern.line == null || concern.side == null) {
+      focusFile(concern.file);
+      return;
+    }
     focusLine(concern.file, concern.line, concern.side, concern.rank);
   };
 
@@ -224,9 +229,6 @@ export function PRDetail(props: Props) {
                 onMouseEnter={tab === "files" ? prefetchFiles : undefined}
               >
                 {tab}
-                <Show when={tab === "review" && review.concerns().length > 0}>
-                  <span class="pr-tab-badge">{review.concerns().length}</span>
-                </Show>
               </button>
             )}
           </For>
@@ -336,10 +338,6 @@ export function PRDetail(props: Props) {
               />
             </div>
           </Show>
-
-          <Show when={props.tab === "review"}>
-            <ReviewPage state={review} onFocusConcern={focusConcern} />
-          </Show>
         </div>
 
         <div class="pr-sidebar">
@@ -350,7 +348,7 @@ export function PRDetail(props: Props) {
               aria-pressed={sideTab() === "files"}
               onClick={() => setSideTab("files")}
             >
-              Files affected
+              FILES
             </button>
             <button
               class="pr-sidebar-tab"
@@ -358,7 +356,7 @@ export function PRDetail(props: Props) {
               aria-pressed={sideTab() === "review"}
               onClick={() => setSideTab("review")}
             >
-              Review activity
+              REVIEWS
             </button>
           </div>
           <aside class="review-rail" classList={{ "desc-rail": sideTab() === "files" }}>
@@ -366,7 +364,6 @@ export function PRDetail(props: Props) {
               <Show when={detailData()} keyed>
                 {(d) => (
                   <div class="desc-files">
-                    <div class="desc-files-head">files affected</div>
                     <For each={groupByDir(d.files, (f) => f.Filename)}>
                       {(group) => {
                         const statWidth =
@@ -417,6 +414,7 @@ export function PRDetail(props: Props) {
                 state={review}
                 activeRank={focus()?.rank}
                 onFocusConcern={focusConcern}
+                onOpenConcern={setOpenConcern}
               />
               <ReviewerComments
                 threads={threads() ?? []}
@@ -438,6 +436,18 @@ export function PRDetail(props: Props) {
           onConfirm={confirmTmux}
           onClose={modal.close}
         />
+      </Show>
+      <Show when={openConcern()} keyed>
+        {(concern) => (
+          <ConcernModal
+            concern={concern}
+            onFocus={() => {
+              setOpenConcern(null);
+              focusConcern(concern);
+            }}
+            onClose={() => setOpenConcern(null)}
+          />
+        )}
       </Show>
     </div>
   );

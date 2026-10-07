@@ -812,23 +812,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
   margin: 0 calc(-1 * var(--gutter));
 }
 
-.desc-files-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--mantle);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--subtext0);
-  padding: 14px var(--gutter) 10px;
-  flex-shrink: 0;
-}
-
 .desc-files-pending { padding: 14px var(--gutter); }
 
 .desc-group { padding: 10px 0; }
@@ -1064,6 +1047,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
   font: inherit;
   font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
 }
 .pr-sidebar-tab + .pr-sidebar-tab { border-left: 1px solid var(--surface1); }
@@ -1363,46 +1347,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .reviewer-note-body .markdown > *:first-child { margin-top: 0; }
 .reviewer-note-body .markdown > *:last-child { margin-bottom: 0; }
 
-.review-concern {
-  border-left: 2px solid var(--surface2);
-  padding-left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.review-concern.sev-high { border-left-color: var(--red); }
-.review-concern.sev-medium { border-left-color: var(--yellow); }
-.review-concern.sev-low { border-left-color: var(--blue); }
-
-.review-concern-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.review-concern-title {
-  font-size: 12px;
-  color: var(--text);
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.review-concern-sev {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: var(--overlay1);
-  flex-shrink: 0;
-}
-
-.review-concern-loc { font-size: 11px; color: var(--overlay1); word-break: break-all; }
-.review-concern-body {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--subtext0);
-  overflow-wrap: anywhere;
-}
-
 .review-error {
   font-size: 12px;
   color: var(--red);
@@ -1432,9 +1376,9 @@ button.topbar-config:hover { background: none; color: var(--text); }
 }
 
 .concern-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  row-gap: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 7px 6px 7px 10px;
   margin: 0 -6px;
   border-radius: 3px;
@@ -1445,6 +1389,32 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .concern-row.sev-medium { border-left-color: var(--yellow); }
 .concern-row.sev-low { border-left-color: var(--blue); }
 .concern-row:last-child { border-bottom: none; }
+
+.concern-row-target {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.concern-row-details {
+  flex-shrink: 0;
+  border: 1px solid var(--surface2);
+  border-radius: 3px;
+  background: none;
+  color: var(--blue);
+  padding: 3px 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+}
+.concern-row-details:hover { background: var(--surface1); }
 
 
 .concern-row-title {
@@ -1695,94 +1665,24 @@ a:hover .brand-mark,
 
 .pr-tab.active .pr-tab-badge { background: var(--green); }
 
-/* review tab - full synopsis */
-
-.review-page {
-  max-width: 780px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px var(--gutter) 64px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.review-page > * { flex-shrink: 0; }
-
 .review-agents {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.review-page-head {
-  position: sticky;
-  top: -24px;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: -24px;
-  margin-bottom: -12px;
-  padding: 24px 0 8px;
-  background: var(--base);
-}
-
-.review-page-head .review-meta { padding-bottom: 0; }
-
-.review-section-title {
-  margin: 0 0 10px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--overlay1);
-}
-
-.review-synopsis p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--subtext1);
-}
-
-.review-findings {
-  display: flex;
-  flex-direction: column;
-}
-.review-findings .review-concern { margin-bottom: 18px; }
-.review-findings .review-concern:last-child { margin-bottom: 0; }
-.review-findings .review-concern-title { font-size: 13px; }
-.review-findings .review-concern-body { font-size: 13px; line-height: 1.7; }
-
 /* concern linking */
 
-.concern-row.locatable { cursor: pointer; }
-.concern-row.locatable:hover { background: var(--surface0); }
+.concern-row:hover, .concern-row:focus-within { background: var(--surface0); }
 .concern-row.active { background: var(--surface0); }
 .concern-row.active .concern-row-title { color: var(--text); font-weight: 600; }
 
 .concern-unpinned { color: var(--overlay0); }
 
-.review-findings .review-concern-title { flex: 1; }
 
-button.review-concern-loc {
-  font: inherit;
-  font-size: 11px;
-  color: var(--blue);
-  background: none;
-  border: none;
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-  word-break: break-all;
-}
-button.review-concern-loc:hover { text-decoration: underline; }
+.concern-modal-title { color: var(--text); font-size: 16px; }
+.concern-modal-location { color: var(--blue); font-size: 12px; overflow-wrap: anywhere; }
+.concern-modal-body { color: var(--subtext1); font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ── Dashboard (history) ── */
 .dashboard {
@@ -2620,10 +2520,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   .pr-tab:first-child { padding-left: var(--gutter); }
 
   .pr-description-body { padding: 16px 12px; }
-  .review-page { padding: 16px var(--gutter) 48px; }
   .review-stage-detail { overflow-wrap: anywhere; }
-
-  .review-page-head { gap: 8px; }
 
   .review-head-end .review-run { min-height: 34px; padding: 6px 14px; }
   .review-head-start .review-session-link { min-height: 34px; }

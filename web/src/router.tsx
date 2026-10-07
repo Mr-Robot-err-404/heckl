@@ -44,7 +44,7 @@ const prRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/$owner/$repo/$pr",
   validateSearch: (search: Record<string, unknown>): { tab: Tab } => ({
-    tab: search.tab === "files" || search.tab === "review" ? search.tab : "description",
+    tab: search.tab === "files" ? search.tab : "description",
   }),
   component: PRDetailPage,
 })

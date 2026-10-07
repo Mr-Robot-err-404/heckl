@@ -9,6 +9,7 @@ type Props = {
   state: ReviewState;
   activeRank?: number;
   onFocusConcern: (concern: RankedConcern) => void;
+  onOpenConcern: (concern: RankedConcern) => void;
 };
 
 const stageLabels: Record<string, string> = {
@@ -160,6 +161,7 @@ export function ReviewPanel(props: Props) {
                   concern={concern}
                   active={props.activeRank === concern.rank}
                   onFocus={() => props.onFocusConcern(concern)}
+                  onOpen={() => props.onOpenConcern(concern)}
                 />
               )}
             </For>
@@ -170,21 +172,33 @@ export function ReviewPanel(props: Props) {
   );
 }
 
-function ConcernRow(props: { concern: RankedConcern; active: boolean; onFocus: () => void }) {
+function ConcernRow(props: { concern: RankedConcern; active: boolean; onFocus: () => void; onOpen: () => void }) {
   const locatable = () => props.concern.line != null && props.concern.side != null;
 
   return (
     <li
       class={`concern-row sev-${props.concern.severity} ${props.active ? "active" : ""} ${locatable() ? "locatable" : ""}`}
-      onClick={() => locatable() && props.onFocus()}
     >
-      <span class="concern-row-title">{props.concern.title}</span>
-      <span class="concern-row-file">
-        {fileName(props.concern.file)}
-        <Show when={props.concern.line} fallback={<span class="concern-unpinned"> · file</span>}>
-          :{props.concern.line}
-        </Show>
-      </span>
+      <button
+        class="concern-row-target"
+        onClick={props.onFocus}
+        onKeyUp={(event) => {
+          if (event.code === "Space") props.onOpen();
+        }}
+        onKeyDown={(event) => { if (event.code === "Space") event.preventDefault(); }}
+        title="click to locate in diff; press Space for details"
+      >
+        <span class="concern-row-title">{props.concern.title}</span>
+        <span class="concern-row-file">
+          {fileName(props.concern.file)}
+          <Show when={props.concern.line} fallback={<span class="concern-unpinned"> · file</span>}>
+            :{props.concern.line}
+          </Show>
+        </span>
+      </button>
+      <button class="concern-row-details" onClick={props.onOpen} aria-label={`read ${props.concern.title}`} title="read details">
+        details
+      </button>
     </li>
   );
 }
