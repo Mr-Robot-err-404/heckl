@@ -1260,36 +1260,18 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .agent-lane-head .agent-rerun.is-stop { margin-left: auto; }
 .agent-progress-row .agent-rerun.is-stop { margin-left: auto; }
 
-.reviewer-comments {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.reviewer-comments-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.review-panel-head:hover .panel-collapse,
-.reviewer-comments-head:hover .panel-collapse { color: var(--text); }
+.review-panel-head:hover .panel-collapse { color: var(--text); }
 
 .review-panel-head .agent-rerun { cursor: pointer; }
 
 .review-panel-head .review-panel-title { margin-right: 0; }
 .review-panel-head .agent-rerun { margin-left: auto; }
 
-.review-panel.collapsed > *:not(.review-panel-head),
-.reviewer-comments.collapsed > *:not(.reviewer-comments-head) { display: none; }
+.review-panel.collapsed > *:not(.review-panel-head) { display: none; }
 
-.review-panel.collapsed .panel-collapse,
-.reviewer-comments.collapsed .panel-collapse { transform: rotate(-90deg); }
+.review-panel.collapsed .panel-collapse { transform: rotate(-90deg); }
 
-.reviewer-thread { border-left: 2px solid var(--surface1); }
-.reviewer-thread.open { border-left-color: var(--overlay0); }
+.reviewer-thread { min-width: 0; }
 
 .reviewer-thread-head {
   font: inherit;
@@ -1298,7 +1280,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 4px 0 4px 8px;
+  padding: 4px 0;
   background: none;
   border: 0;
   color: var(--subtext0);
@@ -1329,7 +1311,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .reviewer-notes {
   list-style: none;
   margin: 0;
-  padding: 0 0 6px 8px;
+  padding: 4px 0 6px 21px;
   display: flex;
   flex-direction: column;
   gap: 10px;

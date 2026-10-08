@@ -6,7 +6,6 @@ import type { ReviewerNote, ReviewerThread } from "../types"
 
 type Props = {
   threads: ReviewerThread[]
-  pending: boolean
   onFocusNote: (note: ReviewerNote) => void
 }
 
@@ -18,46 +17,22 @@ const stateLabels: Record<string, string> = {
 }
 
 export function ReviewerComments(props: Props) {
-  const [collapsed, setCollapsed] = createSignal(false)
-
   return (
-    <section class="reviewer-comments" classList={{ collapsed: collapsed() }}>
-      <div class="reviewer-comments-head" onClick={() => setCollapsed(!collapsed())}>
-        <button
-          class="panel-collapse"
-          aria-expanded={!collapsed()}
-          aria-label={collapsed() ? "expand other reviewers" : "collapse other reviewers"}
-        >
-          <ChevronIcon />
-        </button>
-        <span class="review-panel-title">other reviewers</span>
-        <Show when={props.threads.length > 0}>
-          <span class="review-stage-time">{props.threads.length}</span>
-        </Show>
-      </div>
-
-      <Show when={props.pending}>
-        <p class="review-idle">loading comments...</p>
-      </Show>
-
-      <Show when={!props.pending && props.threads.length === 0}>
-        <p class="review-idle">no comments from other reviewers</p>
-      </Show>
-
+    <>
       <For each={props.threads}>
         {(thread) => <Thread thread={thread} onFocusNote={props.onFocusNote} />}
       </For>
-    </section>
+    </>
   )
 }
 
 function Thread(props: { thread: ReviewerThread; onFocusNote: (note: ReviewerNote) => void }) {
-  const [open, setOpen] = createSignal(false)
+  const [open, setOpen] = createSignal(true)
 
   return (
-    <div class={`reviewer-thread ${open() ? "open" : ""}`}>
-      <button class="reviewer-thread-head" onClick={() => setOpen(!open())}>
-        <span class="reviewer-caret">
+    <section class="reviewer-thread" classList={{ open: open() }}>
+      <button class="reviewer-thread-head" aria-expanded={open()} onClick={() => setOpen(!open())}>
+        <span class="reviewer-caret" aria-hidden="true">
           <ChevronIcon />
         </span>
         <Show when={props.thread.user.avatar}>
@@ -79,7 +54,7 @@ function Thread(props: { thread: ReviewerThread; onFocusNote: (note: ReviewerNot
           </For>
         </ul>
       </Show>
-    </div>
+    </section>
   )
 }
 

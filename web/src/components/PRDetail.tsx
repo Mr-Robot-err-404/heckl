@@ -436,7 +436,6 @@ export function PRDetail(props: Props) {
               />
               <ReviewerComments
                 threads={threads() ?? []}
-                pending={comments.isPending}
                 onFocusNote={focusNote}
               />
             </Show>
