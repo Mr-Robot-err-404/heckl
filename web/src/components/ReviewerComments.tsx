@@ -44,7 +44,6 @@ function Thread(props: { thread: ReviewerThread; onFocusNote: (note: ReviewerNot
             {stateLabels[props.thread.state ?? ""] ?? props.thread.state}
           </span>
         </Show>
-        <span class="reviewer-count">{props.thread.notes.length}</span>
       </button>
 
       <Show when={open()}>

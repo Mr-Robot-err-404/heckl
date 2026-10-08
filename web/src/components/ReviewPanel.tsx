@@ -100,7 +100,6 @@ function AgentThread(props: {
           </Show>
           <Show when={agent().status === "error"}><span class="review-error">failed</span></Show>
           <Show when={agent().status === "cancelled"}><span class="review-stopped">stopped</span></Show>
-          <Show when={concerns().length > 0}><span class="reviewer-count">{concerns().length}</span></Show>
         </button>
         <Show when={props.state.agentBusy(agent().name)} fallback={
           <button class="agent-rerun" title={`re-run ${agentLabel(agent().name)}`} aria-label={`re-run ${agentLabel(agent().name)}`}
