@@ -1260,17 +1260,6 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .agent-lane-head .agent-rerun.is-stop { margin-left: auto; }
 .agent-progress-row .agent-rerun.is-stop { margin-left: auto; }
 
-.review-panel-head:hover .panel-collapse { color: var(--text); }
-
-.review-panel-head .agent-rerun { cursor: pointer; }
-
-.review-panel-head .review-panel-title { margin-right: 0; }
-.review-panel-head .agent-rerun { margin-left: auto; }
-
-.review-panel.collapsed > *:not(.review-panel-head) { display: none; }
-
-.review-panel.collapsed .panel-collapse { transform: rotate(-90deg); }
-
 .reviewer-thread { min-width: 0; }
 
 .reviewer-thread-head {
@@ -1288,6 +1277,46 @@ button.topbar-config:hover { background: none; color: var(--text); }
   text-align: left;
 }
 .reviewer-thread-head:hover { color: var(--text); }
+
+.agent-thread-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.agent-thread-toggle:hover { color: var(--text); }
+.agent-thread-toggle .reviewer-login { flex: 1; }
+.agent-thread-toggle:hover .reviewer-caret { color: var(--text); }
+.agent-thread-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--yellow);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.agent-thread-progress .review-stage-dot { background: var(--yellow); }
+.agent-thread-error, .agent-thread-empty { padding: 4px 0 6px 21px; }
+.agent-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--base);
+}
+.agent-avatar.is-heckl-skeptic { background: var(--purple); }
+.agent-avatar .bot-icon { width: 12px; height: 12px; }
 
 .reviewer-caret {
   display: inline-flex;
@@ -2355,51 +2384,6 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   gap: 7px;
   padding: 12px;
 }
-
-.agent-lanes { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-
-.agent-lane {
-  border-left: 2px solid var(--surface1);
-  padding: 6px 0 6px 10px;
-}
-
-.agent-lane.is-running { border-left-color: var(--yellow); }
-.agent-lane.is-done    { border-left-color: var(--green); }
-.agent-lane.is-error   { border-left-color: var(--red); }
-.agent-lane.is-cancelled { border-left-color: var(--overlay0); }
-
-.agent-lane-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.agent-lane-name { font-size: 12px; color: var(--subtext0); }
-
-.agent-progress { list-style: none; margin: 0; padding: 0; }
-
-.agent-progress-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 3px 0;
-  font-size: 12px;
-}
-
-.agent-progress-name { color: var(--subtext0); }
-.agent-progress-row.is-done .agent-progress-name { color: var(--overlay1); }
-.agent-progress-row.is-error .agent-progress-name { color: var(--red); }
-.agent-progress-row .agent-rerun { margin-left: auto; }
-.agent-progress-row.is-error .review-stage-dot { background: var(--red); }
-.agent-progress-row.is-done .review-stage-dot { background: var(--green); }
-.agent-progress-row.is-cancelled .agent-progress-name { color: var(--overlay0); }
-.agent-progress-row.is-cancelled .review-stage-dot { background: var(--overlay0); }
-
-.agent-lane-head .review-stage-time,
-.agent-lane-head .agent-rerun { margin-left: auto; }
-.agent-lane-head .review-stage-time + .agent-rerun { margin-left: 0; }
-.agent-lane .review-error { margin-top: 4px; }
 
 
 /* ── Icon button hit targets ── */
