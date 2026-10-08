@@ -8,7 +8,7 @@ import {
 import { blobOptions, useDiff, resolved } from "../../queries"
 import { useQueryClient } from "@tanstack/solid-query"
 import { SkeletonDiff } from "../Skeleton"
-import { buildCollapseToggle, buildCopyPathButton, type DiffItemContext } from "./diffHeader"
+import { buildCollapseToggle, buildFileCopyButtons, type DiffItemContext } from "./diffHeader"
 import {
   annotationsByFile,
   annotationsFingerprint,
@@ -247,7 +247,12 @@ export function DiffView(props: Props) {
       unsafeCSS: diffUnsafeCSS,
       renderHeaderPrefix: (fileDiff, context: unknown) =>
         buildCollapseToggle(fileDiff, context as DiffItemContext, toggleCollapsed),
-      renderHeaderFilenameSuffix: (fileDiff) => buildCopyPathButton(fileDiff),
+      renderHeaderFilenameSuffix: (file) => file && "hunks" in file
+        ? buildFileCopyButtons(
+            file,
+            async () => (await queryClient.fetchQuery(blobFor(file))).newFile?.contents ?? null,
+          )
+        : undefined,
       renderAnnotation: (annotation: { metadata?: NoteMetadata }) =>
         buildAnnotationNode(annotation),
     })

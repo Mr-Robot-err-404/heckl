@@ -924,6 +924,8 @@ button.topbar-config:hover { background: none; color: var(--text); }
   flex-shrink: 0;
 }
 .diff-header-btn:hover { color: var(--text); background: var(--surface1); }
+.diff-file-copy-actions { display: inline-flex; align-items: center; gap: 4px; }
+.diff-file-copy-actions .diff-header-btn:disabled { opacity: 0.5; cursor: default; }
 .diff-collapse-slot {
   display: inline-flex;
   align-items: center;

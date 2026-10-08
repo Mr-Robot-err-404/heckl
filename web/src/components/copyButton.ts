@@ -6,6 +6,7 @@ export function buildCopyButton(text: () => string, label: string) {
   button.type = "button"
   button.className = "diff-header-btn diff-copy-btn"
   button.setAttribute("aria-label", label)
+  button.title = label
   button.appendChild(clipboardIcon())
 
   button.addEventListener("click", async (e) => {
