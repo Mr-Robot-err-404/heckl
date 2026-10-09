@@ -1,5 +1,5 @@
 import { buildCopyButton } from "../copyButton"
-import { checkIcon, chevronIcon, clipboardIcon } from "./icons"
+import { checkIcon, chevronIcon, fileContentsIcon } from "./icons"
 import type { FileDiffMetadata } from "@pierre/diffs"
 import { copyText, COPIED_MS } from "../../clipboard"
 
@@ -52,7 +52,7 @@ export function buildFileCopyButtons(
     button.className = "diff-header-btn diff-copy-btn"
     button.title = "copy file contents"
     button.setAttribute("aria-label", "copy file contents")
-    button.appendChild(clipboardIcon())
+    button.appendChild(fileContentsIcon())
     button.addEventListener("click", async (event) => {
       event.stopPropagation()
       if (button.disabled) return
@@ -64,7 +64,7 @@ export function buildFileCopyButtons(
         button.classList.add("copied")
         setTimeout(() => {
           if (!button.isConnected) return
-          button.replaceChild(clipboardIcon(), button.firstChild!)
+          button.replaceChild(fileContentsIcon(), button.firstChild!)
           button.classList.remove("copied")
         }, COPIED_MS)
       } catch {

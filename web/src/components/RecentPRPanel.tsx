@@ -11,7 +11,14 @@ import type { PR, RecentPRFilter } from "../types"
 import { FilterIcon } from "./icons"
 import { PRRow } from "./PRRow"
 
-const skeletonRows = Array.from({ length: 6 })
+const skeletonRows = [
+  { titleWidth: "68%", reviewers: Array.from({ length: 3 }) },
+  { titleWidth: "52%", reviewers: Array.from({ length: 2 }) },
+  { titleWidth: "76%", reviewers: Array.from({ length: 4 }) },
+  { titleWidth: "61%", reviewers: Array.from({ length: 1 }) },
+  { titleWidth: "44%", reviewers: Array.from({ length: 2 }) },
+  { titleWidth: "71%", reviewers: Array.from({ length: 3 }) },
+]
 
 export function RecentPRPanel() {
   const recent = useRecentPRs()
@@ -113,12 +120,23 @@ export function RecentPRPanel() {
           when={rows().length > 0}
           fallback={
             <Show when={recent.isPending} fallback={<div class="empty recent-pr-empty">no recent pull requests</div>}>
-              <ul class="review-rows">
+              <ul class="pr-list">
                 <For each={skeletonRows}>
-                  {() => (
-                    <li class="recent-pr-row is-skeleton">
-                      <span class="skeleton skeleton-title" />
-                      <span class="skeleton skeleton-repo" />
+                  {(row) => (
+                    <li class="pr-row is-skeleton">
+                      <div class="pr-row-main">
+                        <span class="skeleton skeleton-title" style={{ width: row.titleWidth }} />
+                        <div class="pr-row-meta">
+                          <span class="skeleton skeleton-repo" />
+                          <span class="skeleton skeleton-number" />
+                          <span class="skeleton skeleton-author" />
+                        </div>
+                      </div>
+                      <div class="pr-status skeleton-reviewers">
+                        <For each={row.reviewers}>
+                          {() => <span class="skeleton skeleton-avatar" />}
+                        </For>
+                      </div>
                     </li>
                   )}
                 </For>

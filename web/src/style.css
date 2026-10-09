@@ -1994,9 +1994,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .recent-pr-filter-repo { padding-left: 20px; color: var(--subtext0); }
 .recent-pr-filter-repo:has(input:disabled) { opacity: 0.45; cursor: default; }
 
-.recent-pr-row.is-skeleton { cursor: default; }
-.recent-pr-row.is-skeleton .skeleton-title { width: 76%; height: 13px; }
-.recent-pr-row.is-skeleton .skeleton-repo { width: 45%; height: 10px; }
+.recent-pr-panel .pr-row.is-skeleton .skeleton-repo { width: 96px; height: 11px; }
 
 .recent-pr-warning { margin: -8px 0 8px; color: var(--yellow); font-size: 10px; }
 .recent-pr-empty { min-height: 220px; font-size: 12px; }
