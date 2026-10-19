@@ -23,6 +23,7 @@ import type { ConcernTarget, DiffSides, FileTarget, ReviewerThread } from "../..
 import { theme } from "../../theme"
 import { highlightVersion } from "../../highlight"
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../icons"
+import { filePatch } from "./filePatch"
 import { searchDiff } from "./search"
 
 type Props = {
@@ -251,6 +252,7 @@ export function DiffView(props: Props) {
         ? buildFileCopyButtons(
             file,
             async () => (await queryClient.fetchQuery(blobFor(file))).newFile?.contents ?? null,
+            () => filePatch(patch, file.name),
           )
         : undefined,
       renderAnnotation: (annotation: { metadata?: NoteMetadata }) =>

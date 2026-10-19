@@ -1,5 +1,5 @@
 import { buildCopyButton } from "../copyButton"
-import { checkIcon, chevronIcon, fileContentsIcon } from "./icons"
+import { checkIcon, chevronIcon, fileContentsIcon, fileDiffIcon } from "./icons"
 import type { FileDiffMetadata } from "@pierre/diffs"
 import { copyText, COPIED_MS } from "../../clipboard"
 
@@ -42,6 +42,7 @@ export function buildCopyPathButton(fileDiff: NamedFile) {
 export function buildFileCopyButtons(
   fileDiff: FileDiffMetadata,
   contents: () => Promise<string | null>,
+  patch: () => string | null,
 ) {
   const buttons = document.createElement("span")
   buttons.className = "diff-file-copy-actions"
@@ -74,6 +75,10 @@ export function buildFileCopyButtons(
       }
     })
     buttons.appendChild(button)
+  }
+  if (fileDiff.hunks.length > 0) {
+    const diff = patch()
+    if (diff) buttons.appendChild(buildCopyButton(() => diff, "copy file diff", fileDiffIcon))
   }
   return buttons
 }

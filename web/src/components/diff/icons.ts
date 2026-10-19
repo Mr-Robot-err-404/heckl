@@ -59,6 +59,13 @@ export function fileContentsIcon() {
   ])
 }
 
+export function fileDiffIcon() {
+  return icon([
+    { tag: "path", d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" },
+    { tag: "path", d: "M14 2v6h6M8 13h5M10.5 10.5v5M8 19h5" },
+  ])
+}
+
 export function checkIcon() {
   return icon([{ tag: "path", d: "M20 6 9 17l-5-5" }])
 }
