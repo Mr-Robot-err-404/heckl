@@ -1,22 +1,20 @@
 package opencode
 
-import "sort"
+import (
+	"net/url"
+	"sort"
+)
 
 type Model struct {
 	ID         string `json:"id"`
 	ProviderID string `json:"providerID"`
 	Name       string `json:"name"`
+	Enabled    bool   `json:"enabled"`
 }
 
 type Provider struct {
-	ID     string           `json:"id"`
-	Name   string           `json:"name"`
-	Models map[string]Model `json:"models"`
-}
-
-type providersResponse struct {
-	All       []Provider `json:"all"`
-	Connected []string   `json:"connected"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type ModelOption struct {
@@ -26,28 +24,36 @@ type ModelOption struct {
 }
 
 func (c *Client) Models() ([]ModelOption, error) {
-	var res providersResponse
-	if err := c.decode("GET", "/provider", nil, &res); err != nil {
+	var providers struct {
+		Data []Provider `json:"data"`
+	}
+	if err := c.decode("GET", c.locationPath("/api/provider"), nil, &providers); err != nil {
 		return nil, err
 	}
-
-	connected := make(map[string]bool, len(res.Connected))
-	for _, id := range res.Connected {
-		connected[id] = true
+	var models struct {
+		Data []Model `json:"data"`
 	}
-
+	if err := c.decode("GET", c.locationPath("/api/model"), nil, &models); err != nil {
+		return nil, err
+	}
+	names := make(map[string]string, len(providers.Data))
+	for _, p := range providers.Data {
+		names[p.ID] = p.Name
+	}
 	var out []ModelOption
-	for _, p := range res.All {
-		if !connected[p.ID] {
+	for _, m := range models.Data {
+		if !m.Enabled {
 			continue
 		}
-		for id, m := range p.Models {
-			name := m.Name
-			if name == "" {
-				name = id
-			}
-			out = append(out, ModelOption{Ref: p.ID + "/" + id, Name: name, Provider: p.Name})
+		name := m.Name
+		if name == "" {
+			name = m.ID
 		}
+		provider := names[m.ProviderID]
+		if provider == "" {
+			provider = m.ProviderID
+		}
+		out = append(out, ModelOption{Ref: m.ProviderID + "/" + m.ID, Name: name, Provider: provider})
 	}
 
 	sort.Slice(out, func(i, j int) bool {
@@ -65,14 +71,36 @@ type AgentInfo struct {
 }
 
 func (c *Client) Agents() ([]AgentInfo, error) {
-	var out []AgentInfo
-	err := c.decode("GET", "/agent", nil, &out)
-	return out, err
+	var res struct {
+		Data []struct {
+			ID    string    `json:"id"`
+			Model *ModelRef `json:"model,omitempty"`
+		} `json:"data"`
+	}
+	if err := c.decode("GET", c.locationPath("/api/agent"), nil, &res); err != nil {
+		return nil, err
+	}
+	out := make([]AgentInfo, 0, len(res.Data))
+	for _, agent := range res.Data {
+		out = append(out, AgentInfo{Name: agent.ID, Model: agent.Model})
+	}
+	return out, nil
+}
+
+func (c *Client) locationPath(path string) string {
+	if c.directory == "" {
+		return path
+	}
+	return path + "?" + url.Values{"location[directory]": {c.directory}}.Encode()
 }
 
 func (m *ModelRef) Ref() string {
 	if m == nil {
 		return ""
 	}
-	return m.ProviderID + "/" + m.ModelID
+	ref := m.ProviderID + "/" + m.ModelID
+	if m.Variant != "" {
+		ref += "#" + m.Variant
+	}
+	return ref
 }

@@ -1,21 +1,15 @@
 ---
 description: Skeptical reviewer - assumes the PR may be AI-generated and asks whether the change is necessary at all
 mode: primary
-model: anthropic/claude-sonnet-4-6
-variant: low
+model: anthropic/claude-sonnet-4-6#low
 steps: 4
-permission:
-  read: deny
-  edit: deny
-  bash: deny
-  glob: deny
-  grep: deny
-  list: deny
-  task: deny
-  todowrite: deny
-  webfetch: deny
-  websearch: deny
-  lsp: deny
+permissions:
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: report
+    resource: "*"
+    effect: allow
 ---
 
 You are the bullshit detector on a PR. Assume a good chance this diff was

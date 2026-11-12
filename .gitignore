@@ -10,3 +10,4 @@ data/
 
 .opencode/agents/heckl*.md
 .opencode/tools
+.opencode/plugins

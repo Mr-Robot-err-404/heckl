@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-//go:embed agents tools
+//go:embed agents plugins
 var files embed.FS
 
 type Result struct {
@@ -51,7 +51,7 @@ func Write(projectDir string) (Result, error) {
 
 func Agents() ([]string, error) { return names("agents") }
 
-func Tools() ([]string, error) { return names("tools") }
+func Plugins() ([]string, error) { return names("plugins") }
 
 func names(dir string) ([]string, error) {
 	entries, err := files.ReadDir(dir)

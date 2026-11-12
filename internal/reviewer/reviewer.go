@@ -224,7 +224,9 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfi
 	sess, err := r.oc.CreateSession(opencode.CreateSessionRequest{
 		Title:      fmt.Sprintf("%s/%s #%d - %s", req.Owner, req.Repo, req.PRNumber, name),
 		Agent:      name,
-		Permission: opencode.ReadOnlyPermission(req.CheckoutPath),
+		Model:      opencode.ParseModel(cfg.Model),
+		Metadata:   map[string]any{"hecklSystem": strings.TrimSpace(cfg.Prompt)},
+		Permission: opencode.ReportOnlyPermissions(),
 	})
 	if err != nil {
 		return fail(StageSession, fmt.Errorf("reviewer: create session (%s): %w", name, err))
@@ -246,10 +248,7 @@ func (r *Reviewer) runAgent(req ReviewRequest, name string, cfg store.AgentConfi
 	emit(ProgressEvent{Agent: name, Stage: StagePrompt})
 	t = time.Now()
 	msg, err := r.oc.Prompt(sess.ID, opencode.PromptRequest{
-		Agent:  name,
-		Model:  opencode.ParseModel(cfg.Model),
-		System: strings.TrimSpace(cfg.Prompt),
-		Parts:  []opencode.Part{{Type: "text", Text: prompt}},
+		Text: prompt,
 	})
 	if err != nil {
 		if cancelled(name) {

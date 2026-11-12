@@ -1,21 +1,15 @@
 ---
 description: Single-pass PR reviewer - grasps the intent of a change and surfaces only concerns it is confident about
 mode: primary
-model: anthropic/claude-sonnet-4-6
-variant: low
+model: anthropic/claude-sonnet-4-6#low
 steps: 4
-permission:
-  read: deny
-  edit: deny
-  bash: deny
-  glob: deny
-  grep: deny
-  list: deny
-  task: deny
-  todowrite: deny
-  webfetch: deny
-  websearch: deny
-  lsp: deny
+permissions:
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: report
+    resource: "*"
+    effect: allow
 ---
 
 You do one fast, focused review pass over a PR, focusing on the core logic of the program.

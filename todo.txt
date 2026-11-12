@@ -60,19 +60,13 @@ Onboarding / packaging
 [x] TOML config from a commented template, XDG paths, HECKL_CONFIG
 [x] Device-code GitHub login, token at 0600; gh demoted to a fallback
 [x] Preflight checks shared by `doctor` and `serve`
-[ ] Bundle .opencode/agents and tools into the binary - opencode.project_dir
-    only exists because the agent and tool files must be on disk next to a
-    checkout. embed + write to a state dir on setup would kill the whole
-    class of "wrong project_dir" failures, but the session deep link is
-    base64 of that same dir, so both have to move together
-[x] report.ts is import-free - no npm anywhere in the bundle. It used to
-    import @opencode-ai/plugin, whose tool() is identity and whose
-    tool.schema is a bare zod re-export. opencode's ToolRegistry only takes
-    the zod path when every arg value has _zod on it; otherwise it builds
-    the JSON Schema itself from plain objects. args are now plain JSON
-    Schema, so bundle.Write produces a tool that loads in any project dir.
-    The tradeoff: opencode no longer validates args before execute, which is
-    fine because reviewer.go unmarshals them into reviewOutput regardless.
+[x] Bundle .opencode/agents and plugins into the binary; setup writes missing
+    files to opencode.project_dir without overwriting user edits
+[x] OpenCode V2 integration - authenticated API, explicit session locations,
+    queued prompts with idle waiting, paginated messages, interrupt handling,
+    model discovery, native agent permissions, and server-based web links
+[x] report tool is a V2 plugin with JSON Schema inputs and a type-only import,
+    so the shipped bundle has no runtime npm dependency
 [ ] Capabilities endpoint - the UI cannot tell tmux is disabled or missing, so
     the button is offered and then fails. Needs /api/capabilities plus a
     frontend that respects it
@@ -114,17 +108,17 @@ Agent integration
     single source of names
 [x] Cancel a review, or a single agent - the run/rerun button becomes a stop
     button while in flight. DELETE /api/review/... (optionally /agent/{agent}).
-    Stopping calls opencode's POST /session/{id}/abort, so it is the same act
+    Stopping calls opencode's POST /api/session/{id}/interrupt, so it is the same act
     as hitting stop inside opencode itself. A session aborted from opencode's
-    own UI is detected via MessageAbortedError on the assistant message and
+    own UI is detected via the session's interrupted outcome and
     lands in the same place. Cancellation is a "cancelled" status, never an
     error: nothing renders red, and nothing is persisted, so cancelling a
     rerun leaves the previous stored review intact and restores it in the UI.
 [ ] Per-agent summaries - stored per agent now, but only the highest-ranked
     non-empty one is shown as the review synopsis
-[ ] Scope sessions to the checkout - POST /session?directory=<checkout>.
-    Sessions currently inherit the serve cwd, so a read resolves against
-    heckl's own tree, not the PR
+[ ] Scope sessions to the checkout using V2 location.directory. Sessions
+    currently use opencode.project_dir so the bundled plugin and agents load;
+    moving them needs to preserve those definitions in the target location
 [ ] Restore read for heckl once sessions are scoped - the diff alone is
     often not enough context
 [ ] Per-agent file selection - pick which files of the diff an agent sees

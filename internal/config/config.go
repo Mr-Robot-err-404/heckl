@@ -34,9 +34,10 @@ type GitHub struct {
 }
 
 type OpenCode struct {
-	URL        string `toml:"url"`
-	ProjectDir string `toml:"project_dir"`
-	Spawn      bool   `toml:"spawn"`
+	URL          string `toml:"url"`
+	ProjectDir   string `toml:"project_dir"`
+	Spawn        bool   `toml:"spawn"`
+	PasswordFile string `toml:"password_file"`
 }
 
 type Tmux struct {
@@ -58,9 +59,10 @@ func Defaults() Config {
 			UseGHCLI:  true,
 		},
 		OpenCode: OpenCode{
-			URL:        "http://127.0.0.1:4420",
-			ProjectDir: DataHome(),
-			Spawn:      true,
+			URL:          "http://127.0.0.1:4420",
+			ProjectDir:   DataHome(),
+			Spawn:        true,
+			PasswordFile: filepath.Join(DataHome(), "opencode-password"),
 		},
 		Tmux: Tmux{
 			Enabled:    true,
@@ -123,7 +125,7 @@ func (c *Config) normalise() error {
 	if c.OpenCode.ProjectDir == "" {
 		return fmt.Errorf("config: opencode.project_dir is empty - it must point at the directory holding .opencode/")
 	}
-	for _, p := range []*string{&c.Server.DataDir, &c.Server.Database, &c.OpenCode.ProjectDir, &c.GitHub.TokenFile} {
+	for _, p := range []*string{&c.Server.DataDir, &c.Server.Database, &c.OpenCode.ProjectDir, &c.OpenCode.PasswordFile, &c.GitHub.TokenFile} {
 		expanded, err := expand(*p)
 		if err != nil {
 			return err

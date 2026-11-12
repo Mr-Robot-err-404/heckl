@@ -1,11 +1,8 @@
 package opencode
 
-import "encoding/base64"
-
-func SessionPath(directory, sessionID string) string {
-	if directory == "" || sessionID == "" {
+func SessionPath(sessionID string) string {
+	if sessionID == "" {
 		return ""
 	}
-	dir := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(directory))
-	return "/" + dir + "/session/" + sessionID
+	return "/session/" + sessionID
 }

@@ -1,83 +1,68 @@
 package opencode
 
-const (
-	PermissionAllow = "allow"
-	PermissionDeny  = "deny"
-	PermissionAsk   = "ask"
-)
-
-const (
-	PermissionExternalDirectory = "external_directory"
-	PermissionBash              = "bash"
-	PermissionEdit              = "edit"
-	PermissionRead              = "read"
-	PermissionGlob              = "glob"
-	PermissionGrep              = "grep"
-	PermissionList              = "list"
-	PermissionTask              = "task"
-	PermissionTodoWrite         = "todowrite"
-	PermissionWebFetch          = "webfetch"
-	PermissionWebSearch         = "websearch"
-	PermissionLSP               = "lsp"
-)
-
-var deniedTools = []string{
-	PermissionEdit,
-	PermissionBash,
-	PermissionGlob,
-	PermissionGrep,
-	PermissionList,
-	PermissionTask,
-	PermissionTodoWrite,
-	PermissionWebFetch,
-	PermissionWebSearch,
-	PermissionLSP,
+type PermissionRule struct {
+	Action   string `json:"action"`
+	Resource string `json:"resource"`
+	Effect   string `json:"effect"`
 }
 
-type PermissionRule struct {
-	Permission string `json:"permission"`
-	Pattern    string `json:"pattern"`
-	Action     string `json:"action"`
+type Location struct {
+	Directory string `json:"directory"`
 }
 
 type Session struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Outcome string `json:"outcome"`
+}
+
+func ReportOnlyPermissions() []PermissionRule {
+	return []PermissionRule{
+		{Action: "*", Resource: "*", Effect: "deny"},
+		{Action: "report", Resource: "*", Effect: "allow"},
+	}
 }
 
 func ReadOnlyPermission(path string) []PermissionRule {
-	rules := make([]PermissionRule, 0, len(deniedTools)+3)
-	for _, tool := range deniedTools {
-		rules = append(rules, PermissionRule{Permission: tool, Pattern: "*", Action: PermissionDeny})
-	}
-	return append(rules,
-		PermissionRule{Permission: PermissionExternalDirectory, Pattern: "*", Action: PermissionDeny},
-		PermissionRule{Permission: PermissionExternalDirectory, Pattern: path + "/*", Action: PermissionAllow},
+	return append(ReportOnlyPermissions(),
+		PermissionRule{Action: "execute", Resource: "*", Effect: "allow"},
+		PermissionRule{Action: "read", Resource: "*", Effect: "allow"},
+		PermissionRule{Action: "external_directory", Resource: path + "/*", Effect: "allow"},
 	)
 }
 
 type CreateSessionRequest struct {
 	Title      string           `json:"title,omitempty"`
 	Agent      string           `json:"agent,omitempty"`
-	Permission []PermissionRule `json:"permission,omitempty"`
+	Model      *ModelRef        `json:"model,omitempty"`
+	Location   *Location        `json:"location,omitempty"`
+	Metadata   map[string]any   `json:"metadata,omitempty"`
+	Permission []PermissionRule `json:"permissions,omitempty"`
 }
 
 func (c *Client) CreateSession(req CreateSessionRequest) (*Session, error) {
-	var s Session
-	err := c.decode("POST", "/session", req, &s)
-	return &s, err
+	if req.Location == nil && c.directory != "" {
+		req.Location = &Location{Directory: c.directory}
+	}
+	var res struct {
+		Data Session `json:"data"`
+	}
+	err := c.decode("POST", "/api/session", req, &res)
+	return &res.Data, err
 }
 
 func (c *Client) GetSession(id string) (*Session, error) {
-	var s Session
-	err := c.decode("GET", "/session/"+id, nil, &s)
-	return &s, err
+	var res struct {
+		Data Session `json:"data"`
+	}
+	err := c.decode("GET", "/api/session/"+id, nil, &res)
+	return &res.Data, err
 }
 
 func (c *Client) DeleteSession(id string) error {
-	return c.decode("DELETE", "/session/"+id, nil, nil)
+	return c.decode("DELETE", "/api/session/"+id, nil, nil)
 }
 
 func (c *Client) Abort(id string) error {
-	return c.decode("POST", "/session/"+id+"/abort", nil, nil)
+	return c.decode("POST", "/api/session/"+id+"/interrupt?resume=false", nil, nil)
 }

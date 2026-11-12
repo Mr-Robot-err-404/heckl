@@ -46,7 +46,7 @@ use_gh_cli = {{ .GitHub.UseGHCLI }}
 # Where `opencode serve` listens. Must include an explicit port.
 url = "{{ .OpenCode.URL }}"
 
-# Directory holding .opencode/agents and .opencode/tools. `heckl setup` writes
+# Directory holding .opencode/agents and .opencode/plugins. `heckl setup` writes
 # the bundled agents here, and never overwrites a file that already exists, so
 # anything you edit stays edited - including across upgrades. Delete a file and
 # re-run setup to get the shipped version back. Both directories are read once
@@ -55,6 +55,8 @@ project_dir = "{{ .OpenCode.ProjectDir }}"
 
 # Start `opencode serve` if nothing is answering on the URL above.
 spawn = {{ .OpenCode.Spawn }}
+
+password_file = "{{ .OpenCode.PasswordFile }}"
 
 [tmux]
 # Turn off to reject tmux session requests. The button stays in the UI; the

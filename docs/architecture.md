@@ -13,7 +13,7 @@ DOMPurify for PR bodies. Binds `127.0.0.1:7331` by default.
 
 ```
 cmd/heckl/          setup, doctor, serve, migrate. main.go embeds web/dist
-internal/bundle/    agents/*.md + tools/report.ts, embedded
+internal/bundle/    agents/*.md + plugins/heckl.ts, embedded
 internal/config/    TOML, defaults, commented template
 internal/ghauth/    device flow, token resolution
 internal/preflight/ Check list shared by doctor and serve
@@ -27,8 +27,8 @@ internal/server/    HTTP handlers
 web/src/            components, queries, routes, style.css
 ```
 
-`.opencode/agents` and `.opencode/tools` in the checkout are symlinks into
-`internal/bundle`. One source of truth, embedded and served from the same files.
+`internal/bundle` is the source of truth for the embedded agents and plugin.
+Local development can link `.opencode/plugins` to `../internal/bundle/plugins`.
 
 ## API
 
@@ -66,20 +66,43 @@ post comments as you. `0.0.0.0:7331` to expose it, or put a proxy in front.
 
 ## Agents
 
-`internal/bundle` embeds `agents/*.md` and `tools/report.ts`. `setup` writes
+`internal/bundle` embeds `agents/*.md` and `plugins/heckl.ts`. `setup` writes
 any file missing from `project_dir/.opencode/` and **never overwrites**, so
 edits survive upgrades. Deleting a file and re-running setup restores the
 shipped version. New agents in a later release appear because they are absent.
 
 The cost is deliberate: an edited agent never receives prompt improvements.
 
-`project_dir` defaults to `~/.local/share/heckl`. Its base64 also forms the
-opencode session deep link. Both directories are read once at `opencode serve`
-startup, so edits need a restart.
+`project_dir` defaults to `~/.local/share/heckl`. Every session explicitly uses
+this location, including when connecting to an already running server. V2
+discovers the plugin under `.opencode/plugins` and reloads watched changes.
+The plugin uses a type-only import from `@opencode/plugin`, with no runtime npm
+dependencies. Its tool input is JSON Schema.
 
-`@opencode-ai/plugin` is installed by opencode itself, not shipped, so the
-version tracks the user's opencode. Preflight warns rather than fails if it is
-absent, since a fresh setup resolves it on first start.
+## OpenCode V2
+
+Heckl targets the V2 HTTP API. `GET /api/info` verifies the server version.
+Session, agent, provider, and model responses use their V2 envelopes.
+
+V2 servers require Basic authentication with username `opencode`. Password
+precedence is `OPENCODE_PASSWORD`, then `OPENCODE_SERVER_PASSWORD`, then
+`opencode.password_file`. The default file is
+`~/.local/share/heckl/opencode-password`. When spawning a server without an
+existing password, Heckl generates one and writes it with mode 0600. It passes
+the password to `opencode serve` through the environment, never command arguments.
+An existing server must use the same password. Authentication or version errors
+fail startup rather than spawning another process on the same port.
+
+Session links use `/server/<base64url(browser-facing-server-origin)>/session/<id>`.
+The frontend supplies the browser-facing origin, preserving remote HTTPS links.
+The OpenCode web UI may ask for the server password on its first visit.
+
+To upgrade an existing installation, rebuild Heckl and run `heckl setup` to
+install `plugins/heckl.ts`. Existing agent files remain untouched; V2 accepts
+their V1 frontmatter. New bundled agents use native V2 permissions. Old
+`.opencode/tools/report.ts` files are no longer used. Stop any old server on the
+configured port before starting Heckl, or configure the password for an existing
+V2 server. No Heckl database migration is needed.
 
 ## GitHub auth
 
@@ -108,16 +131,22 @@ fetch -> checkout -> session -> prompt -> parse -> store
 Each stage broadcasts on entry and exit. `finish(err)` closes any stage still
 `running`, so a failure cannot leave one spinning in the UI.
 
-**Structured output comes from a tool call, not `format.json_schema`.** opencode
-persists `format` on the user message and then cannot deserialise it: any
-`json_schema` makes `GET /session/{id}/message` return 400 and the session
-permanently unopenable. `PromptRequest.Format` exists because the endpoint
-accepts it. **Do not use it.** `report.ts` is called once as the agent's final
-action; the filename is the tool name and its Zod args are the schema.
-`reviewer.go` reads `state.input` off the returned `ToolPart`. A completed
+**Structured output comes from a tool call.** `plugins/heckl.ts` registers
+`report`, called once as the agent's final action. Session permissions deny all
+actions except `report`, independently of existing agent files or global tools.
+The tool is exposed directly with Code Mode disabled, so its input is persisted
+on the report call rather than hidden inside an `execute` invocation.
+`reviewer.go` reads `state.input` from a completed report call. A completed
 `report` call defines success, not the absence of an error.
 
-`Agent` must be passed on the `Prompt` call, not just `CreateSession`.
+The agent and optional model override are selected when creating the session.
+Custom reviewer instructions are stored in session metadata as `hecklSystem`;
+the plugin appends them to each agent-loop request's system instructions.
+`POST /api/session/{id}/prompt` admits the text, then Heckl waits through
+`POST /api/experimental/session/{id}/wait` and reads all pages of V2 messages.
+V2 assistant `content` is adapted to the reviewer's existing parts representation.
+Stopping calls `POST /api/session/{id}/interrupt?resume=false`. The session's
+`interrupted` outcome also detects cancellation from OpenCode's own UI.
 
 ## Streams
 
@@ -146,9 +175,9 @@ links are absolute and stored twice, so a moved data dir silently re-clones.
 
 ### Reaping
 
-A worktree has exactly two consumers: a running review, which reads through
-`opencode.ReadOnlyPermission(worktree)`, and a tmux session with nvim open in
-it. Diff rendering and blob expansion read the **clone**, and review results are
+A worktree has two consumers: the review lifecycle and a tmux session with nvim
+open in it. Review agents currently receive only the diff and cannot read the
+worktree. Diff rendering and blob expansion read the **clone**, and review results are
 rows in sqlite, so neither keeps a worktree alive. Once the review finishes and
 no session points at it, the directory is dead weight.
 

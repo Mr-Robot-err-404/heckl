@@ -36,7 +36,7 @@ func Run(ctx context.Context, cfg *config.Config) []Check {
 		binary("git", true, "install git - clones and worktrees are done with it, not delegated to an agent"),
 		binary("opencode", true, "install opencode: https://opencode.ai - reviews cannot run without it"),
 		agentFiles(cfg),
-		toolFiles(cfg),
+		pluginFiles(cfg),
 		database(cfg),
 		token(cfg),
 	}
@@ -100,25 +100,25 @@ func agentFiles(cfg *config.Config) Check {
 	return Check{Name: "opencode agents", Status: OK, Detail: dir}
 }
 
-func toolFiles(cfg *config.Config) Check {
+func pluginFiles(cfg *config.Config) Check {
 	dir := filepath.Join(cfg.OpenCode.ProjectDir, ".opencode")
 
-	names, err := bundle.Tools()
+	names, err := bundle.Plugins()
 	if err != nil {
-		return Check{Name: "opencode tools", Status: Fail, Detail: err.Error()}
+		return Check{Name: "opencode plugins", Status: Fail, Detail: err.Error()}
 	}
 
 	for _, name := range names {
-		if _, err := os.Stat(filepath.Join(dir, "tools", name)); err != nil {
+		if _, err := os.Stat(filepath.Join(dir, "plugins", name)); err != nil {
 			return Check{
-				Name:   "opencode tools",
+				Name:   "opencode plugins",
 				Status: Fail,
 				Detail: name + " not found under " + dir,
-				Hint:   "run `heckl setup` to write the bundled tools, or point opencode.project_dir at a directory that has them",
+				Hint:   "run `heckl setup` to write the bundled plugins, or point opencode.project_dir at a directory that has them",
 			}
 		}
 	}
-	return Check{Name: "opencode tools", Status: OK, Detail: dir}
+	return Check{Name: "opencode plugins", Status: OK, Detail: dir}
 }
 
 func database(cfg *config.Config) Check {

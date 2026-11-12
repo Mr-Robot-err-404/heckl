@@ -56,9 +56,10 @@ func runServe() {
 	defer db.Close()
 
 	oc, err := opencode.Setup(opencode.SetupOptions{
-		BaseURL:    cfg.OpenCode.URL,
-		ProjectDir: cfg.OpenCode.ProjectDir,
-		Spawn:      cfg.OpenCode.Spawn,
+		BaseURL:      cfg.OpenCode.URL,
+		ProjectDir:   cfg.OpenCode.ProjectDir,
+		Spawn:        cfg.OpenCode.Spawn,
+		PasswordFile: cfg.OpenCode.PasswordFile,
 	})
 	if err != nil {
 		fatal("opencode setup failed: " + err.Error())
@@ -68,7 +69,7 @@ func runServe() {
 	gh.Warm(context.Background())
 	co := checkout.New(cfg.Server.DataDir)
 	rev := reviewer.New(oc, co, db)
-	sessionPath := func(id string) string { return opencode.SessionPath(cfg.OpenCode.ProjectDir, id) }
+	sessionPath := opencode.SessionPath
 	orc := orchestrator.New(context.Background(), slog.Default(), gh, rev, db, sessionPath)
 
 	if cfg.Server.RemoteHost != "" {
