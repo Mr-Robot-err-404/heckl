@@ -159,6 +159,7 @@ type prResponse struct {
 	Title        string `json:"Title"`
 	Body         string `json:"Body"`
 	State        string `json:"State"`
+	Merged       bool   `json:"Merged"`
 	Author       string `json:"Author"`
 	AuthorAvatar string `json:"AuthorAvatar"`
 	HtmlUrl      string `json:"HtmlUrl"`
@@ -217,6 +218,7 @@ func toPRResponse(owner, repo string, pr github.PR) prResponse {
 		Title:              pr.Title,
 		Body:               pr.Body,
 		State:              pr.State,
+		Merged:             pr.MergedAt != nil,
 		Author:             pr.User.Login,
 		AuthorAvatar:       pr.User.AvatarURL,
 		HtmlUrl:            pr.HTMLURL,

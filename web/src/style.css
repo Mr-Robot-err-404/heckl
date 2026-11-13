@@ -648,6 +648,8 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .pr-row:hover .pr-row-title { color: var(--green); }
 
 .pr-row-main { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+.pr-state-icon { display: inline-flex; vertical-align: -2px; margin-right: 8px; color: var(--red); }
+.pr-state-icon.is-merged { color: var(--purple); }
 
 .pr-row-title {
   display: flex;

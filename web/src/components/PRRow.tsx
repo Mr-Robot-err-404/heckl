@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/solid-router"
 import { usePrefetch } from "../queries"
 import type { PR } from "../types"
 import { PRStatus } from "./PRStatus"
+import { MergeIcon, PullRequestClosedIcon } from "./icons"
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -29,6 +30,11 @@ export function PRRow(props: { pr: PR; reviewing: boolean; showRepo?: boolean })
     >
       <div class="pr-row-main">
         <span class="pr-row-title">
+          <Show when={props.pr.State === "closed"}>
+            <span class="pr-state-icon" classList={{ "is-merged": props.pr.Merged }} role="img" aria-label={props.pr.Merged ? "merged" : "closed without merging"} title={props.pr.Merged ? "merged" : "closed without merging"}>
+              <Show when={props.pr.Merged} fallback={<PullRequestClosedIcon />}><MergeIcon /></Show>
+            </span>
+          </Show>
           <Show when={props.pr.Draft}>
             <span class="badge draft">draft</span>
           </Show>

@@ -25,6 +25,7 @@ export type PR = {
   Title: string
   Body: string
   State: string
+  Merged: boolean
   Author: string
   AuthorAvatar: string
   HtmlUrl: string
