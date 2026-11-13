@@ -1958,14 +1958,15 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .recent-pr-panel { min-width: 0; }
 .tmux-panel .dashboard-head { margin-bottom: 12px; }
 
-.recent-pr-head { position: relative; }
+.recent-pr-head { position: relative; flex-wrap: wrap; }
 .recent-pr-head > .muted { margin-right: auto; }
 
-.pr-state-filter { display: flex; gap: 4px; margin-left: auto; }
+.pr-state-filter { display: flex; flex-shrink: 0; gap: 4px; margin-left: auto; }
 .pr-state-filter button { min-height: 36px; padding: 8px 10px; border: 0; border-radius: 0; background: none; color: var(--subtext0); font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer; }
 .pr-state-filter button:hover { color: var(--text); }
 .pr-state-filter button.active { color: var(--blue); }
 .recent-pr-filter { margin-left: auto; }
+.recent-pr-head .recent-pr-filter { margin-left: 0; }
 .recent-pr-filter summary { list-style: none; }
 .recent-pr-filter summary::-webkit-details-marker { display: none; }
 

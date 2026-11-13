@@ -84,15 +84,15 @@ export function useRemoveRepo() {
 export const recentPRsKey = ["recent-prs"] as const
 export const recentPRFilterKey = ["recent-prs", "filter"] as const
 
-export function recentPRsOptions() {
+export function recentPRsOptions(state: "open" | "closed" = "open") {
   return {
-    queryKey: recentPRsKey,
-    queryFn: api.recentPRs.list,
+    queryKey: [...recentPRsKey, state],
+    queryFn: () => api.recentPRs.list(state),
   }
 }
 
-export function useRecentPRs() {
-  return createQuery(recentPRsOptions)
+export function useRecentPRs(state: () => "open" | "closed" = () => "open") {
+  return createQuery(() => recentPRsOptions(state()))
 }
 
 export function useRecentPRFilter() {
@@ -116,7 +116,7 @@ export function useSaveRecentPRFilter() {
     onError: (_error, _filter, context) =>
       client.setQueryData(recentPRFilterKey, context?.previous),
     onSuccess: (filter) => client.setQueryData(recentPRFilterKey, filter),
-    onSettled: () => client.invalidateQueries({ queryKey: recentPRsKey, exact: true }),
+    onSettled: () => client.invalidateQueries({ queryKey: recentPRsKey }),
   }))
 }
 

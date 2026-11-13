@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import { useActiveReviews } from "../activeReviews"
 import {
   resolved,
@@ -10,6 +10,7 @@ import {
 import type { PR, RecentPRFilter } from "../types"
 import { FilterIcon } from "./icons"
 import { PRRow } from "./PRRow"
+import { PRStateFilter } from "./PRStateFilter"
 
 const skeletonRows = [
   { titleWidth: "68%", reviewers: Array.from({ length: 3 }) },
@@ -21,7 +22,8 @@ const skeletonRows = [
 ]
 
 export function RecentPRPanel() {
-  const recent = useRecentPRs()
+  const [state, setState] = createSignal<"open" | "closed">("open")
+  const recent = useRecentPRs(state)
   const recentData = resolved(recent)
   const filters = useRecentPRFilter()
   const filterData = resolved(filters)
@@ -56,6 +58,7 @@ export function RecentPRPanel() {
         <Show when={rows().length > 0}>
           <span class="muted">{rows().length}</span>
         </Show>
+        <PRStateFilter state={state()} onChange={setState} />
         <details class="recent-pr-filter">
           <summary class="topbar-btn icon-btn" title="filter pull requests" aria-label="filter pull requests">
             <FilterIcon />
@@ -119,7 +122,7 @@ export function RecentPRPanel() {
         <Show
           when={rows().length > 0}
           fallback={
-            <Show when={recent.isPending} fallback={<div class="empty recent-pr-empty">no recent pull requests</div>}>
+            <Show when={recent.isPending} fallback={<div class="empty recent-pr-empty">no recent {state()} pull requests</div>}>
               <ul class="pr-list">
                 <For each={skeletonRows}>
                   {(row) => (

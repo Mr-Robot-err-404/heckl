@@ -111,6 +111,20 @@ func (s *Server) handleSetRecentPRFilter(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleListRecentPRs(w http.ResponseWriter, r *http.Request) {
+	state := r.URL.Query().Get("state")
+	if state == "" {
+		state = "open"
+	}
+	if state != "open" && state != "closed" {
+		jsonError(w, "state must be open or closed", http.StatusBadRequest)
+		return
+	}
+	list := s.gh.ListRepoPRs
+	limit := recentPRLimit
+	if state == "closed" {
+		list = s.gh.ListClosedRepoPRs
+		limit = 20
+	}
 	filter, err := s.recentPRFilter(r)
 	if err != nil {
 		jsonError(w, err.Error(), http.StatusInternalServerError)
@@ -152,7 +166,7 @@ func (s *Server) handleListRecentPRs(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			result.prs, result.err = s.gh.ListRepoPRs(r.Context(), result.repo.Owner, result.repo.Name)
+			result.prs, result.err = list(r.Context(), result.repo.Owner, result.repo.Name)
 		}(&results[i])
 	}
 	wg.Wait()
@@ -172,8 +186,8 @@ func (s *Server) handleListRecentPRs(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(response.PullRequests, func(i, j int) bool {
 		return response.PullRequests[i].UpdatedAt > response.PullRequests[j].UpdatedAt
 	})
-	if len(response.PullRequests) > recentPRLimit {
-		response.PullRequests = response.PullRequests[:recentPRLimit]
+	if len(response.PullRequests) > limit {
+		response.PullRequests = response.PullRequests[:limit]
 	}
 	s.enrichPRs(r.Context(), response.PullRequests)
 	sort.Strings(response.Unavailable)

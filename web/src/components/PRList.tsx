@@ -3,6 +3,7 @@ import { usePRs, resolved } from "../queries"
 import { RepoHistory } from "./RepoHistory"
 import { useActiveReviews } from "../activeReviews"
 import { PRRow } from "./PRRow"
+import { PRStateFilter } from "./PRStateFilter"
 
 type Props = {
   owner: string
@@ -35,10 +36,7 @@ export function PRList(props: Props) {
         <section class="recent-pr-panel">
           <div class="dashboard-head">
             <h1>{props.owner}/{props.repo}</h1>
-            <div class="pr-state-filter" role="group" aria-label="Pull request state">
-              <button classList={{ active: state() === "open" }} aria-pressed={state() === "open"} onClick={() => setState("open")}>OPEN</button>
-              <button classList={{ active: state() === "closed" }} aria-pressed={state() === "closed"} onClick={() => setState("closed")} title="20 most recently updated closed pull requests">CLOSED</button>
-            </div>
+            <PRStateFilter state={state()} onChange={setState} />
           </div>
           <div class="dashboard-scroll">
             <Show when={prs.error}>

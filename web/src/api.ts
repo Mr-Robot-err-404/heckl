@@ -87,7 +87,7 @@ export const api = {
       get<ReviewerThread[]>(`/prs/${owner}/${repo}/${number}/comments`),
   },
   recentPRs: {
-    list: () => get<RecentPRPage>("/recent-prs"),
+    list: (state: "open" | "closed" = "open") => get<RecentPRPage>(`/recent-prs?state=${state}`),
     filter: () => get<RecentPRFilter>("/recent-prs/filter"),
     saveFilter: (filter: RecentPRFilter) =>
       put<RecentPRFilter>("/recent-prs/filter", filter),
