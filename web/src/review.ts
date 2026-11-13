@@ -211,8 +211,7 @@ const opencodePort = "4420"
 export function opencodeUrl(path: string | undefined) {
   if (!path) return ""
   const origin = `${window.location.protocol}//${window.location.hostname}:${opencodePort}`
-  const server = btoa(origin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
-  return `${origin}/server/${server}${path}`
+  return `/api/opencode${path}?${new URLSearchParams({ origin })}`
 }
 
 export function formatMs(ms: number) {

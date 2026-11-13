@@ -1,14 +1,13 @@
-import { createEffect, createMemo, createSignal, onCleanup, onMount, Show, untrack } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import {
-  CodeView,
   parsePatchFiles,
-  type CodeViewItem,
   type FileDiffMetadata,
 } from "@pierre/diffs"
+import { NativeDiffView, type DiffItem } from "./NativeDiffView"
 import { blobOptions, useDiff, resolved } from "../../queries"
 import { useQueryClient } from "@tanstack/solid-query"
 import { SkeletonDiff } from "../Skeleton"
-import { buildCollapseToggle, buildFileCopyButtons, type DiffItemContext } from "./diffHeader"
+import { buildCollapseToggle, buildFileCopyButtons } from "./diffHeader"
 import {
   annotationsByFile,
   annotationsFingerprint,
@@ -70,8 +69,8 @@ export function DiffView(props: Props) {
   const queryClient = useQueryClient()
   let host!: HTMLDivElement
   let searchInput: HTMLInputElement | undefined
-  let view: CodeView<NoteMetadata> | null = null
-  let selectionBeforeSearch: ReturnType<CodeView<NoteMetadata>["getSelectedLines"]> = null
+  let view: NativeDiffView<NoteMetadata> | null = null
+  let selectionBeforeSearch: ReturnType<NativeDiffView<NoteMetadata>["getSelectedLines"]> = null
   let selectedFile: string | null = null
   let fileIds: string[] = []
   let highlightSeen = highlightVersion()
@@ -128,7 +127,7 @@ export function DiffView(props: Props) {
     }
     const item = v.getItem(match.file)
     if (!item) return
-    if (item.collapsed) v.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 })
+    if (item.collapsed) v.updateItem({ ...item, collapsed: false })
     v.setSelectedLines(
       { id: match.file, range: { start: match.line, end: match.line, side: match.side } },
       { notify: false },
@@ -176,7 +175,6 @@ export function DiffView(props: Props) {
     view?.updateItem({
       ...item,
       collapsed: !item.collapsed,
-      version: (item.version ?? 0) + 1,
     })
   }
 
@@ -199,9 +197,8 @@ export function DiffView(props: Props) {
       .catch(() => {})
   })
 
-  createEffect(() => {
-    const patch = patchData()
-    const shiki = theme().shiki
+  createEffect(on(() => [patchData(), props.owner, props.repo, props.prNumber] as const, ([patch]) => {
+    const shiki = untrack(() => theme().shiki)
     const annotations = untrack(notes)
     if (!patch) return
 
@@ -210,9 +207,8 @@ export function DiffView(props: Props) {
       `${props.owner}/${props.repo}/${props.prNumber}`,
     ).flatMap((p) => p.files)
 
-    const items: CodeViewItem<NoteMetadata>[] = files.map((fileDiff) => ({
+    const items: DiffItem<NoteMetadata>[] = files.map((fileDiff) => ({
       id: `${fileDiff.name}`,
-      type: "diff" as const,
       fileDiff,
       annotations: annotations.get(fileDiff.name) ?? [],
     }))
@@ -221,13 +217,12 @@ export function DiffView(props: Props) {
     selectedFile = null
     searchSelection = null
     selectionBeforeSearch = null
-    view = new CodeView<NoteMetadata>({
+    view = new NativeDiffView<NoteMetadata>({
       theme: shiki,
       hunkSeparators: "line-info",
       diffStyle: "unified",
       diffIndicators: "bars",
       lineDiffType: "word-alt",
-      stickyHeaders: true,
       enableLineSelection: true,
       onSelectedLinesChange: (selection) => {
         if (!selection) {
@@ -244,10 +239,9 @@ export function DiffView(props: Props) {
       },
       loadDiffFiles: loadFiles,
       expansionLineCount: 20,
-      layout: { paddingTop: 8, paddingBottom: 8, gap: 0 },
       unsafeCSS: diffUnsafeCSS,
-      renderHeaderPrefix: (fileDiff, context: unknown) =>
-        buildCollapseToggle(fileDiff, context as DiffItemContext, toggleCollapsed),
+      renderHeaderPrefix: (fileDiff) =>
+        buildCollapseToggle(fileDiff, { item: view?.getItem(fileDiff.name) ?? { id: fileDiff.name } }, toggleCollapsed),
       renderHeaderFilenameSuffix: (file) => file && "hunks" in file
         ? buildFileCopyButtons(
             file,
@@ -262,8 +256,12 @@ export function DiffView(props: Props) {
     setParsedFiles(files)
     view.setup(host)
     view.setItems(items)
-    view.render()
     setRendered(true)
+  }))
+
+  createEffect(() => {
+    const shiki = theme().shiki
+    if (rendered()) untrack(() => view?.setTheme(shiki))
   })
 
   createEffect(() => {
@@ -279,12 +277,12 @@ export function DiffView(props: Props) {
     untrack(() => {
       for (const id of fileIds) {
         const item = v.getItem(id)
-        if (!item || item.type !== "diff") continue
+        if (!item) continue
 
         const next: DiffAnnotation[] = annotations.get(id) ?? []
         if (!forced && sameAnnotations(item.annotations, next)) continue
 
-        v.updateItem({ ...item, annotations: next, version: (item.version ?? 0) + 1 })
+        v.updateItem({ ...item, annotations: next })
       }
     })
   })
@@ -297,7 +295,7 @@ export function DiffView(props: Props) {
     const item = v.getItem(target.file)
     if (!item) return
     if (item.collapsed) {
-      v.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 })
+      v.updateItem({ ...item, collapsed: false })
     }
 
     v.setSelectedLines(
@@ -325,7 +323,7 @@ export function DiffView(props: Props) {
     const item = v.getItem(target.file)
     if (!item) return
     if (item.collapsed) {
-      v.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 })
+      v.updateItem({ ...item, collapsed: false })
     }
 
     v.scrollTo({ type: "item", id: target.file, align: "start" })

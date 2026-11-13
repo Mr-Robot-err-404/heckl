@@ -834,7 +834,7 @@ button.topbar-config:hover { background: none; color: var(--text); }
 .desc-file-stat .additions,
 .desc-file-stat .deletions { flex: 0 0 auto; }
 
-.diffview-host { flex: 1; overflow: auto; height: 100%; }
+.diffview-host { flex: 1; overflow: auto; height: 100%; min-height: 0; padding-block: 8px; scrollbar-gutter: stable; }
 
 .diff-tab-panel {
   flex: 1;

@@ -116,6 +116,7 @@ func (sw *statusWriter) WriteHeader(code int) {
 func (sw *statusWriter) Unwrap() http.ResponseWriter { return sw.ResponseWriter }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /api/opencode/session/{session}", s.handleOpencodeSession)
 	s.mux.HandleFunc("GET /api/orgs", s.handleListOrgs)
 	s.mux.HandleFunc("GET /api/repos", s.handleListRepos)
 	s.mux.HandleFunc("GET /api/repos/{owner}", s.handleListReposByOwner)

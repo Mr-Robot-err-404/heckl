@@ -6,7 +6,7 @@ SQLite.
 ## Stack
 
 Go + sqlc + goose. SolidJS/Vite, TanStack Query and Router. `@pierre/diffs`
-via the vanilla `CodeView` API (see `docs/diffs-references/`). marked +
+via the vanilla `FileDiff` API (see `docs/diffs-references/`). marked +
 DOMPurify for PR bodies. Binds `127.0.0.1:7331` by default.
 
 ## Layout
@@ -93,9 +93,15 @@ the password to `opencode serve` through the environment, never command argument
 An existing server must use the same password. Authentication or version errors
 fail startup rather than spawning another process on the same port.
 
-Session links use `/server/<base64url(browser-facing-server-origin)>/session/<id>`.
-The frontend supplies the browser-facing origin, preserving remote HTTPS links.
-The OpenCode web UI may ask for the server password on its first visit.
+Session links go through `GET /api/opencode/session/{id}`. Heckl issues and
+redeems a single-use OpenCode pairing code server-side, forwards the resulting
+HttpOnly session cookie, then redirects to
+`/server/<base64url(browser-facing-server-origin)>/session/<id>`. No password or
+pairing code appears in the browser URL. The frontend supplies the browser-facing
+origin, preserving remote HTTPS links. Both services must use the same browser
+hostname, since cookies are shared across ports, not across hosts. The origin is
+restricted to the request hostname on port 4420. Access to Heckl grants access to
+its OpenCode server, consistent with the unauthenticated local UI.
 
 To upgrade an existing installation, rebuild Heckl and run `heckl setup` to
 install `plugins/heckl.ts`. Existing agent files remain untouched; V2 accepts
@@ -286,8 +292,8 @@ Three layers cover the rest:
 
 - `/api/blob` is a real query (`blobOptions`, `staleTime: Infinity`, keyed on the
   head sha so a force-push invalidates naturally) and `loadDiffFiles` goes
-  through `fetchQuery`. Re-expanding a file after the `CodeView` is rebuilt (a
-  theme change does this) is now a cache hit rather than a refetch.
+  through `fetchQuery`. Re-expanding a file after leaving and reopening a PR
+  is a cache hit rather than a refetch. Theme changes reuse the file instances.
 - Hovering an expand button `prefetchQuery`s that file. This is what covers files
   past the 50 cap, moving their cost from the click to the hover. Delegated from
   a single `mouseover` on the host: the buttons live in per-file shadow roots,
@@ -327,7 +333,7 @@ the SSH target and never applies to a local request.
 ## Frontend notes
 
 Themes need registering in three places: the CSS block, `web/src/theme.ts`,
-`internal/server/theme.go`. `CodeView` is locked to a single Shiki theme name
+`internal/server/theme.go`. `FileDiff` is locked to a single Shiki theme name
 rather than a `{dark, light}` pair, so it cannot follow OS
 `prefers-color-scheme` against a light app chrome.
 
@@ -369,7 +375,11 @@ nothing is pending; zero pending is not an error.
 
 - **No agent shell commands.** git and other deterministic work runs in Go
   (`internal/checkout`), never delegated via `bash`.
-- `@pierre/diffs` via vanilla API.
+- `@pierre/diffs` via vanilla API. Each file uses a non-virtualized `FileDiff`.
+  The browser owns the diff container's scrollbar. There are no estimated
+  heights, virtual scroll offsets, scroll restoration, or scroll event handlers.
+  Only explicit file, concern, and search navigation writes the scroll position.
+  Theme and annotation updates reuse the mounted file instances.
 - **modernc/sqlite**, pure Go, so cross-compiling is `CGO_ENABLED=0` plus
   `GOOS`/`GOARCH`.
 - **DiffsHub** dropped as an iframe embed: localStorage auth cannot be injected
