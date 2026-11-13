@@ -140,10 +140,10 @@ export function repoHistoryOptions(owner: string, repo: string, page: number) {
 
 export const prsKey = (owner: string, repo: string) => ["prs", owner, repo] as const
 
-export function prsOptions(owner: string, repo: string) {
+export function prsOptions(owner: string, repo: string, state: "open" | "closed" = "open") {
   return {
-    queryKey: prsKey(owner, repo),
-    queryFn: () => api.prs.list(owner, repo),
+    queryKey: [...prsKey(owner, repo), state],
+    queryFn: () => api.prs.list(owner, repo, state),
   }
 }
 
@@ -203,9 +203,9 @@ export function useRepoReviewHistory(
   }))
 }
 
-export function usePRs(owner: () => string, repo: () => string) {
+export function usePRs(owner: () => string, repo: () => string, state: () => "open" | "closed" = () => "open") {
   return createQuery(() => ({
-    ...prsOptions(owner(), repo()),
+    ...prsOptions(owner(), repo(), state()),
     enabled: !!owner() && !!repo(),
   }))
 }

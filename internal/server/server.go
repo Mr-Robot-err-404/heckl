@@ -234,9 +234,21 @@ func toPRResponse(owner, repo string, pr github.PR) prResponse {
 func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	owner := r.PathValue("owner")
 	repo := r.PathValue("repo")
+	state := r.URL.Query().Get("state")
+	if state == "" {
+		state = "open"
+	}
+	if state != "open" && state != "closed" {
+		jsonError(w, "state must be open or closed", http.StatusBadRequest)
+		return
+	}
 
 	start := time.Now()
-	remote, err := s.gh.ListRepoPRs(r.Context(), owner, repo)
+	list := s.gh.ListRepoPRs
+	if state == "closed" {
+		list = s.gh.ListClosedRepoPRs
+	}
+	remote, err := list(r.Context(), owner, repo)
 	if err != nil {
 		slog.Error("github: list prs failed", "owner", owner, "repo", repo, "err", err)
 		jsonError(w, err.Error(), http.StatusBadGateway)
@@ -244,17 +256,16 @@ func (s *Server) handleListPRs(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Debug("github: list prs", "owner", owner, "repo", repo, "count", len(remote), "duration_ms", time.Since(start).Milliseconds())
 
-	open := make(map[int]bool, len(remote))
-	for _, pr := range remote {
-		open[pr.Number] = true
-	}
-
-	// ListRepoPRs asks for one page, so a full page means the open set may be
-	// incomplete and reaping on absence could delete a live PR's worktree.
-	if len(remote) < github.PRPageSize {
-		go s.reapClosed(owner, repo, open)
-	} else {
-		slog.Warn("reap: skipped, open pr list may be truncated", "owner", owner, "repo", repo)
+	if state == "open" {
+		open := make(map[int]bool, len(remote))
+		for _, pr := range remote {
+			open[pr.Number] = true
+		}
+		if len(remote) < github.PRPageSize {
+			go s.reapClosed(owner, repo, open)
+		} else {
+			slog.Warn("reap: skipped, open pr list may be truncated", "owner", owner, "repo", repo)
+		}
 	}
 
 	out := make([]prResponse, 0, len(remote))

@@ -84,6 +84,12 @@ func (c *Client) ListRepoPRs(ctx context.Context, owner, repo string) ([]PR, err
 	return prs, err
 }
 
+func (c *Client) ListClosedRepoPRs(ctx context.Context, owner, repo string) ([]PR, error) {
+	var prs []PR
+	err := c.decode(ctx, fmt.Sprintf("/repos/%s/%s/pulls?state=closed&sort=updated&direction=desc&per_page=20", owner, repo), &prs)
+	return prs, err
+}
+
 func (c *Client) GetPR(ctx context.Context, owner, repo string, number int) (*PR, error) {
 	var pr PR
 	err := c.decode(ctx, fmt.Sprintf("/repos/%s/%s/pulls/%d", owner, repo, number), &pr)

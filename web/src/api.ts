@@ -79,7 +79,8 @@ export const api = {
     remove: (owner: string, name: string) => del(`/repos/${owner}/${name}`),
   },
   prs: {
-    list: (owner: string, repo: string) => get<PR[]>(`/prs/${owner}/${repo}`),
+    list: (owner: string, repo: string, state: "open" | "closed" = "open") =>
+      get<PR[]>(`/prs/${owner}/${repo}?state=${state}`),
     get: (owner: string, repo: string, number: number) =>
       get<PRDetail>(`/prs/${owner}/${repo}/${number}`),
     comments: (owner: string, repo: string, number: number) =>

@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import { usePRs, resolved } from "../queries"
 import { RepoHistory } from "./RepoHistory"
 import { useActiveReviews } from "../activeReviews"
@@ -19,7 +19,8 @@ const skeletonRows = [
 ]
 
 export function PRList(props: Props) {
-  const prs = usePRs(() => props.owner, () => props.repo)
+  const [state, setState] = createSignal<"open" | "closed">("open")
+  const prs = usePRs(() => props.owner, () => props.repo, state)
   const rows = resolved(prs)
   const { active } = useActiveReviews()
 
@@ -34,6 +35,10 @@ export function PRList(props: Props) {
         <section class="recent-pr-panel">
           <div class="dashboard-head">
             <h1>{props.owner}/{props.repo}</h1>
+            <div class="pr-state-filter" role="group" aria-label="Pull request state">
+              <button classList={{ active: state() === "open" }} aria-pressed={state() === "open"} onClick={() => setState("open")}>OPEN</button>
+              <button classList={{ active: state() === "closed" }} aria-pressed={state() === "closed"} onClick={() => setState("closed")} title="20 most recently updated closed pull requests">CLOSED</button>
+            </div>
           </div>
           <div class="dashboard-scroll">
             <Show when={prs.error}>
@@ -63,7 +68,7 @@ export function PRList(props: Props) {
             </Show>
             <Show when={rows()}>
               {(list) => (
-                <Show when={list().length > 0} fallback={<div class="empty">no pull requests</div>}>
+                <Show when={list().length > 0} fallback={<div class="empty">no {state()} pull requests</div>}>
                   <ul class="pr-list" classList={{ "is-stale": prs.isFetching }}>
                     <For each={list()}>
                       {(pr) => <PRRow pr={pr} reviewing={isReviewing(pr.Number)} />}

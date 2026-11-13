@@ -1942,6 +1942,7 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
   background: var(--mantle);
 }
 .dashboard-main .dashboard-head { padding: 0 var(--gutter); }
+.dashboard-cols .dashboard-head { min-height: 36px; flex-shrink: 0; }
 .recent-pr-panel { padding-top: 24px; padding-bottom: 40px; }
 .dashboard-main .review-rows { border: none; border-radius: 0; }
 .dashboard-main .review-row { min-width: 0; }
@@ -1960,6 +1961,10 @@ button.topbar-prlist:disabled:hover { color: var(--overlay0); }
 .recent-pr-head { position: relative; }
 .recent-pr-head > .muted { margin-right: auto; }
 
+.pr-state-filter { display: flex; gap: 4px; margin-left: auto; }
+.pr-state-filter button { min-height: 36px; padding: 8px 10px; border: 0; border-radius: 0; background: none; color: var(--subtext0); font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer; }
+.pr-state-filter button:hover { color: var(--text); }
+.pr-state-filter button.active { color: var(--blue); }
 .recent-pr-filter { margin-left: auto; }
 .recent-pr-filter summary { list-style: none; }
 .recent-pr-filter summary::-webkit-details-marker { display: none; }
